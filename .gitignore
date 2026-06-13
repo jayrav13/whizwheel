@@ -40,3 +40,6 @@
 # SimpleCov coverage output (generated when tests run).
 /coverage/
 
+
+# Superpowers brainstorming companion (local mockups)
+.superpowers/
