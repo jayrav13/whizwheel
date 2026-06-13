@@ -1,0 +1,3 @@
+alice_admin:
+  user: alice
+  role_type: admin

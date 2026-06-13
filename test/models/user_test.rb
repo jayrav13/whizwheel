@@ -8,8 +8,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "normalizes username to stripped lowercase" do
-    user = User.create!(username: "  BoB  ", password: "secret123")
-    assert_equal "bob", user.username
+    user = User.create!(username: "  CaRoL  ", password: "secret123")
+    assert_equal "carol", user.username
   end
 
   test "authenticate_by verifies the password" do
