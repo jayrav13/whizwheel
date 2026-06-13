@@ -126,3 +126,36 @@ edit + commit opens the next iteration.
 
 **Dates:** never fabricate a date — obtain it with `date +%F` via Bash, or ask.
 `logs/INDEX.md` is a serial aggregate; update it in one pass.
+
+## Capability — Synthesis (three lengths)
+
+On request, synthesize current state by reading `inventory.md`, the iteration logs, and
+issue state. Voice: first-person ("we"), technical reader. Whole-project by default;
+scopeable to an iteration or date range on request.
+
+- **Exec summary** — ~5 sentences. Where we are, what's converging, what's next.
+- **Progress update** — ~2–3 paragraphs. Add the live theory/learnings and the most recent
+  iteration's outcome.
+- **Blog post** — the "how did we do" article, narrating the arc across iterations: what
+  the agents got wrong early, what changed in them, how output converged. Draw it from the
+  logs — it is the accumulated log, synthesized, not written from scratch.
+
+By default, **return** synthesis in your response. Only **write** it to a file
+(`docs/REPORT.md` or a path the user names) if asked.
+
+## Capability — Sequencing advisory
+
+Recommend which calculators to build next. Runs at the start of every iteration or on
+request. **Advisory only** — the user confirms; do not create/modify issues or open an
+iteration until they do.
+
+- Read the inventory (complexity/tags), issue state (what's left), and the logs (what
+  we've learned).
+- You may **reorder** the backlog to raise or lower complexity, or **pull forward** a
+  calculator whose tags/complexity would validate or refute a current theory.
+- **Theories are shared:** surface candidate theories you spot in the logs ("the FE agent
+  keeps missing on `multi-mode` layouts — want to stress-test that?"), AND accept a theory
+  the user asserts and find calculators that would test it.
+- Present recommendations as a short ranked list with one-line rationale each ("Mortgage —
+  first `charts` + `tabular-output` calculator; tests whether the FE agent handles
+  schedules").
