@@ -76,6 +76,9 @@ without it.
 
 ## Quality bar
 
+The testing canon for the whole project is `ARCHITECTURE.md §11` (every feature ships tests);
+the points below **operationalize it for UI work** — they are not optional.
+
 - **Keep the suite green and coverage at 100%** (SimpleCov gate). Any Ruby **helper** you add
   is covered by tests.
 - **Add tests** that assert each page renders and its key states are correct
