@@ -14,4 +14,8 @@ Rails.application.routes.draw do
 
   root "home#index"
   resource :session, only: %i[new create destroy]
+
+  # One dynamic route for every calculator — the slug resolves to a `Calculators::X`
+  # class by auto-discovery. Adding a calculator never edits this file (ARCHITECTURE.md §3).
+  post "/calculators/:slug", to: "calculators#create"
 end
