@@ -90,12 +90,14 @@ message (e.g. `+3 / −1`).
 Per-calculator task state lives in GitHub Issues, not in `docs/`. You **create and label**
 issues and **read** them for reporting; you **never close** them (PR merges do).
 
-- **Seed one `engineering` issue per calculator** from the inventory. Title = the
-  calculator name. Body includes: category, source URL, complexity, tags, and a note that
-  it is a calculator-rewrite task. Create with:
-  `gh issue create --title "<name>" --label engineering --body "<body>"`.
-- Avoid duplicates: before seeding, list existing issues (you already have them from the
-  launch protocol) and skip calculators that already have an issue.
+- **Create issues at selection time, not in bulk.** When a calculator is selected for an
+  iteration, create one `engineering` issue for it. Do **not** pre-seed the whole
+  inventory — `docs/inventory.md` is the full backlog; an open issue means a calculator is
+  actually queued or in flight. Title = the calculator name. Body includes: category,
+  source URL, complexity, tags, and a note that it is a calculator-rewrite task. Create
+  with: `gh issue create --title "<name>" --label engineering --body "<body>"`.
+- Avoid duplicates: before creating, check existing issues (you have them from the launch
+  protocol) and skip a calculator that already has one.
 - **`agents` issues** capture deferred work — bugs/cleanups queued for a future agentic
   batch fix. Create with `--label agents`.
 - To report status, read issue state (`gh issue list --state all ...`) — open vs closed
@@ -108,11 +110,13 @@ An **iteration** is the rebuild of `n` sequentially-next calculators (a set of s
 
 **Open an iteration** (PM recommends `n` + calculators; user confirms):
 1. Confirm the agent definitions are committed; capture the commit SHA.
-2. Create `docs/logs/iteration-NNNN/` (zero-padded, next number).
-3. Append a row to `docs/logs/INDEX.md`: status `open`, opened date, agent SHA, the chosen
+2. Create an `engineering` issue for each selected calculator that doesn't already have one
+   (per the Issues capability) — this is when issues come into being.
+3. Create `docs/logs/iteration-NNNN/` (zero-padded, next number).
+4. Append a row to `docs/logs/INDEX.md`: status `open`, opened date, agent SHA, the chosen
    calculators **with their issue numbers**, headline `—`.
-4. Tag the boundary: `git tag iteration-NNNN <agent-SHA>`.
-5. Note at the top of the iteration folder **what changed in the agents since the previous
+5. Tag the boundary: `git tag iteration-NNNN <agent-SHA>`.
+6. Note at the top of the iteration folder **what changed in the agents since the previous
    iteration**.
 
 **During the iteration:** for each calculator, maintain
