@@ -3,24 +3,35 @@
 #
 # Pairs with bin/ci-watch: once CI has completed (ci-monitor reports done), pull the
 # deterministically-generated screenshots so the main thread (which has vision) can
-# review them against docs/DESIGN.md before merge. Prints the download dir on stdout.
+# review them against docs/DESIGN.md before merge.
+#
+# The visual gate must cover EVERY screenshot, never a sample. To make that
+# deterministic this prints the count + a sha256 manifest (so the set is enumerable
+# and auditable); with --baseline it classifies each shot UNCHANGED/CHANGED/NEW vs a
+# baseline so byte-identical shots pass by hash and only CHANGED/NEW need an eyeball.
+# The download dir is printed on stdout (capture with `dir=$(bin/ci-screenshots ...)`);
+# the manifest/diff go to stderr.
 #
 # Exit codes: 0 = downloaded | 1 = usage / no run | 3 = no ui-screenshots artifact
 #
 # Usage:
-#   bin/ci-screenshots                 # latest run on the current branch
-#   bin/ci-screenshots <branch>        # latest run on <branch>
-#   bin/ci-screenshots --pr <number>   # latest run for a PR's head branch
-#   bin/ci-screenshots --run <id>      # a specific run id
+#   bin/ci-screenshots                      # latest run on the current branch
+#   bin/ci-screenshots <branch>             # latest run on <branch>
+#   bin/ci-screenshots --pr <number>        # latest run for a PR's head branch
+#   bin/ci-screenshots --run <id>           # a specific run id
+#   bin/ci-screenshots --pr 14 --baseline <dir>   # diff the pulled shots vs <dir>
 
 set -uo pipefail
 
-mode="branch"; ref=""; run_id=""
+sha256_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
+
+mode="branch"; ref=""; run_id=""; baseline=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --pr)  mode="pr";  ref="${2:-}"; shift 2 ;;
-    --run) mode="run"; run_id="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    --pr)       mode="pr";  ref="${2:-}"; shift 2 ;;
+    --run)      mode="run"; run_id="${2:-}"; shift 2 ;;
+    --baseline) baseline="${2:-}"; shift 2 ;;
+    -h|--help)  sed -n '2,21p' "$0"; exit 0 ;;
     *) ref="$1"; shift ;;
   esac
 done
@@ -44,6 +55,35 @@ rm -rf "$dest" && mkdir -p "$dest"
 if ! gh run download "$run_id" -n ui-screenshots -D "$dest" >/dev/null 2>&1; then
   echo "ci-screenshots: no 'ui-screenshots' artifact on run $run_id (UI/system tests may not have run yet)" >&2
   exit 3
+fi
+
+# Manifest (to stderr): every screenshot, enumerable + auditable. Review ALL of them.
+shopt -s nullglob
+shots=( "$dest"/*.png )
+echo "ci-screenshots: ${#shots[@]} screenshot(s) — review every one (sha256):" >&2
+for f in "${shots[@]}"; do echo "  $(sha256_of "$f")  $(basename "$f")" >&2; done
+
+# Optional deterministic diff vs a baseline dir.
+if [[ -n "$baseline" ]]; then
+  echo "ci-screenshots: baseline diff vs $baseline —" >&2
+  unchanged=0; changed=0; new=0
+  for f in "${shots[@]}"; do
+    name="$(basename "$f")"
+    if [[ -f "$baseline/$name" ]]; then
+      if [[ "$(sha256_of "$f")" == "$(sha256_of "$baseline/$name")" ]]; then
+        echo "  UNCHANGED  $name" >&2; ((unchanged++))
+      else
+        echo "  CHANGED    $name  (view this one)" >&2; ((changed++))
+      fi
+    else
+      echo "  NEW        $name  (view this one)" >&2; ((new++))
+    fi
+  done
+  for b in "$baseline"/*.png; do
+    [[ -e "$b" ]] || continue
+    [[ -f "$dest/$(basename "$b")" ]] || echo "  MISSING    $(basename "$b")  (in baseline, not in this run)" >&2
+  done
+  echo "ci-screenshots: $unchanged unchanged, $changed changed, $new new — eyeball the CHANGED/NEW set; UNCHANGED pass by hash." >&2
 fi
 
 echo "$dest"
