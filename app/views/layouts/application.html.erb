@@ -18,6 +18,11 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
+    <%# Preload the self-hosted Inter woff2 so the BLEND headline paints in Inter
+        from the first frame (minimizes the font-display: swap flash). Digested via
+        Propshaft; see the @font-face in app/assets/tailwind/application.css. %>
+    <%= tag.link rel: "preload", href: asset_path("inter-latin-variable.woff2"), as: "font", type: "font/woff2", crossorigin: "anonymous" %>
+
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>

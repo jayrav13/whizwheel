@@ -32,4 +32,20 @@ class UiScreenshotsTest < ApplicationSystemTestCase
     assert_selector "nav", text: "Sign out"
     screenshot_full_page("04-home-signed-in")
   end
+
+  # Inter is self-hosted (issue #11) — before the fix it was named in --font-sans
+  # but never delivered, so every non-macOS visitor silently fell back. Assert the
+  # @font-face actually loaded so the BLEND grotesk (DESIGN.md §2) reaches the page,
+  # not just that the family is *named* in CSS.
+  test "Inter web font is delivered" do
+    visit root_path
+    assert_selector "h1"
+    # The Font Loading API resolves once the @font-face woff2 has loaded.
+    page.document.synchronize do
+      ready = page.evaluate_script("document.fonts.ready.then(() => true)")
+      assert ready, "document.fonts.ready did not resolve"
+    end
+    loaded = page.evaluate_script("document.fonts.check('800 16px Inter')")
+    assert loaded, "Inter @font-face did not load — the self-hosted woff2 is not being delivered"
+  end
 end

@@ -41,7 +41,7 @@ The aesthetic is named **BLEND** — *warm, sharpened, with a touch of green.* I
 
 ## 2. Typography
 
-- **Family:** a sharp grotesk — `"Inter", "Helvetica Neue", system-ui, sans-serif`. (System-available fallbacks; no web-font fetch required.)
+- **Family:** a sharp grotesk — `"Inter", "Helvetica Neue", system-ui, sans-serif`. **Inter is self-hosted** — one variable `woff2` (latin subset, weights 400–800) declared via `@font-face` in `app/assets/tailwind/application.css` and served by Propshaft (no Google-Fonts CDN at runtime) — so the grotesk is delivered on every OS, not left to system availability. The other entries are fallbacks during load / if it fails to fetch.
 - **Headlines:** weight **800**, tracking **`-0.035em`**, large and *sweeping*. Page title ≈ **40px**; hero result ≈ **54px** at `-0.04em`.
 - **Numerals:** **`tabular-nums`** wherever numbers matter (hero results, chart amounts, schedules, stats) so columns align.
 - **Eyebrow:** 11px, `.12em`, uppercase, **green**.
