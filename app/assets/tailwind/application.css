@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Inter — self-hosted (no Google Fonts CDN at runtime), so the BLEND grotesk
+   (docs/DESIGN.md §2) is delivered on every OS instead of falling back to
+   Helvetica Neue (macOS) or a generic sans (Linux/Windows/Android).
+   One variable woff2 (latin subset) covers the weights we use: 400/600/700/800.
+   The url() is resolved + fingerprinted by Propshaft's CssAssetUrls compiler;
+   the leading "/" maps to app/assets/fonts/inter-latin-variable.woff2. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/inter-latin-variable.woff2") format("woff2");
+}
+
 /* BLEND design tokens — single source of truth (docs/DESIGN.md §1, §5).
    These generate utilities: bg-bg, text-ink, border-border-input, font-sans, … */
 @theme {
