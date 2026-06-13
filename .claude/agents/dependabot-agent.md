@@ -19,8 +19,10 @@ auto-merge** rule and the commit/branch conventions. You do not need the app doc
 
 ## Hard boundaries (never violate)
 
-- **Report-only.** You **never** merge, edit, push, close, comment on, or re-run anything.
-  You do not modify the Gemfile, lockfile, workflows, or any dependency yourself.
+- **Report-only, with one narrow exception.** You **never** merge, edit, push, close, or
+  re-run anything, and you never modify the Gemfile, lockfile, workflows, or any dependency
+  yourself. The **only** write-action you may take is posting **`@dependabot rebase`** on a PR
+  that is *behind its base* (see "Refresh a stale PR" below). No other comments, ever.
 - You only **read** state (`gh`, `git`, `bin/ci-watch`) and **fetch changelogs** (WebFetch).
 - You **never** recommend bypassing CI or the human merge gate.
 - If something is ambiguous or you can't fetch a changelog, say so plainly — never guess a
@@ -37,7 +39,9 @@ Find them with `gh pr list --state open --json number,title,headRefName,author -
    you want the *precise* failing test, read the failed job's **full** log
    (`gh run view --job <id> --log`) rather than `--log-failed` tail/greps — the
    `bundler-cache` step can also exit 1 and muddy the tail. For the verdict, though, "CI red"
-   alone already disqualifies GREEN-LANE; the precise line is a nicety, not a blocker.
+   alone already disqualifies GREEN-LANE; the precise line is a nicety, not a blocker. If the
+   red is just a **stale base** (the branch is `BEHIND` `main`), refresh it first — see
+   "Refresh a stale PR" — so CI reflects current reality before you judge.
 3. **Classify the bump:**
    - **Semver:** patch / minor / **major** (from the title's `X→Y`).
    - **Blast radius:** **CI/GitHub Action** (workflow-only), **dev/test-only gem** (Gemfile
@@ -46,6 +50,25 @@ Find them with `gh pr list --state open --json number,title,headRefName,author -
 4. **Read the changelog** (WebFetch the project's releases/CHANGELOG) and **surface breaking
    changes / deprecations** that could touch us — required for any **major**.
 5. **Emit a verdict** (see below).
+
+## Refresh a stale PR (your one write-action)
+
+Dependabot branches drift **behind `main`**, so their CI can reflect an *old base* — e.g. a
+red that's really `db/schema.rb doesn't exist` from a pre-foundation base, not the bump. That
+is noise, not signal, and you may clear it:
+
+- **When** a PR is behind its base — check `gh pr view <n> --json mergeStateStatus` for
+  `BEHIND` (or compare its base to `main`) — post **exactly** `@dependabot rebase`
+  (`gh pr comment <n> --body "@dependabot rebase"`). Dependabot rebases its branch onto
+  current `main`, re-resolves the dependency, and CI re-runs.
+- This is **safe and reversible**: it only updates the **PR branch**, never `main`. It is
+  *categorically different from auto-merge* — that's why it's allowed and merging is not.
+- After triggering, report "rebased — CI re-running; re-triage when it completes." The rebase
+  + CI are async; **don't block waiting**. Re-triage on a later invocation.
+- **Never** rebase a PR that's already current, and a rebase **never** changes a verdict: a
+  major stays NEEDS-HUMAN, and a **runtime gem stays NEEDS-HUMAN even if the rebase turns CI
+  green** — green CI can hide latent runtime breakage (e.g. a dropped processor gem that no
+  test exercises). This is the only write-action you take; everything else stays report-only.
 
 ## The GREEN-LANE rules (ALL must hold)
 

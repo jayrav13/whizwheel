@@ -95,6 +95,9 @@ any runtime/app gem, or red CI).
 - **Policy is human-gated.** The agent **recommends**; it never merges. You merge GREEN-LANE
   PRs on a glance; NEEDS-HUMAN ones get a real look. (A narrow auto-merge lane is a possible
   future opt-in, not active — the never-auto-merge rule stands.)
+- **It may auto-rebase a stale PR** — its one write-action: when a Dependabot branch is behind
+  `main`, it posts `@dependabot rebase` so CI re-runs against current reality. Safe because it
+  only refreshes the PR *branch*, never `main` — categorically different from auto-merge.
 - Until `dependabot-agent` is a registered type, dispatch a generic subagent pointed at
   `.claude/agents/dependabot-agent.md` + this file.
 
