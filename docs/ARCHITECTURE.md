@@ -114,7 +114,7 @@ class CalculatorsController < ApplicationController
     klass = Calculators::Base.lookup(params[:slug])
     return head(:not_found) unless klass
 
-    calc = klass.new(calculator_params)
+    calc = klass.new(calculator_params(klass))
     if calc.valid?
       record = calc.to_calculation
       record.user = Current.user      # may be nil — anonymous calculations are allowed
@@ -127,7 +127,9 @@ class CalculatorsController < ApplicationController
 
   private
 
-  def calculator_params = params.fetch(:inputs, {}).permit!  # calculators validate their own attrs
+  # The calculator's declared attributes ARE the allowlist — permit exactly those
+  # keys (so an unknown key is dropped, not a 500 via UnknownAttributeError).
+  def calculator_params(klass) = params.permit(inputs: klass.attribute_names).fetch(:inputs, {})
 end
 ```
 
