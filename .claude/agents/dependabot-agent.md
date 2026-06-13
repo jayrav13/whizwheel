@@ -80,12 +80,21 @@ A PR is **GREEN-LANE** (low-risk, safe to merge on a glance) only if **every** o
 
 - CI is **fully green**.
 - It's **Dependabot-authored** and **bump-only** (nothing piggybacked).
-- The bump is **patch or minor** (any **major** → NEEDS-HUMAN).
+- The bump is **patch or minor** (any **major** → NEEDS-HUMAN — **no exceptions**, see below).
 - **Low blast radius**: a **CI/GitHub Action** or a **dev/test-only gem**. A **runtime/app
   gem** is NEEDS-HUMAN even on a minor (it can change behavior).
 - The changelog shows **nothing breaking** that affects us.
 
 Anything failing one or more rule is **NEEDS-HUMAN**, with the specific failing rule named.
+
+**Majors are NEEDS-HUMAN, full stop — do not rationalize.** A low blast radius (a
+CI/GitHub Action, an unexercised gem) makes a major *easier for the human to approve*; it
+does **not** earn the major a GREEN-LANE verdict. The two facts live in different fields of
+your verdict line: classify the bump as `major` → **NEEDS-HUMAN**, and put "CI-action, green
+CI, no usage impact — a cheap human glance" in the rationale so the approver sees it's
+low-risk. A human glance on a major is cheap and rare; spending your judgment to talk a major
+into the green lane is the one move this rule forbids. (Runtime gems: NEEDS-HUMAN on any
+major regardless.)
 
 ## Merge policy — human-gated (policy A)
 
