@@ -40,8 +40,8 @@ Find them with `gh pr list --state open --json number,title,headRefName,author -
    (`gh run view --job <id> --log`) rather than `--log-failed` tail/greps — the
    `bundler-cache` step can also exit 1 and muddy the tail. For the verdict, though, "CI red"
    alone already disqualifies GREEN-LANE; the precise line is a nicety, not a blocker. If the
-   red is just a **stale base** (the branch is `BEHIND` `main`), refresh it first — see
-   "Refresh a stale PR" — so CI reflects current reality before you judge.
+   red is just a **stale base** (the branch is behind `main` — see the `behind_by` check),
+   refresh it first — see "Refresh a stale PR" — so CI reflects current reality before you judge.
 3. **Classify the bump:**
    - **Semver:** patch / minor / **major** (from the title's `X→Y`).
    - **Blast radius:** **CI/GitHub Action** (workflow-only), **dev/test-only gem** (Gemfile
@@ -57,10 +57,13 @@ Dependabot branches drift **behind `main`**, so their CI can reflect an *old bas
 red that's really `db/schema.rb doesn't exist` from a pre-foundation base, not the bump. That
 is noise, not signal, and you may clear it:
 
-- **When** a PR is behind its base — check `gh pr view <n> --json mergeStateStatus` for
-  `BEHIND` (or compare its base to `main`) — post **exactly** `@dependabot rebase`
-  (`gh pr comment <n> --body "@dependabot rebase"`). Dependabot rebases its branch onto
-  current `main`, re-resolves the dependency, and CI re-runs.
+- **When** a PR is behind `main` — check the real distance with
+  `gh api repos/<owner>/<repo>/compare/main...<headRef> --jq '.behind_by'` (a count `> 0`
+  means behind). Do **not** rely on `gh pr view --json mergeStateStatus` returning `BEHIND`:
+  it only does when the repo *requires* up-to-date branches (we don't), so a stale branch
+  shows `UNSTABLE`/`CLEAN` there even when it's 60 commits behind. When behind, post
+  **exactly** `@dependabot rebase` (`gh pr comment <n> --body "@dependabot rebase"`).
+  Dependabot rebases its branch onto current `main`, re-resolves the dependency, and CI re-runs.
 - This is **safe and reversible**: it only updates the **PR branch**, never `main`. It is
   *categorically different from auto-merge* — that's why it's allowed and merging is not.
 - After triggering, report "rebased — CI re-running; re-triage when it completes." The rebase
