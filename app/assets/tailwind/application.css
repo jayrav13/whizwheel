@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* BLEND design tokens — single source of truth (docs/DESIGN.md §1, §5).
+   These generate utilities: bg-bg, text-ink, border-border-input, font-sans, … */
+@theme {
+  --color-bg:           #fdf8f3;
+  --color-surface:      #ffffff;
+  --color-ink:          #241d18;
+  --color-muted:        #6f6155;
+  --color-label:        #8a7768;
+  --color-faint:        #a08a7c;
+  --color-primary:      #ef6c4d;
+  --color-accent:       #2f9e6f;
+  --color-amber:        #ffb703;
+  --color-border:       #f3ebe2;
+  --color-border-input: #ece1d6;
+  --color-rule:         #efe4d8;
+  --font-sans:          "Inter", "Helvetica Neue", system-ui, sans-serif;
+}
