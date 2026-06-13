@@ -67,6 +67,13 @@ After **any** push or PR, the CI run must be watched to completion — never ass
 - **You (the main thread) keep it current.** At each meaningful decision or pivot, fire the **`historian`** agent **in the background** (`run_in_background: true`) to journal it. Emit one short visible line when you do — a marker such as `📝 journaling that in the background` — then continue immediately; never block on it, and handle its completion quietly (surface only errors). The historian reads the session transcript + `JOURNEY.md`'s coverage anchor and writes the gap itself — you do **not** push it context.
 - Until `historian` is a registered type, fire a generic background subagent pointed at `.claude/agents/historian.md` + this file.
 
+## End of session
+
+Run this checklist before a session closes. The user will try to prompt you ("end session") — do it then. This list will grow.
+
+1. **Dispatch the historian — and let it finish.** Journal everything since its coverage anchor. Unlike mid-session journaling, **wait for it to complete** (do *not* background it): the session is closing, so a backgrounded run may be cut off before it commits. Confirm the new anchor + commit.
+2. **Verify no unstaged files.** Run `git status`; ensure nothing meaningful is left uncommitted or unstaged. Surface anything that is, so leaving it is a deliberate choice.
+
 ## The rules that matter most
 
 1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code.
