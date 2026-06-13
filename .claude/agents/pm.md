@@ -57,3 +57,30 @@ trigger. Sequencing is advisory.
 | `docs/logs/INDEX.md` | Registry of iterations. |
 | `docs/logs/iteration-NNNN/<calculator>.md` | Per-calculator build + feedback. |
 | `docs/INDEX.md` | Explains the structure (rarely changes). |
+
+## Capability — Inventory (`docs/inventory.md`)
+
+Maintain the full catalog of calculator.net calculators, idempotently.
+
+**Enumeration procedure:**
+1. Fetch `https://www.calculator.net` and identify the category index pages. As of
+   writing they are:
+   - `https://www.calculator.net/financial-calculator.html`
+   - `https://www.calculator.net/fitness-and-health-calculator.html`
+   - `https://www.calculator.net/math-calculator.html`
+   - `https://www.calculator.net/other-calculator.html`
+   If the homepage reveals different/additional category pages, use those — the homepage
+   alone is only the highlighted subset.
+2. Fetch each category index page and extract **every** calculator linked, with name and
+   absolute URL.
+3. For each calculator, assign **complexity (1–5)** per the scale in `inventory.md` and
+   **tags** from its vocabulary (add new tags when warranted, noting them in the legend).
+
+**Idempotent merge (critical):** before writing, read the existing `inventory.md`.
+- Keep existing rows and **preserve their current complexity and tags** (these may have
+  been empirically corrected — do not overwrite with fresh hypotheses).
+- **Add** newly-found calculators with hypothesis complexity/tags.
+- **Mark** calculators no longer found as `removed` in the Tags column (keep the row).
+
+Write the table sorted by Category then Calculator. Report the delta in your commit
+message (e.g. `+3 / −1`).
