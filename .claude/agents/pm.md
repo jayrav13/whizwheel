@@ -1,5 +1,6 @@
 ---
 name: pm
+color: blue
 description: Use for whizwheel project-management tasks — refreshing the calculator inventory from calculator.net, creating/labeling GitHub Issues for the build backlog, opening/closing/logging iterations, synthesizing status (exec summary / progress update / blog post), and advising which calculators to build next. The PM owns docs/ and the Issues kanban; it never writes app code or agent definitions and never closes issues.
 tools: WebFetch, Read, Write, Edit, Bash
 model: opus
