@@ -30,4 +30,12 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_select "body", /not signed in/i
   end
+
+  test "logout when not logged in is a safe no-op" do
+    # Exercises the Current.session&.destroy nil-branch in terminate_session
+    assert_no_difference "Session.count" do
+      delete session_path
+    end
+    assert_redirected_to root_path
+  end
 end
