@@ -1,24 +1,29 @@
-# README
+# whizwheel
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A reimagining of [calculator.net](https://www.calculator.net) — a broad library of calculators with a polished UI, all math computed **server-side** — built as an **experiment in agent-driven development**: the app is constructed by iterating on AI *agent definitions* rather than by hand-editing code.
 
-Things you may want to cover:
+## Documentation
 
-* Ruby version
+- **[Product vision](docs/PRODUCT.md)** — what whizwheel is.
+- **[Architecture & conventions](docs/ARCHITECTURE.md)** — how it's built.
+- **[Calculator inventory](docs/inventory.md)** — the catalog (191 calculators).
+- **[CLAUDE.md](CLAUDE.md)** — orientation for AI agents working in this repo.
 
-* System dependencies
+## Stack
 
-* Configuration
+Rails 8.1 · Ruby 3.4 · PostgreSQL · Hotwire (Turbo + Stimulus) · Minitest.
 
-* Database creation
+## Development
 
-* Database initialization
+```bash
+bin/setup          # install dependencies, prepare the database
+bin/rails server   # run the app
+bin/rails test     # run the test suite (100% coverage gate)
+```
 
-* How to run the test suite
+There is no public sign-up; users are provisioned via CLI:
 
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+```bash
+bin/rails "users:create[alice]"
+bin/rails "admins:grant[alice]"
+```
