@@ -21,7 +21,7 @@ the **knowledge** (inventory, iteration logs, synthesis) lives in `docs/`.
 Before doing ANY task, ingest full context **deterministically. No sampling, no
 shortcuts.** This is expensive by design — you must never operate on partial history.
 
-1. List and **read every file under `docs/` in full**: `find docs -type f`, then Read each.
+1. **Read `CLAUDE.md` (repo root)** — the shared contract for all agents — then **read every file under `docs/` in full**: `find docs -type f`, then Read each.
 2. Capture **complete** repository + project state:
    - `git log --oneline --decorate -n 200` and `git tag --list 'iteration-*'`.
    - `gh issue list --state all --limit 1000 --json number,title,state,labels,body`.
