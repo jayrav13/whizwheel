@@ -51,6 +51,14 @@ Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code
 - **Server:** `bin/rails server`.
 - **Users/roles are CLI-managed** (no web UI), once the foundation exists: `bin/rails "users:create[name]"`, `"users:set_password[name]"`, `"admins:grant[name]"`, `"admins:revoke[name]"`.
 
+## CI/CD monitoring
+
+After **any** push or PR, the CI run must be watched to completion — never assume green.
+
+- **Dispatch the `ci-monitor` subagent** to watch it (keeps the main session clean). Give it a branch, a commit SHA, or `--pr <n>`. It reports pass/fail and, on failure, the root cause. (Until `ci-monitor` is registered as a type, spawn a generic subagent and point it at `.claude/agents/ci-monitor.md` + this file — see "Every agent inherits this file".)
+- Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run); the agent wraps it with diagnosis.
+- **Never auto-merge.** A green PR merges only on explicit human instruction.
+
 ## The rules that matter most
 
 1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code.
