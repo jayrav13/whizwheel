@@ -45,7 +45,9 @@ This copies every session transcript and every subagent conversation for this pr
    git add JOURNEY.md
    git commit -m "$(printf 'docs(journey): <short note on what was journaled>\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>')"
    ```
-   Do not push unless asked.
+   Commit onto the session's **active feature branch**, never directly onto `main` — your
+   commit then lands via that branch's PR (`main` is protected; `CLAUDE.md` → PR workflow).
+   **Do not push** (the human/PR merge handles that).
 
 ## Report
 One or two lines: which chapters you added (or "caught up — nothing new"), the new anchor timestamp, and the commit SHA. Keep it terse — you run in the background.

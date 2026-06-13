@@ -32,9 +32,10 @@ Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code
 
 ## How work is tracked
 
-- **Task state → GitHub Issues.** Labels: `engineering` (the build line), `agents` (deferred agentic-fix queue). PRs close issues with `Closes #N`.
+- **Task state → GitHub Issues.** Labels: **`backend`** + **`frontend`** (the per-calculator build line — each calculator gets *both*, one issue per layer, both carrying the full `spec:v1` body), `engineering` (non-calculator infra/agent/tooling work), `agents` (deferred agentic-fix queue). PRs close issues with `Closes #N` — a calculator's backend PR closes its `backend` issue, its frontend PR closes its `frontend` issue.
 - **Knowledge → `docs/`** (inventory, iteration logs, vision, conventions).
 - **Iterations** are pinned to a committed agent set and tagged `iteration-NNNN`.
+- **Everything lands via PR — never push directly to `main`.** This includes `docs/` and iteration bookkeeping by the PM and `JOURNEY.md` by the historian: branch → commit → PR → human merge. `main` is protected; no agent (or the main thread) pushes to it directly.
 
 ## Commit & git conventions (all agents)
 

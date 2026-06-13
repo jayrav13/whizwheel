@@ -11,7 +11,7 @@
 | Term | Means | Lives as |
 |---|---|---|
 | **Calculator** | A *type* — the page, the math, the engineering artifact. e.g. "Percentage". | Code: `Calculators::Percentage`. Catalogued in the PM's `docs/inventory.md`. Keyed by a **slug** (`"percentage"`). |
-| **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | The calculator's **`engineering` GitHub issue body**, in the structured `spec:v1` format (see §3.2). PM-authored; the backend agent reads it and regenerates code from it, never the reverse. |
+| **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | The calculator's GitHub issue bodies — a **`backend`** and a **`frontend`** issue, both carrying the identical `spec:v1` format (see §3.2). PM-authored; the build agents read it and regenerate code from it, never the reverse. |
 | **Calculation** | A single *run* of a calculator — one invocation, with its inputs and result. | A DB row: `Calculation` (ActiveRecord). |
 | **calculation_logs** | A denormalized read model for reporting/stats. | A DB **view** over `calculations`. |
 
@@ -143,7 +143,7 @@ How calculators come into being, as durable convention. (The iteration mechanics
 
 **The spec is the first-class, durable artifact.** Each calculator has a **spec** (§0) — its intent, inputs/outputs, and reference values — and the build agents regenerate the **implementation from that spec**. "Rebuild" therefore means **regenerate-from-spec**, *never* refactor-the-existing-code: a rebuilt calculator is an independent production of the current agents, not an edit of the prior one. Its diff against the previous version is then a clean, controlled A/B on the agents — exactly the signal the experiment is trying to read.
 
-> **Spec format/home — settled (issue #6).** The spec artifact is the calculator's **`engineering` GitHub issue body**, in the `spec:v1` format defined in **§3.2**. (Earlier this was deliberately left open until the first calculator; it is now fixed.) Rationale: the PM already owns the Issues kanban and authors these bodies, so the spec needs no new artifact; the body carries pre-authored reference values so the backend agent regenerates **offline** (no calculator.net in the build path), keeping each sweep's diff a clean A/B on the agents rather than on upstream drift.
+> **Spec format/home — settled (issue #6).** The spec artifact is the calculator's GitHub issue body — a **`backend`** and a **`frontend`** issue, both carrying the identical `spec:v1` format defined in **§3.2**. (Earlier this was deliberately left open until the first calculator; it is now fixed.) Rationale: the PM already owns the Issues kanban and authors these bodies, so the spec needs no new artifact; the body carries pre-authored reference values so the backend agent regenerates **offline** (no calculator.net in the build path), keeping each sweep's diff a clean A/B on the agents rather than on upstream drift.
 
 **Builds happen as a fan-out sweep.** An iteration both adds the next `n` new calculators **and regenerates every previously-built one** with the pinned agent set — one agent invocation per calculator. This is conflict-free precisely because of §2–3: each calculator owns its own file and there is **no central registration**, so N agents can run in parallel without colliding on `routes.rb`, a registry, or a shared table. The FE/BE build agents are thus **parameterized, fan-out-able workers** (one calculator each), suited to dynamic-workflow orchestration.
 
@@ -151,9 +151,9 @@ How calculators come into being, as durable convention. (The iteration mechanics
 
 ---
 
-## 3.2 The spec format — `spec:v1` (the `engineering` issue body)
+## 3.2 The spec format — `spec:v1` (the calculator's issue body)
 
-A calculator's spec lives in its **`engineering` GitHub issue body**, authored by the PM (`project-manager-agent.md` → Issues capability) and read by the backend agent. It is **Markdown** — human-authorable, cleanly parseable — opened by a `<!-- spec:v1 -->` marker so an agent can detect a spec'd issue and we can version the format. The issue **title is the calculator name**.
+A calculator has **two** GitHub issues — a **`backend`** and a **`frontend`** issue (one build layer each, both closed by their own PR) — and **both carry the identical `spec:v1` body**, authored by the PM (`project-manager-agent.md` → Issues capability). The backend agent regenerates `Calculators::X` from the backend issue; the frontend agent builds the page from the frontend issue (it needs the same spec — the modes, inputs, and output keys — to render against the §4 envelope). The body is **Markdown** — human-authorable, cleanly parseable — opened by a `<!-- spec:v1 -->` marker so an agent can detect a spec'd issue and we can version the format. Both issues' **title is the calculator name** (the `backend`/`frontend` label conveys the layer).
 
 ```markdown
 <!-- spec:v1 -->

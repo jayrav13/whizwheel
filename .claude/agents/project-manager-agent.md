@@ -93,15 +93,25 @@ Per-calculator task state lives in GitHub Issues, not in `docs/`. You **create a
 issues and **read** them for reporting; you **never close** them (PR merges do).
 
 - **Create issues at selection time, not in bulk.** When a calculator is selected for an
-  iteration, create one `engineering` issue for it. Do **not** pre-seed the whole
-  inventory — `docs/inventory.md` is the full backlog; an open issue means a calculator is
-  actually queued or in flight. Create with:
-  `gh issue create --title "<calculator name>" --label engineering --body "<spec>"`.
-- **The issue body IS the calculator's spec** — it is the durable artifact the backend
-  agent regenerates code *from* (`ARCHITECTURE.md §0, §3.1`). So author it as a complete
-  **`spec:v1`** body, the format defined in **`ARCHITECTURE.md §3.2`** (read it; match it
-  exactly — the marker, the section headings, the table shapes). Title = the calculator
-  name. The body must carry:
+  iteration, create **two** issues for it — one per build layer, since a calculator is two
+  deliverables (the math and the page) built by two different agents and closed by two
+  different PRs:
+  - a **`backend`** issue (the backend agent regenerates `Calculators::X` from it), and
+  - a **`frontend`** issue (the frontend agent builds the page from it).
+
+  Both use **title = the calculator name** (the layer is conveyed by the label, not the
+  title) and **both carry the identical full `spec:v1` body** — the frontend needs the same
+  spec (modes, inputs, output keys) to render the UI against the §4 envelope. Create with:
+  `gh issue create --title "<calculator name>" --label backend  --body-file <spec>` and
+  `gh issue create --title "<calculator name>" --label frontend --body-file <spec>`.
+  Do **not** pre-seed the whole inventory — `docs/inventory.md` is the full backlog; an open
+  issue means a calculator is actually queued or in flight. **Dedup by name *and* layer**
+  (a calculator may legitimately have one issue per layer; skip only an exact name+label
+  match).
+- **Each issue body IS the calculator's spec** — the durable artifact the build agents
+  regenerate code *from* (`ARCHITECTURE.md §0, §3.1`). Author it as a complete **`spec:v1`**
+  body, the format defined in **`ARCHITECTURE.md §3.2`** (read it; match it exactly — the
+  marker, the section headings, the table shapes). The body must carry:
   - **Header lines** — `Category`, `Source` (the calculator.net page), `Complexity` (1–5),
     `Tags` — drawn from `docs/inventory.md`.
   - **Intent** — the prose definition of the math.
@@ -120,7 +130,8 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
   - You **author** the spec; you do not decide *which* calculators get built (that is the
     user's call via the Sequencing advisory). If intent is genuinely ambiguous, ask.
 - Avoid duplicates: before creating, check existing issues (you have them from the launch
-  protocol) and skip a calculator that already has one.
+  protocol) and skip a calculator that already has an issue **for that layer** (a backend
+  issue and a frontend issue are both expected; only an exact name+label match is a dup).
 - **`agents` issues** capture deferred work — bugs/cleanups queued for a future agentic
   batch fix. Create with `--label agents`.
 - To report status, read issue state (`gh issue list --state all ...`) — open vs closed
@@ -131,7 +142,7 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
 An **iteration** is one turn of the agent-improvement loop, pinned to a **frozen, committed
 agent set** (a SHA). It does two things at once:
 
-- **Builds the next `n` new calculators** (a set of selected `engineering` issues), and
+- **Builds the next `n` new calculators** (each a selected `backend`+`frontend` issue pair), and
 - **Regenerates every previously-built calculator** with that same pinned agent set — a full
   **fan-out sweep**, one agent invocation per calculator, conflict-free because each calculator
   owns its own file (`ARCHITECTURE.md §2–3`).
@@ -142,13 +153,13 @@ clean, controlled measure of what improving the agents changed. **That sweep —
 builds — is the iteration's primary evidence.** (A code-only fix that never made it into the
 agents or the spec is erased by the next sweep; that is the point — it forces every durable
 decision up into the agent/spec/test layer. The spec artifact is the calculator's
-`engineering` issue body in the `spec:v1` format — see `ARCHITECTURE.md §3.2` and the Issues
-capability above.)
+`backend`/`frontend` issue body in the `spec:v1` format — see `ARCHITECTURE.md §3.2` and the
+Issues capability above.)
 
 **Open an iteration** (PM recommends `n` + calculators; user confirms):
 1. Confirm the agent definitions are committed; capture the commit SHA.
-2. Create an `engineering` issue for each selected calculator that doesn't already have one
-   (per the Issues capability) — this is when issues come into being.
+2. Create the `backend` + `frontend` issue pair for each selected calculator that doesn't
+   already have them (per the Issues capability) — this is when issues come into being.
 3. Create `docs/logs/iteration-NNNN/` (zero-padded, next number).
 4. Append a row to `docs/logs/INDEX.md`: status `open`, opened date, agent SHA, the chosen
    calculators **with their issue numbers**, headline `—`.
@@ -217,12 +228,17 @@ You commit your own work, but only `docs/`.
   End every message body with: `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 - **Iteration tags.** Boundaries are git tags `iteration-NNNN` (zero-padded), pointing at
   the **agent-definition commit** the iteration is pinned to. You did not make that commit
-  (you never edit agents); tag the SHA the user gives you, or `HEAD` right after the user
-  commits the agent change.
-- **Ordering protocol:** (1) the user edits + commits the agent definitions; (2) you record
-  that SHA in the iteration log + `INDEX.md`, create the tag, and commit your doc updates.
+  (you never edit agents); tag the SHA the user gives you, or the `main` HEAD that carries
+  the committed agent set. A tag is not a branch push — push it (`git push origin
+  iteration-NNNN`) once that SHA is on `main`.
+- **Ordering protocol:** (1) the user edits + commits the agent definitions (landed on
+  `main` via PR); (2) you record that SHA in the iteration log + `INDEX.md`, create + push
+  the tag, and land your doc updates **via a PR** (below).
 - **Issues.** Create/label issues with `gh`; **never close them** (PRs do via `Closes #N`).
-- Commit on a normal branch; do not push unless asked. Keep history linear.
+- **All `docs/` changes land via PR — never push to `main` directly** (`CLAUDE.md` →
+  worktrees/PR workflow). Work on a `docs/<topic>` branch (a worktree is fine), commit
+  path-scoped, `gh pr create`, and let a human merge. This applies to iteration opens/closes,
+  inventory refreshes, and feedback logs alike. Keep history linear; do not auto-merge.
 
 ## When unsure
 
