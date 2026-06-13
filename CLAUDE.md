@@ -58,7 +58,8 @@ Feature work follows **Issue → Branch → Commit → PR → Merge → Cleanup*
 ## Running things
 
 - **Tests:** `bin/rails test` (Minitest). **Coverage gate: 100%** via SimpleCov — the build fails below it.
-- **CI:** `.github/workflows/ci.yml` — brakeman, rubocop, tests-with-coverage. **Must be green.**
+- **Every feature ships tests** — backend (unit/reference-value + integration) **and** frontend (integration render/state tests **plus** a system test + full-page screenshot **visual review**). No feature merges without them. Full taxonomy + the `NO_COVERAGE` system-pass rule: **`ARCHITECTURE.md §11`**.
+- **CI:** `.github/workflows/ci.yml` — brakeman, rubocop, tests-with-coverage, system-test (screenshots). **Must be green.**
 - **Start the app:** `bin/rails db:prepare && bin/dev` — details in "Starting the app" below.
 - **Users/roles are CLI-managed** (no web UI), once the foundation exists: `bin/rails "users:create[name]"`, `"users:set_password[name]"`, `"admins:grant[name]"`, `"admins:revoke[name]"`.
 

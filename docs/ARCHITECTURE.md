@@ -284,19 +284,39 @@ bin/rails "admins:revoke[alice]"      # discard that Role
 
 Framework: **Minitest** (Rails default), fixtures, parallelized.
 
-- **Every calculator** ships a unit test with a **reference-value table** — `{inputs} → {expected}` rows taken from calculator.net — plus validation cases. The calculator's purity (no DB, no request) makes this trivial and exhaustive.
-- **`Calculation`/recording** and **controllers** are tested separately (controller integration tests cover success, validation, the JSON envelope, anonymous vs. attributed, and that a row is recorded).
-- **Coverage gate:** SimpleCov with `minimum_coverage 100` in `test/test_helper.rb` — the build **fails below 100%**. Wired into the existing `test` job in `.github/workflows/ci.yml`.
+**Every feature ships tests — no feature merges without them.** Which tests depends on the layer(s) the feature touches:
+
+| Layer | Test type | What it covers |
+|---|---|---|
+| **Math (calculators)** | **unit + reference-value table** | `{inputs} → {expected}` rows from calculator.net + validation cases. The calculator's purity (no DB, no request) makes this exhaustive. |
+| **Persistence / controllers** | **integration** | `Calculation`/recording and controllers — success, validation, the JSON envelope, anonymous vs. attributed, that a row is recorded. |
+| **UI (views/pages)** | **integration** (render + states) **+ system + full-page screenshots** | each page renders and its key states are correct, plus a **visual self-review** (below). |
+
+### Backend work
+- **Every calculator** ships a reference-value unit test (the table above) + validation cases.
+- **`Calculation`/recording** and **controllers** get integration tests.
+
+### Frontend work
+- **Integration tests** assert each page renders and its key states (e.g. signed-in vs. signed-out, error/flash states).
+- **System tests + full-page screenshots are required for any new/changed page.** Use `ApplicationSystemTestCase#screenshot_full_page` (headless Chrome; grows the window to the full document height); the test drives the page and saves a PNG to `tmp/screenshots/`.
+- **Visual self-review (mandatory):** run `bin/rails tailwindcss:build && NO_COVERAGE=1 bin/rails test:system`, then **look at the resulting `tmp/screenshots/*.png` against `DESIGN.md`** (tokens, spacing, the green's placement, the overall look) before handing off. ERB is not coverage-counted, so this screenshot review — not coverage — is how UI quality is verified. Human visual review follows; the screenshots are the shared artifact. (Operationalized in `.claude/agents/frontend.md`.)
+
+### The coverage gate
+- **SimpleCov, 100% line + branch**, enforced on the unit/integration suite (`bin/rails test`) — the build **fails below 100%**. It counts **Ruby** (calculators, models, controllers, helpers); **ERB views are not counted**.
+- The **system-test pass runs separately** (`bin/rails test:system`) and opts out of the gate via **`NO_COVERAGE`** (a browser pass can't exercise every line on its own); the unit `test` job stays the gate.
 
 ```ruby
 # top of test/test_helper.rb
 require "simplecov"
 SimpleCov.start "rails" do
-  minimum_coverage 100
+  enable_coverage :branch
+  add_filter "/test/"
+  add_filter "/config/"
+  minimum_coverage line: 100, branch: 100 unless ENV["NO_COVERAGE"]
 end
 ```
 
-**CI health note:** the suite currently fails only because `db/schema.rb` doesn't exist yet (a fresh app with zero migrations). The **first migration** (auth/`calculations`) creates the schema and turns `test`, `system-test`, and the dependabot PRs green. No separate CI fix is needed.
+**CI** (`.github/workflows/ci.yml`): the **`test`** job runs the gated unit/integration suite; the **`system-test`** job runs the browser/screenshot tests with `NO_COVERAGE` and **uploads the screenshots as artifacts**. Both build CSS first (`bin/rails tailwindcss:build`) so Propshaft can resolve the Tailwind stylesheet the layout links.
 
 ---
 
