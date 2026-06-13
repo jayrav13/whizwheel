@@ -24,10 +24,47 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <% flash.each do |type, message| %>
-      <p class="flash flash--<%= type %>"><%= message %></p>
-    <% end %>
-    <%= yield %>
+  <body class="min-h-screen flex flex-col bg-bg text-ink font-sans antialiased">
+    <nav class="border-b border-border bg-surface">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
+        <%= link_to root_path, class: "flex items-center gap-2 text-lg font-extrabold tracking-tight text-ink" do %>
+          <%# Brand dot: accent green with the DESIGN.md §1 halo (specific rgba shadow, not a token). %>
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_0_4px_rgba(47,158,111,0.16)]" aria-hidden="true"></span>
+          <span>whizwheel</span>
+        <% end %>
+        <div class="flex items-center gap-5 text-sm font-semibold">
+          <%= link_to "Calculators", root_path, class: "text-muted transition-colors hover:text-ink" %>
+          <%= link_to "History", root_path, class: "text-muted transition-colors hover:text-ink" %>
+          <% if current_user %>
+            <span class="hidden text-muted sm:inline">Signed in as <span class="font-bold text-ink"><%= current_user.username %></span></span>
+            <%= button_to "Sign out", session_path, method: :delete, class: "rounded-[13px] border border-border-input px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+          <% else %>
+            <%= link_to "Sign in", new_session_path, class: "rounded-[13px] bg-primary px-3.5 py-1.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+          <% end %>
+        </div>
+      </div>
+    </nav>
+
+    <main class="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
+      <% flash.each do |type, message| %>
+        <% if type.to_s == "alert" %>
+          <div role="alert" class="mb-6 rounded-[13px] border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
+            <%= message %>
+          </div>
+        <% else %>
+          <div role="status" class="mb-6 rounded-[13px] border border-accent/40 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent">
+            <%= message %>
+          </div>
+        <% end %>
+      <% end %>
+      <%= yield %>
+    </main>
+
+    <footer class="border-t border-border">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 text-xs text-faint">
+        <span>whizwheel — every answer computed server-side.</span>
+        <span class="text-muted">A reimagining of calculator.net.</span>
+      </div>
+    </footer>
   </body>
 </html>
