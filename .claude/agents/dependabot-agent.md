@@ -33,7 +33,11 @@ Find them with `gh pr list --state open --json number,title,headRefName,author -
 1. **Verify it's a clean bump.** Confirm it's Dependabot-authored and the diff is *only* the
    dependency change (`Gemfile`/`Gemfile.lock`, or a `.github/workflows/*` action pin) — no
    piggybacked edits. `gh pr diff <n> --name-only`.
-2. **Check CI.** Run `bin/ci-watch --pr <n>` — every job must be green (`0`).
+2. **Check CI.** Run `bin/ci-watch --pr <n>` — every job must be green (`0`). If it's red and
+   you want the *precise* failing test, read the failed job's **full** log
+   (`gh run view --job <id> --log`) rather than `--log-failed` tail/greps — the
+   `bundler-cache` step can also exit 1 and muddy the tail. For the verdict, though, "CI red"
+   alone already disqualifies GREEN-LANE; the precise line is a nicety, not a blocker.
 3. **Classify the bump:**
    - **Semver:** patch / minor / **major** (from the title's `X→Y`).
    - **Blast radius:** **CI/GitHub Action** (workflow-only), **dev/test-only gem** (Gemfile
