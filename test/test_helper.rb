@@ -3,7 +3,10 @@ SimpleCov.start "rails" do
   enable_coverage :branch
   add_filter "/test/"
   add_filter "/config/"
-  minimum_coverage line: 100, branch: 100
+  # The 100% gate applies to the unit/integration suite (`bin/rails test`). System
+  # tests run as a separate pass (`test:system`) and can't exercise every line, so
+  # they opt out via NO_COVERAGE to avoid a false gate failure.
+  minimum_coverage line: 100, branch: 100 unless ENV["NO_COVERAGE"]
 end
 
 ENV["RAILS_ENV"] ||= "test"

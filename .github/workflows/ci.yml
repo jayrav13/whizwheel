@@ -145,14 +145,17 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          # System tests are a separate pass; the 100% coverage gate is enforced by the
+          # unit `test` job, so opt out here to avoid a false gate failure.
+          NO_COVERAGE: "1"
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system
 
-      - name: Keep screenshots from failed system tests
+      - name: Upload UI screenshots
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: screenshots
+          name: ui-screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore

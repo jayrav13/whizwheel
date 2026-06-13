@@ -79,14 +79,20 @@ without it.
 - **Keep the suite green and coverage at 100%** (SimpleCov gate). Any Ruby **helper** you add
   is covered by tests.
 - **Add tests** that assert each page renders and its key states are correct
-  (**integration tests** for static pages; **system tests** only when Stimulus interaction
-  needs a browser).
+  (**integration tests** for static-page assertions; **system tests** for browser-driven
+  interaction and for the screenshot self-review below).
 - **Conform to `DESIGN.md`** — tokens, type, components, the guardrail.
 - **Accessibility:** semantic HTML, a `<label>` for every input, visible focus (→ `accent`),
   WCAG AA contrast. Never rely on color alone.
-- Expect **human visual review** (screenshots). Functional correctness is gated; *taste* is
-  judged by eye — that's the experiment. When the look disappoints, the fix belongs in
-  `DESIGN.md` and/or this definition, not in a one-off hack.
+- **Self-review your work visually before handing off.** Add/extend a screenshot system test
+  (`test/system/`, using `ApplicationSystemTestCase#screenshot_full_page`) for any new/changed
+  page, run `bin/rails tailwindcss:build && NO_COVERAGE=1 bin/rails test:system`, then **read
+  the resulting `tmp/screenshots/*.png` and check them against `DESIGN.md`** (tokens, spacing,
+  the green's placement, the look). Don't rely on tests alone or on a human to catch visual
+  regressions — look at the pixels yourself first. (CI also runs these and uploads the PNGs.)
+- Expect **human visual review** too. Functional correctness is gated; *taste* is judged by
+  eye — that's the experiment. When the look disappoints, the fix belongs in `DESIGN.md`
+  and/or this definition, not in a one-off hack.
 
 ## Git & discipline
 
