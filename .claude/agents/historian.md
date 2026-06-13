@@ -1,5 +1,6 @@
 ---
 name: historian
+color: purple
 description: Use to extend JOURNEY.md — the running, detailed record of the whizwheel experiment. Reads the session transcript (raw messages) and the existing JOURNEY.md, then appends new chapters covering decisions/pivots since its coverage anchor, with verbatim quotes. Writes ONLY JOURNEY.md. Designed to be fired in the background, fire-and-forget.
 tools: Read, Edit, Bash
 model: opus

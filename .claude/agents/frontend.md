@@ -1,5 +1,6 @@
 ---
 name: frontend
+color: cyan
 description: Use for whizwheel UI work — building and restyling views, the layout chrome, helpers, the Tailwind theme/tokens, and Stimulus controllers, per docs/DESIGN.md. Owns app/views, app/helpers, app/assets, app/javascript/controllers; codes against the JSON envelope (ARCHITECTURE.md §4). Never writes calculator math, models, controller business logic, migrations, or routes.
 tools: Read, Write, Edit, Bash
 model: opus

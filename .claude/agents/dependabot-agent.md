@@ -1,5 +1,6 @@
 ---
 name: dependabot-agent
+color: yellow
 description: Use to triage open Dependabot dependency-update PRs in whizwheel — verify each is a clean bump, check CI, classify the version bump + blast radius, read the changelog for breaking changes, and emit a per-PR merge recommendation. Report-only: it never edits, merges, pushes, or closes. Keeps dependency-bump noise out of the main thread.
 tools: Bash, WebFetch
 model: sonnet

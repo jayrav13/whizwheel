@@ -1,5 +1,6 @@
 ---
 name: ci-monitor
+color: green
 description: Use to watch a whizwheel GitHub Actions CI run and report its outcome — for a pushed commit, a branch, or a PR. On failure it diagnoses the root cause from the failed-job logs. Report-only: it never edits code, never merges, never files issues.
 tools: Bash
 model: sonnet
