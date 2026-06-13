@@ -84,3 +84,45 @@ Maintain the full catalog of calculator.net calculators, idempotently.
 
 Write the table sorted by Category then Calculator. Report the delta in your commit
 message (e.g. `+3 / −1`).
+
+## Capability — Task tracking via GitHub Issues (C2)
+
+Per-calculator task state lives in GitHub Issues, not in `docs/`. You **create and label**
+issues and **read** them for reporting; you **never close** them (PR merges do).
+
+- **Seed one `engineering` issue per calculator** from the inventory. Title = the
+  calculator name. Body includes: category, source URL, complexity, tags, and a note that
+  it is a calculator-rewrite task. Create with:
+  `gh issue create --title "<name>" --label engineering --body "<body>"`.
+- Avoid duplicates: before seeding, list existing issues (you already have them from the
+  launch protocol) and skip calculators that already have an issue.
+- **`agents` issues** capture deferred work — bugs/cleanups queued for a future agentic
+  batch fix. Create with `--label agents`.
+- To report status, read issue state (`gh issue list --state all ...`) — open vs closed
+  is the build state; the iteration is tracked in the logs.
+
+## Capability — Iterations (`docs/logs/`)
+
+An **iteration** is the rebuild of `n` sequentially-next calculators (a set of selected
+`engineering` issues) using a frozen, committed agent set (pinned to a SHA).
+
+**Open an iteration** (PM recommends `n` + calculators; user confirms):
+1. Confirm the agent definitions are committed; capture the commit SHA.
+2. Create `docs/logs/iteration-NNNN/` (zero-padded, next number).
+3. Append a row to `docs/logs/INDEX.md`: status `open`, opened date, agent SHA, the chosen
+   calculators **with their issue numbers**, headline `—`.
+4. Tag the boundary: `git tag iteration-NNNN <agent-SHA>`.
+5. Note at the top of the iteration folder **what changed in the agents since the previous
+   iteration**.
+
+**During the iteration:** for each calculator, maintain
+`docs/logs/iteration-NNNN/<calculator>.md` recording what the agents produced, what was
+right, what missed, and what agent-definition change the miss suggests. Accrue all
+feedback/discussion here. These files are **disjoint** (fan-out-safe).
+
+**Close an iteration:** when the user decides to change the agents, set the iteration's
+`INDEX.md` row to `closed`, fill the closed date and headline outcome. The subsequent agent
+edit + commit opens the next iteration.
+
+**Dates:** never fabricate a date — obtain it with `date +%F` via Bash, or ask.
+`logs/INDEX.md` is a serial aggregate; update it in one pass.
