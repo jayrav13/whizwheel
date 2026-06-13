@@ -83,6 +83,21 @@ After **any** push or PR, the CI run must be watched to completion — never ass
   - (Scale-up: a vision-capable review subagent so image tokens stay out of the main context.)
 - **Never auto-merge.** A green PR merges only on explicit human instruction.
 
+## Dependency updates (Dependabot)
+
+Dependabot opens dependency-bump PRs. Don't triage them by hand in the main thread —
+**dispatch the `dependabot-agent`** (report-only; keeps the chore out of context). It
+verifies each is a clean bump, checks CI, classifies the bump (patch/minor/major) + blast
+radius, reads the changelog, and returns a per-PR verdict: **GREEN-LANE** (CI green +
+patch/minor + low blast radius — a CI action or dev/test gem) or **NEEDS-HUMAN** (any major,
+any runtime/app gem, or red CI).
+
+- **Policy is human-gated.** The agent **recommends**; it never merges. You merge GREEN-LANE
+  PRs on a glance; NEEDS-HUMAN ones get a real look. (A narrow auto-merge lane is a possible
+  future opt-in, not active — the never-auto-merge rule stands.)
+- Until `dependabot-agent` is a registered type, dispatch a generic subagent pointed at
+  `.claude/agents/dependabot-agent.md` + this file.
+
 ## JOURNEY.md — the experiment log
 
 `JOURNEY.md` (repo root) is the detailed, running record of this experiment — answering "does this work?".
