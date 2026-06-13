@@ -37,3 +37,6 @@
 # Gitignored for now; the synthesized narrative lives in JOURNEY.md.
 /conversations/
 
+# SimpleCov coverage output (generated when tests run).
+/coverage/
+
