@@ -81,9 +81,11 @@ gh issue view <n> --json title,body,state    # or: gh issue list --state all --s
 ```
 
 The issue may be **closed** (it closed when the first build merged) — read closed issues too;
-find it by calculator name/slug. The body carries: **intent**, **inputs** (names + types +
-validation rules), **outputs** (the result keys), **reference values** (`{inputs} → {expected}`
-from calculator.net), plus source URL / complexity / tags.
+find it by calculator name/slug. The body is the **`spec:v1`** format defined in
+**`ARCHITECTURE.md §3.2`** (read it — it is the contract you parse): a `<!-- spec:v1 -->`
+marker, then **Intent**, **Inputs** (name / type / rules — one row per `attribute`),
+**Outputs** (the result keys), **Reference values** (`{inputs} → {expected}`), and **Notes**
+(rounding/display per §10), plus header lines (Category / Source / Complexity / Tags).
 
 - **Regenerate from the spec, never refactor the prior code** (`§3.1`). A rebuilt calculator is
   an independent production of the current agents — its diff against the previous version is the

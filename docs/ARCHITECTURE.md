@@ -11,7 +11,7 @@
 | Term | Means | Lives as |
 |---|---|---|
 | **Calculator** | A *type* — the page, the math, the engineering artifact. e.g. "Percentage". | Code: `Calculators::Percentage`. Catalogued in the PM's `docs/inventory.md`. Keyed by a **slug** (`"percentage"`). |
-| **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | **TBD** — its exact format and home are settled when the backend agent is built (issue #6); today it is half-implied by the calculator's `engineering` issue body + its `inventory.md` row. |
+| **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | The calculator's **`engineering` GitHub issue body**, in the structured `spec:v1` format (see §3.2). PM-authored; the backend agent reads it and regenerates code from it, never the reverse. |
 | **Calculation** | A single *run* of a calculator — one invocation, with its inputs and result. | A DB row: `Calculation` (ActiveRecord). |
 | **calculation_logs** | A denormalized read model for reporting/stats. | A DB **view** over `calculations`. |
 
@@ -143,11 +143,61 @@ How calculators come into being, as durable convention. (The iteration mechanics
 
 **The spec is the first-class, durable artifact.** Each calculator has a **spec** (§0) — its intent, inputs/outputs, and reference values — and the build agents regenerate the **implementation from that spec**. "Rebuild" therefore means **regenerate-from-spec**, *never* refactor-the-existing-code: a rebuilt calculator is an independent production of the current agents, not an edit of the prior one. Its diff against the previous version is then a clean, controlled A/B on the agents — exactly the signal the experiment is trying to read.
 
-> **Spec format/home is deliberately OPEN.** The spec artifact's concrete shape — file format, schema, directory — is **TBD, to be settled when the backend agent is built (issue #6)**. Today it is only half-implied (the calculator's `engineering` issue body + its `inventory.md` row). We are intentionally not over-specifying it ahead of the first calculator.
+> **Spec format/home — settled (issue #6).** The spec artifact is the calculator's **`engineering` GitHub issue body**, in the `spec:v1` format defined in **§3.2**. (Earlier this was deliberately left open until the first calculator; it is now fixed.) Rationale: the PM already owns the Issues kanban and authors these bodies, so the spec needs no new artifact; the body carries pre-authored reference values so the backend agent regenerates **offline** (no calculator.net in the build path), keeping each sweep's diff a clean A/B on the agents rather than on upstream drift.
 
 **Builds happen as a fan-out sweep.** An iteration both adds the next `n` new calculators **and regenerates every previously-built one** with the pinned agent set — one agent invocation per calculator. This is conflict-free precisely because of §2–3: each calculator owns its own file and there is **no central registration**, so N agents can run in parallel without colliding on `routes.rb`, a registry, or a shared table. The FE/BE build agents are thus **parameterized, fan-out-able workers** (one calculator each), suited to dynamic-workflow orchestration.
 
 **This is what makes the agent-first rule enforceable.** Because every prior calculator is regenerated from its spec each sweep, any fix that lives **only in calculator code** — never lifted up into the agent definition, the spec, or the tests — is **erased** by the next sweep. That forces every durable decision up into the agent/spec/test layer, which is the whole point (`CLAUDE.md` rule #1; calculators are append-only per §12, so prior versions remain comparable). Cross-reference: `project-manager-agent.md` (the Iterations capability — how a sweep is opened, logged, and closed).
+
+---
+
+## 3.2 The spec format — `spec:v1` (the `engineering` issue body)
+
+A calculator's spec lives in its **`engineering` GitHub issue body**, authored by the PM (`project-manager-agent.md` → Issues capability) and read by the backend agent. It is **Markdown** — human-authorable, cleanly parseable — opened by a `<!-- spec:v1 -->` marker so an agent can detect a spec'd issue and we can version the format. The issue **title is the calculator name**.
+
+```markdown
+<!-- spec:v1 -->
+**Category:** Math
+**Source:** https://www.calculator.net/percent-calculator.html
+**Complexity:** 2
+**Tags:** arithmetic, single-mode
+
+## Intent
+Given a base amount and a rate (percent), compute `base × rate / 100`.
+
+## Inputs
+| name | type    | rules                  |
+|------|---------|------------------------|
+| base | decimal | presence, numericality |
+| rate | decimal | presence, numericality |
+
+## Outputs
+| key   | meaning           |
+|-------|-------------------|
+| value | base × rate / 100 |
+
+## Reference values
+_From the Source above — these pin correctness; the backend agent must reproduce them exactly._
+| base | rate | value |
+|------|------|-------|
+| 50   | 20   | 10.0  |
+| 200  | 5    | 10.0  |
+| 0    | 50   | 0.0   |
+
+## Notes
+- Rounding/display: raw at full precision; round only for display (§10).
+- Calculator-rewrite task — regenerate from this spec, not from prior code.
+```
+
+**Section contract** (what each part means to the build):
+- **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `inventory.md` echo.
+- **Intent** — the prose definition of the math; the single source of "what it must do."
+- **Inputs** — one row per attribute: `name` → a `Calculators::Base` `attribute`; `type` → the ActiveModel type (`:decimal` for money/quantities, per §10); `rules` → the validations.
+- **Outputs** — one row per key in the `#compute` result Hash; these keys are the JSON envelope's `result` shape (§4) the frontend renders.
+- **Reference values** — the `{inputs} → {expected}` table, lifted from the Source. These **pin correctness** and become the calculator's reference-value test (§11). The backend agent reproduces them exactly and **never re-derives or invents them** (it has no web access).
+- **Notes** — rounding/display intent (§10), deprecations, edge-case guidance.
+
+**Stability is the point.** Reference values are authored **once**, in the spec, and stay fixed across regeneration sweeps — so a calculator's sweep-to-sweep diff measures *the agents*, not calculator.net moving under us. Changing a calculator's intent means editing its spec (the issue), not its code.
 
 ---
 

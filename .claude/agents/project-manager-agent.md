@@ -95,9 +95,30 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
 - **Create issues at selection time, not in bulk.** When a calculator is selected for an
   iteration, create one `engineering` issue for it. Do **not** pre-seed the whole
   inventory — `docs/inventory.md` is the full backlog; an open issue means a calculator is
-  actually queued or in flight. Title = the calculator name. Body includes: category,
-  source URL, complexity, tags, and a note that it is a calculator-rewrite task. Create
-  with: `gh issue create --title "<name>" --label engineering --body "<body>"`.
+  actually queued or in flight. Create with:
+  `gh issue create --title "<calculator name>" --label engineering --body "<spec>"`.
+- **The issue body IS the calculator's spec** — it is the durable artifact the backend
+  agent regenerates code *from* (`ARCHITECTURE.md §0, §3.1`). So author it as a complete
+  **`spec:v1`** body, the format defined in **`ARCHITECTURE.md §3.2`** (read it; match it
+  exactly — the marker, the section headings, the table shapes). Title = the calculator
+  name. The body must carry:
+  - **Header lines** — `Category`, `Source` (the calculator.net page), `Complexity` (1–5),
+    `Tags` — drawn from `docs/inventory.md`.
+  - **Intent** — the prose definition of the math.
+  - **Inputs** — a table: `name` / `type` (the ActiveModel type, `:decimal` for money &
+    quantities per §10) / `rules` (validations).
+  - **Outputs** — a table of the result keys the calculator returns (the JSON envelope's
+    `result` shape, §4).
+  - **Reference values** — a `{inputs} → {expected}` table **you derive by fetching the
+    `Source` page** (WebFetch). These pin correctness and become the backend agent's
+    reference-value test; the agent has no web access and **reproduces them verbatim**, so
+    **getting them right is your job, not the builder's.** Provide several rows including
+    edge cases (zeros, boundaries). Never fabricate a value — if the source is unclear,
+    say so in the issue rather than guess.
+  - **Notes** — rounding/display intent (§10) and a "calculator-rewrite task —
+    regenerate from this spec" reminder.
+  - You **author** the spec; you do not decide *which* calculators get built (that is the
+    user's call via the Sequencing advisory). If intent is genuinely ambiguous, ask.
 - Avoid duplicates: before creating, check existing issues (you have them from the launch
   protocol) and skip a calculator that already has one.
 - **`agents` issues** capture deferred work — bugs/cleanups queued for a future agentic
@@ -120,8 +141,9 @@ is an independent production of the current agents, so its diff against the prio
 clean, controlled measure of what improving the agents changed. **That sweep — not just the new
 builds — is the iteration's primary evidence.** (A code-only fix that never made it into the
 agents or the spec is erased by the next sweep; that is the point — it forces every durable
-decision up into the agent/spec/test layer. The spec artifact itself — its exact format and
-home — is settled when the backend agent is built; see `ARCHITECTURE.md`.)
+decision up into the agent/spec/test layer. The spec artifact is the calculator's
+`engineering` issue body in the `spec:v1` format — see `ARCHITECTURE.md §3.2` and the Issues
+capability above.)
 
 **Open an iteration** (PM recommends `n` + calculators; user confirms):
 1. Confirm the agent definitions are committed; capture the commit SHA.
