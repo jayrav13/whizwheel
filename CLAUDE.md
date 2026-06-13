@@ -2,6 +2,14 @@
 
 **whizwheel** — a reimagining of [calculator.net](https://www.calculator.net) (a broad library of calculators, polished UI, **all math server-side**), built as an **experiment in agent-driven development.**
 
+## Every agent inherits this file
+
+This file is the shared contract for **all** work in this repo — the main session *and* every subagent.
+
+- **Any agent or subagent must read `CLAUDE.md` (and the docs it points to) as its first action, before doing anything else.** Treat it as inherited context.
+- **Subagents do not auto-inherit this file.** When you spawn a subagent, **point it at `CLAUDE.md`** (plus the relevant `.claude/agents/*.md` definition if that agent type isn't registered yet) in its prompt.
+- **Every new agent definition** (`.claude/agents/*.md`) must begin with a step instructing it to read `CLAUDE.md`, `docs/ARCHITECTURE.md`, and `docs/PRODUCT.md`. The `pm` agent's "Launch protocol" is the model to copy.
+
 ## Read these first
 
 - **`docs/PRODUCT.md`** — what we're building, for whom (the vision).
