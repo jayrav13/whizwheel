@@ -1,7 +1,7 @@
 # whizwheel — docs/
 
 This directory is the **knowledge layer** for whizwheel, owned by the **PM agent**
-(`.claude/agents/pm.md`), the only writer here. It holds the durable record of *how the
+(`.claude/agents/project-manager-agent.md`), the only writer here. It holds the durable record of *how the
 project went* — distinct from app code (`app/`, `lib/`, …) and agent definitions
 (`.claude/agents/`).
 

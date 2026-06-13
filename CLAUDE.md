@@ -8,7 +8,7 @@ This file is the shared contract for **all** work in this repo — the main sess
 
 - **Any agent or subagent must read `CLAUDE.md` (and the docs it points to) as its first action, before doing anything else.** Treat it as inherited context.
 - **Subagents do not auto-inherit this file.** When you spawn a subagent, **point it at `CLAUDE.md`** (plus the relevant `.claude/agents/*.md` definition if that agent type isn't registered yet) in its prompt.
-- **Every new agent definition** (`.claude/agents/*.md`) must begin with a step instructing it to read `CLAUDE.md`, `docs/ARCHITECTURE.md`, and `docs/PRODUCT.md`. The `pm` agent's "Launch protocol" is the model to copy.
+- **Every new agent definition** (`.claude/agents/*.md`) must begin with a step instructing it to read `CLAUDE.md`, `docs/ARCHITECTURE.md`, and `docs/PRODUCT.md`. The `project-manager-agent`'s "Launch protocol" is the model to copy.
 
 ## Read these first
 
@@ -24,7 +24,7 @@ We build by iterating on **agent definitions** (`.claude/agents/`), *not* by han
 
 ## The agents
 
-- **`pm`** (Opus) — project tracking. Owns `docs/` + GitHub Issues. Never writes app code or agent definitions; stewards `PRODUCT.md`. Runs a full-context ingestion at every launch.
+- **`project-manager-agent`** (Opus) — project tracking. Owns `docs/` + GitHub Issues. Never writes app code or agent definitions; stewards `PRODUCT.md`. Runs a full-context ingestion at every launch.
 - **backend** *(not built yet)* — calculator math in `app/calculators/`, per `ARCHITECTURE.md`.
 - **`frontend`** (Opus) — the UI. Owns `app/views`, `app/helpers`, `app/assets` (Tailwind theme/tokens), and Stimulus controllers; builds to `DESIGN.md` (BLEND) and codes against the JSON envelope (`ARCHITECTURE.md §4`). Never writes calculator math, models, controller business logic, migrations, or routes.
 
@@ -40,7 +40,7 @@ Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code
 
 - Branch off `main` for feature work.
 - **Plain `git commit` — never add `-c commit.gpgsign=false`.** Signing is off; the override is a no-op we don't use.
-- Conventional messages (`feat:`, `docs:`, `feat(pm):` …). End every commit body with:
+- Conventional messages (`feat:`, `docs:`, `feat(project-manager-agent):` …). End every commit body with:
   `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`
 - **Path-scoped staging** (`git add <explicit paths>`, never `git add -A`).
 - A PR that finishes a calculator/issue closes it: `Closes #N`.
@@ -118,7 +118,7 @@ Run this checklist before a session closes. The user will try to prompt you ("en
 
 ## The rules that matter most
 
-1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: every iteration rebuilds *all* prior calculators from their specs with the latest agents (a fan-out, one agent per calculator), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `pm.md` (iterations).
+1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: every iteration rebuilds *all* prior calculators from their specs with the latest agents (a fan-out, one agent per calculator), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `project-manager-agent.md` (iterations).
 2. **Calculators are code, append-only** — deprecate, never delete (preserves historical comparability).
 3. **No central registration** — add a calculator by adding a file; never edit a shared registry/route/table (keeps parallel builds conflict-free).
 4. **Soft-delete, never hard-delete** user-facing data.
