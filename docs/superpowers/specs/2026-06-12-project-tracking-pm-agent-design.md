@@ -99,7 +99,7 @@ The PM **records** what happens, **reports** it at multiple lengths, and **advis
 
 **C2 — Task tracking (GitHub Issues)**
 - The PM **creates and labels** issues; it reads their state for reporting. It does not close them.
-- **One `engineering` issue per calculator** to build (title = calculator name; body links the inventory row + source URL + complexity/tags). Issues are seeded from the inventory.
+- **Issues are created at selection time, not pre-seeded.** When a calculator is selected for an iteration, the PM creates one `engineering` issue for it (title = calculator name; body links the inventory row + source URL + complexity/tags). `docs/inventory.md` is the full backlog; an open issue means a calculator is actually queued or in flight.
 - **`agents` issues** capture deferred work — bugs/cleanups queued for a future agentic batch fix (the `agents` queue).
 - An iteration's calculators are its set of selected `engineering` issues, built under a pinned agent SHA; their PRs close them with `Closes #N`.
 
