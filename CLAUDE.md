@@ -118,7 +118,7 @@ Run this checklist before a session closes. The user will try to prompt you ("en
 
 ## The rules that matter most
 
-1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code.
+1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: every iteration rebuilds *all* prior calculators from their specs with the latest agents (a fan-out, one agent per calculator), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `pm.md` (iterations).
 2. **Calculators are code, append-only** — deprecate, never delete (preserves historical comparability).
 3. **No central registration** — add a calculator by adding a file; never edit a shared registry/route/table (keeps parallel builds conflict-free).
 4. **Soft-delete, never hard-delete** user-facing data.
