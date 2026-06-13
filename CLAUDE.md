@@ -78,6 +78,7 @@ After **any** push or PR, the CI run must be watched to completion — never ass
 
 - **Dispatch the `ci-monitor` subagent** to watch it (keeps the main session clean). Give it a branch, a commit SHA, or `--pr <n>`. It reports pass/fail and, on failure, the root cause. (Until `ci-monitor` is registered as a type, spawn a generic subagent and point it at `.claude/agents/ci-monitor.md` + this file — see "Every agent inherits this file".)
 - Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run); the agent wraps it with diagnosis.
+- **Visual gate (UI PRs).** `ci-monitor` reports *status* but is Bash-only — it can't *see*. After CI completes on a PR that touches the UI, the **main thread** pulls the deterministically-generated screenshots with **`bin/ci-screenshots --pr <n>`** (downloads the `ui-screenshots` artifact, prints the dir) and **reviews them against `docs/DESIGN.md`** before merge. The CI/Linux render is a proxy for "what a non-Mac visitor sees." (Scale-up: a vision-capable review subagent so image tokens stay out of the main context.)
 - **Never auto-merge.** A green PR merges only on explicit human instruction.
 
 ## JOURNEY.md — the experiment log

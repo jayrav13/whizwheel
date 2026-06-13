@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# ci-screenshots — download the `ui-screenshots` CI artifact for visual review.
+#
+# Pairs with bin/ci-watch: once CI has completed (ci-monitor reports done), pull the
+# deterministically-generated screenshots so the main thread (which has vision) can
+# review them against docs/DESIGN.md before merge. Prints the download dir on stdout.
+#
+# Exit codes: 0 = downloaded | 1 = usage / no run | 3 = no ui-screenshots artifact
+#
+# Usage:
+#   bin/ci-screenshots                 # latest run on the current branch
+#   bin/ci-screenshots <branch>        # latest run on <branch>
+#   bin/ci-screenshots --pr <number>   # latest run for a PR's head branch
+#   bin/ci-screenshots --run <id>      # a specific run id
+
+set -uo pipefail
+
+mode="branch"; ref=""; run_id=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pr)  mode="pr";  ref="${2:-}"; shift 2 ;;
+    --run) mode="run"; run_id="${2:-}"; shift 2 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    *) ref="$1"; shift ;;
+  esac
+done
+
+case "$mode" in
+  run)    : ;;  # run_id already set
+  pr)     branch="$(gh pr view "$ref" --json headRefName --jq '.headRefName' 2>/dev/null)" ;;
+  branch) branch="${ref:-$(git rev-parse --abbrev-ref HEAD)}" ;;
+esac
+
+if [[ -z "$run_id" ]]; then
+  [[ -n "${branch:-}" ]] || { echo "ci-screenshots: could not resolve a branch" >&2; exit 1; }
+  run_id="$(gh run list --branch "$branch" --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null)"
+fi
+
+[[ -n "$run_id" ]] || { echo "ci-screenshots: no CI run found" >&2; exit 1; }
+
+dest="${TMPDIR:-/tmp}/whizwheel-ci-screenshots/${run_id}"
+rm -rf "$dest" && mkdir -p "$dest"
+
+if ! gh run download "$run_id" -n ui-screenshots -D "$dest" >/dev/null 2>&1; then
+  echo "ci-screenshots: no 'ui-screenshots' artifact on run $run_id (UI/system tests may not have run yet)" >&2
+  exit 3
+fi
+
+echo "$dest"
