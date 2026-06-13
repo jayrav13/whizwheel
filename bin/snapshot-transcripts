@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# snapshot-transcripts — copy the raw Claude Code transcripts for THIS project
+# (every session + every subagent conversation) into ./conversations/ (gitignored).
+#
+# A complete, replayable record of every decision and action — the raw counterpart
+# to the synthesized JOURNEY.md. Idempotent: re-running overwrites with the latest.
+
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "snapshot-transcripts: not in a git repo" >&2; exit 1; }
+# Claude Code stores transcripts under ~/.claude/projects/<cwd-with-slashes-as-dashes>/
+src="$HOME/.claude/projects/$(printf '%s' "$root" | sed 's#/#-#g')"
+dest="$root/conversations"
+
+[ -d "$src" ] || { echo "snapshot-transcripts: no transcript dir at $src" >&2; exit 1; }
+mkdir -p "$dest"
+
+# Main session transcripts (one .jsonl per session).
+cp -f "$src"/*.jsonl "$dest"/ 2>/dev/null || true
+
+# Per-session subagent transcripts (skip the memory/ sibling dir).
+for d in "$src"/*/; do
+  name="$(basename "$d")"
+  [ "$name" = "memory" ] && continue
+  if [ -d "$d/subagents" ]; then
+    mkdir -p "$dest/$name/subagents"
+    cp -f "$d/subagents/"*.jsonl     "$dest/$name/subagents/" 2>/dev/null || true
+    cp -f "$d/subagents/"*.meta.json "$dest/$name/subagents/" 2>/dev/null || true
+  fi
+done
+
+count=$(find "$dest" -name '*.jsonl' | wc -l | tr -d ' ')
+echo "snapshot-transcripts: $count transcript(s) → $dest"

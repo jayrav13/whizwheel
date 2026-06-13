@@ -33,3 +33,7 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+# Raw conversation transcripts snapshotted by the historian (replayable record).
+# Gitignored for now; the synthesized narrative lives in JOURNEY.md.
+/conversations/
+
