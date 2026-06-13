@@ -1,4 +1,4 @@
-<!-- coverage-anchor: 2026-06-13T05:55:36.801Z — through Chapter 12, "Keeping the raw record: the conversations/ snapshot, and a durability question answered with evidence" (commits 51c0b41 end-of-session checklist, 6b2a100 snapshot feature). The historian journals transcript activity AFTER this anchor and advances it. -->
+<!-- coverage-anchor: 2026-06-13T06:51:51.719Z — through Chapter 17, "The first time the app ran: a live end-to-end login test" (the subagent-driven app-foundation build: plan d012985, tasks 2811a45/09cadde/4d0b3ab/8ab8103/b16541c/635e392/9f406ec, PR #5 Closes #4, CLAUDE.md branching+startup conventions 0eb429d). The historian journals transcript activity AFTER this anchor and advances it. -->
 
 # whizwheel — The Journey
 
@@ -249,6 +249,104 @@ So the snapshot stayed gitignored, retention untouched — the in-session integr
 
 ---
 
+## Chapter 13 — "Time for the foundation" — the implementation plan (2026-06-13)
+
+After the snapshot/durability stretch, the assistant laid out the state of the world plainly — three working agents, the knowledge layer, green CI — and then the gap, in its own words: *"**No app foundation** (auth, RBAC, `Calculation` model, `Discardable`, CLI tasks, the first migration). **Zero calculators. Zero user-facing features.**"* The honest read it offered on the experiment was unchanged from the running assessment: *"Every decision has landed in an agent or a doc … But the experiment hasn't started *measuring* yet … Everything so far is foundation and instrumentation."* It framed the next move as *"the line we keep (rightly) walking up to: **the app-foundation plan** → **the backend agent** → **the Percentage calculator**,"* and called the repo *"a remarkably complete *workshop*"* whose next job was *"to actually forge the first thing in it."*
+
+The user said go:
+
+> "Time for the foundation, yes. Where do we begin?"
+
+The assistant made one design point about *where* to begin that is itself a data point on the method: **no new brainstorm was needed**, because the design already lived in a doc. In its words: *"We already did the design work; `ARCHITECTURE.md` *is* the foundation's spec (schemas, the layering, soft-delete, auth, RBAC, the coverage gate are all pinned there). So the foundation goes straight to an **implementation plan** → build."* It enumerated the foundation's scope — `Discardable`; auth (`User`/`Session`/`Current`, no email/reset/signup); RBAC (`RoleType` seeded `ADMIN`, `Role`, `User#admin?`); `Calculation` + the `calculation_logs` view + first migration; CLI rake tasks; the SimpleCov 100% gate — and drew a deliberate **scope boundary**: the *calculator scaffolding* (`Calculators::Base`, the dynamic controller, the route, the autoload initializer) is **not** in the foundation, because *"'how a calculator is built and wired' is exactly its [the backend agent's] specialty. The foundation gives the backend agent a platform … to build *on*."*
+
+One genuine, experiment-design decision was put to the user — how to execute — and it was resolved as **subagent-driven, per the docs**: *"general subagents executing the plan while reading `ARCHITECTURE.md` + `CLAUDE.md`, so your style rides in through the conventions."*
+
+**The plan.** The assistant used the **writing-plans** skill and, before writing, grounded it in *ground truth* rather than assumptions — confirming the Rails 8 `authentication` generator exists (but choosing to **hand-write auth for determinism**, *"generator output varies by version"*), that `bcrypt` was commented in the Gemfile, that `simplecov` wasn't yet a dependency. The result — **5 TDD tasks** (Authentication; Soft-delete + RBAC; `Calculation` + the `calculation_logs` view; CLI rake tasks; the 100% coverage gate) — was committed docs-only as `d012985` (`docs: app-foundation implementation plan`). Two notes the assistant flagged for the user's eye: auth is hand-written (*"Task 1 is the security-sensitive one"*), and **the coverage gate is the last task** because *"turning on `minimum_coverage 100` before code exists trips on the empty state."*
+
+It also named what this run *was*, beyond a feature: *"This is also the first time we **dogfood the full intended workflow**"* — PM mints the issue, branch off `main`, subagent-driven build with two-stage review, PR closing the issue, `ci-monitor` watches, human merges.
+
+**Agent-driven?** ✅ The foundation went straight from the conventions doc to a plan, with no redesign — the architecture doc earned its keep as the spec. The plan is a doc; no app code yet.
+
+---
+
+## Chapter 14 — The subagent-driven build: five TDD tasks, a real bug caught (2026-06-13)
+
+The user gave a one-word green light — **"go"** — and the assistant executed via the **subagent-driven-development** skill: a fresh implementer subagent per task, each instructed to *first read `ARCHITECTURE.md` + `CLAUDE.md`*, with independent review between tasks. Issue **#4** was minted (`engineering`), branch **`foundation`** checked out. This is the first real product code in the repo, and it was built **entirely by subagents** following the conventions docs.
+
+The five tasks, each verified independently rather than on the implementer's word (*"not trusting the report"*):
+
+- **Task 1 — Authentication** (`2811a45`). Implementer reported DONE (7 runs, 22 assertions). The assistant ran an independent **spec-compliance review** — *"✅ compliant — independently verified (code read, suite run green, `structure.sql` checked, no out-of-scope code, cookie signed + httponly, auth not globally required)"* — then a **deep code-quality review**, because *"Task 1 is the security-sensitive one."* That review earned its keep: it **found a real bug** — *"failed logins set a flash alert but **nothing renders it**, so users get silent rejection. That's a legitimate must-fix."* The assistant applied judgment to the reviewer's minor points rather than blind agreement: it **deferred** password-length (*"would break fixtures — revisit at Task 4"*), form labels (*"the frontend agent's job"*), and multi-session (*"by design"*). The flash fix landed via a focused fix subagent (SendMessage being unavailable to continue the warm one) as `09cadde` (7 runs, 26 assertions, green). For a fix *"this small and exactly-specified,"* the assistant verified directly rather than spinning up another full review.
+- A process decision logged here: for the *remaining* mechanical tasks (models, migrations, rake) the assistant chose to run the independent **spec review per task** plus **one holistic code-quality review of the whole branch at the end**, rather than a full two-stage cycle on each — *"Task 1 was the security-sensitive one that warranted the deep per-task quality pass."*
+- **Task 2 — `Discardable` + RBAC** (`4d0b3ab`, 12 runs, 39 assertions). The implementer *"caught a real fixture collision (the new `bob` fixture vs. the existing normalize test) and fixed it sensibly."* Spec review ✅.
+- **Task 3 — `Calculation` + the `calculation_logs` view** (`8ab8103`, 16 runs, 46 assertions). *"Crucially the view round-trips through `structure.sql`, which was the risk I flagged"* — i.e., the SQL-schema-format decision from Chapter 9 paid off exactly where predicted. No calculator code leaked in (*"correctly the backend agent's job"*).
+- **Task 4 — CLI rake tasks** (`b16541c`, 19 runs, 50 assertions, 3 files): `users:create` / `set_password`, `admins:grant` / `revoke`.
+- **Task 5 — the 100% coverage gate** (`635e392`). *"Genuine **100% line (98/98) + 100% branch (6/6)** coverage, the gate verified to bite (removing a test → exit 2), 22 runs/57 assertions green."* The task most likely to surface uncovered lines did not — the TDD build had kept coverage whole.
+
+**Agent-driven?** ✅ Every line of the foundation was written by subagents reading the conventions docs; every correction — including the flash bug — went through a subagent, not a manual patch. The discipline held under the first real build.
+
+---
+
+## Chapter 15 — The final holistic review, and judgment over agreement (2026-06-13)
+
+With all five tasks done, the assistant ran the **final holistic review of the entire branch** before the PR. Verdict: **READY TO MERGE**, with one must-fix and some noted follow-ups — and the assistant again *"appl[ied] judgment (not blind agreement)"*:
+
+- **I-1 (cookie `secure`)** — the assistant judged the finding *"partly over-stated: `force_ssl` *does* mark cookies secure in production … and the current code matches the Rails 8 generator."* But it adopted the change anyway as *"cheap, standard defense-in-depth,"* with a sharp correctness caveat: *"it must be env-gated, not unconditional — `secure: true` everywhere would break the HTTP test/dev login."*
+- **m-1 (RoleType `dependent: :destroy`)** — *"legitimately off-convention (we soft-delete, never cascade hard-deletes). One-word fix to `:restrict_with_exception`."* Adopted.
+- **m-2 (partial unique index)** — *"real but low (CLI-only, `find_or_create_by` mitigates); **defer** as a follow-up (it's a migration)."*
+
+The two cheap, correct fixes landed as `9f406ec` (`fix: secure session cookie in production; RoleType restrict hard-delete`) — *"suite green, coverage still 100%/100%."* This is the same receiving-code-review discipline seen earlier: the reviewer's findings were weighed on technical merit, two adopted, one re-scoped, one deferred with a reason.
+
+**Agent-driven?** ✅ Review findings resolved through reasoning and a subagent-built branch, no hand-improvised product logic.
+
+---
+
+## Chapter 16 — Adopting tenor's branching strategy (2026-06-13)
+
+Before pushing, the assistant **held the push** to honor a prior request — *"you asked me to check tenor's branching strategy first."* It reviewed the sibling project `../tenor` and summarized its full **`Issue → Branch → Commit → PR → Merge → Deploy → Cleanup`** workflow: GitHub issue with a Success-Criteria checklist; *always* a git worktree (`.claude/worktrees/<name>/`) for concurrent-session safety; branch named **`fix/<issue#>-<brief-description>`**; **`Closes #<issue>`** in commit bodies; `gh pr create` with **merge commits, never squash**; `bin/ci-watch`, never auto-merge; merge only on explicit say-so; deploy-watch; then cleanup.
+
+It laid the comparison against the just-built `foundation` branch in a table — the deltas being branch naming (`foundation` vs `fix/N-desc`), no worktree, and `Closes #N` planned for the PR body rather than the commits — and kept the project's *intentional* differences (the `engineering`/`agents` label taxonomy; the `Co-Authored-By: Claude Fable 5` trailer, *"per our env's instruction"*). Its recommendation: **adopt tenor's flow, keep the intentional differences** — concretely: rename `foundation` → `fix/4-app-foundation`; close #4 via the PR body (adding `Closes #4` retroactively *"means rewriting 8 commits; the PR-body close is equivalent and clean"*); merge-commit-not-squash to *"preserve the per-task commit story (which this experiment values)"*; adopt worktrees *going forward* but not retrofit; and **codify a "Branching" section in CLAUDE.md.**
+
+The user approved all of it, and stacked on two more requests:
+
+> "1, 2, 3, 4, and 5 yes
+>
+> Also, add a section in CLAUDE.md that whenever I ask you to spin up the app, fire up whatever the appropriate server startup command is - maybe here it's foreman run start? Let's review
+>
+> We may want to verify that migrations happen if needed on startup too
+>
+> So let's rename / push / open PR with Closes #4 and monitor CI. Then, add all of the listed items. Then, add a section in CLAUDE.md on what it means to start up the app. Then, successfully start it up so we can see the results and test"
+
+**Agent-driven?** ✅ A cross-project convention was reviewed, adapted (not copied wholesale), and slated for the inherited contract.
+
+---
+
+## Chapter 17 — The first time the app ran: a live end-to-end login test (2026-06-13)
+
+The assistant executed the user's ordered plan exactly.
+
+**Rename / push / PR.** `foundation` was renamed → **`fix/4-app-foundation`** and pushed; **PR #5** opened with `Closes #4`. Per convention, `ci-monitor` was fired in the background to watch it — and reported **green** (all 5 jobs). The assistant *"await[ed] your explicit say-so to merge"* — never auto-merging, per the project's own rule.
+
+**The startup review** the user asked for resolved a small assumption: *"no Procfile, no foreman — this is an importmap + propshaft app (no JS/CSS build step), so `bin/dev` is just `exec bin/rails server`. So the start command is simply **`bin/dev`**, and `bin/rails db:prepare` is the idempotent 'migrate-if-needed' (creates DB, applies pending migrations, seeds). No foreman needed here."* The user's instinct (*"maybe here it's foreman run start? Let's review"*) was reviewed and corrected with evidence, and the migrate-if-needed concern was answered by `db:prepare`.
+
+**CLAUDE.md gained two sections** — committed to **`main`** (not the feature PR, because *"conventions belong on `main`, not in the feature PR"*) as `0eb429d` (`docs: add branching/PR workflow and app-startup conventions to CLAUDE.md`): the **Branching & PR workflow** (the adopted tenor-style flow — `fix/N-desc`, worktrees-going-forward, `Closes #N` in the PR, merge-commit-not-squash, never auto-merge, cleanup) and **Starting the app** (`bin/rails db:prepare && bin/dev`; no foreman).
+
+**Then — the first time the app actually ran.** Back on the feature branch, the assistant prepared a real Postgres DB and exercised the CLI: *"`db:prepare` seeded the ADMIN role, created user #1 (`demo`), granted admin — verified `users=1, admins=1, roletypes=1`."* It started the server (HTTP 200) and ran a **full live end-to-end login test** through the running server with a CSRF token and cookie jar. The result, in its words:
+
+| Test | Result |
+|---|---|
+| Anonymous root | `not signed in` ✅ |
+| Login form | `<h1>Sign in</h1>`, CSRF token present ✅ |
+| Login as `demo` → root | **`Signed in as demo`** ✅ |
+| Wrong password | **`Invalid username or password`** flash shown ✅ |
+
+As the assistant put it: *"That exercises the *whole* stack live — CSRF, the signed session cookie, `authenticate_by`, the flash fix from review — plus the CLI."* The app was *"**running at http://localhost:3000** (login `demo` / `password123`, an admin)."* Note the last row: the *"Invalid username or password"* flash is precisely the bug the code-quality reviewer caught in Chapter 14 — its fix, verified live against a real server.
+
+The assistant closed with the experiment data point in plain terms: *"This was **the first real product code**, and it was built **entirely subagent-driven** — five TDD tasks, each reading `ARCHITECTURE.md` + `CLAUDE.md`, with reviews that caught a genuine bug (the silent failed-login), all fixes applied through subagents. The agent-first discipline held: every correction went through the process, not a manual patch. So far, on this evidence, the loop produces working, tested, reviewed code."* PR #5 was left green and unmerged, awaiting the user's explicit instruction — pointing next at *"the **backend agent → the Percentage calculator** — where the convergence experiment finally starts *measuring*."*
+
+**Agent-driven?** ✅ The first product was built and corrected entirely by subagents reading the conventions docs; the only hand-typed steps were git mechanics (rename/push/PR), the CLAUDE.md convention edits, and the manual run that *verified* the agents' output. The conventions docs proved sufficient to carry the user's style into code written by agents that never saw the conversation.
+
+---
+
 ## Running assessment — "Does this work?"
 
 *Evidence to date; updated as the experiment proceeds. Deliberately unopinionated — observations, not verdicts.*
@@ -260,10 +358,14 @@ So the snapshot stayed gitignored, retention untouched — the in-session integr
 - **One verification habit is visible and held:** before committing to the transcript-reading design, the assistant *checked that the transcript was actually readable and parseable* (size, structure, real text) rather than assuming. Design feasibility was confirmed empirically. The habit recurred in Chapter 12: asked about durability, the assistant pulled the transcript's actual byte/line count, timestamp span, and grepped for the user's literal first message before claiming the record was intact — *"evidence, not reassurance."*
 - **The journaling discipline is showing self-restraint, not just activity (Chapter 11):** the assistant *deliberately declined* to fire the historian for a minor checklist addition, judging it below the "decision/pivot" bar and choosing to keep the journaling signal-to-noise high. The system is being used with judgment about *when not* to use it — and that minor change was correctly swept into the next checkpoint anyway.
 - **A second durable artifact now backs the synthesis (Chapter 12):** the raw, verbatim transcripts (main + every subagent) are snapshotted to `conversations/` on every historian run. The experiment now keeps *both* the lossy synthesized narrative and the complete replayable record — and the historian's "does this work?" account can be audited against the raw source at any time.
-- **The cost is real and visible:** this is a great deal of dialogue and documentation for what is, so far, zero user-facing features. The bet is that the agents and docs are reusable infrastructure that makes the *next* 191 calculators cheap. Unproven yet.
-- **A recurring pattern:** the user repeatedly caught structural improvements (Issues, ARCHITECTURE, PRODUCT.md, CLAUDE inheritance, the historian) that the assistant then designed. The "describe my work with great intent" challenge is being met largely through this catch-and-refine rhythm.
+- **The first real product code was built — and it was agent-built, per the docs (Chapters 13–17).** The app foundation (auth, RBAC, `Discardable`, `Calculation` + `calculation_logs` view, CLI tasks, the 100% coverage gate) was produced by **five subagents**, each instructed only to read `ARCHITECTURE.md` + `CLAUDE.md` first — none saw the conversation. The conventions docs were sufficient to carry the user's intent into code. This is the strongest evidence yet that the method *produces working software*, not just documents: the build is green, 100% line+branch covered, and **ran live end-to-end** (anonymous → "not signed in"; login as `demo` → "Signed in as demo"; bad password → flash). Notably, no app code had ever run before this point — the foundation is the first executable product.
+- **The review loop caught a real bug, and it was fixed through the process (Chapter 14).** The code-quality reviewer found that failed logins set a flash that *nothing rendered* — a genuine silent-rejection bug. The fix went through a subagent, not a manual patch, and was then **verified live** (the "Invalid username or password" flash appearing on the running server is that exact fix). The two-stage review + judgment-over-agreement discipline (defer-with-reason on three minor findings; re-scope the cookie-`secure` finding while still adopting it) held across both the per-task review and the final holistic review.
+- **The conventions doc paid off exactly where predicted.** Two earlier decisions proved load-bearing under the first build: the SQL schema format (Chapter 9) was *needed* for the `calculation_logs` **view** to round-trip through `structure.sql`; and `ARCHITECTURE.md` was complete enough that the foundation went *straight to a plan with no redesign* — the assistant explicitly noted *"we don't need a new brainstorm."* The heavy upfront investment began to discharge here.
+- **The full intended workflow was dogfooded once, end-to-end (Chapters 13–17):** PM-minted issue (#4) → branch → subagent-driven build with two-stage review → PR (#5, `Closes #4`) → `ci-monitor` green verdict → human-gated merge (left unmerged, awaiting say-so). A cross-project convention (tenor's `Issue → Branch → PR → Merge → Cleanup` flow) was reviewed, *adapted* rather than copied, and codified into `CLAUDE.md` — keeping the project's intentional differences (label taxonomy, the `Claude Fable 5` trailer).
+- **The cost is real and visible, but is beginning to convert:** the dialogue-and-docs investment now has its first tangible return — a running, tested foundation other agents can build *on*. The bet (reusable infrastructure making the next 191 calculators cheap) is still mostly unproven, but no longer at zero user-visible output.
+- **A recurring pattern:** the user repeatedly caught structural improvements (Issues, ARCHITECTURE, PRODUCT.md, CLAUDE inheritance, the historian, the branching strategy, the app-startup convention) that the assistant then designed. The "describe my work with great intent" challenge is being met largely through this catch-and-refine rhythm — and in Chapter 17 the assistant *corrected* one of the user's instincts with evidence (no foreman; `bin/dev` + `db:prepare`).
 
-**Open question:** the convergence experiment hasn't started measuring yet — no calculator has been built by the (not-yet-existent) backend/frontend agents. Everything above is *foundation*. The real test begins when those agents produce calculators and we see whether corrections keep landing in agent definitions and shrink over time.
+**Open question:** the convergence experiment *still* hasn't started measuring — the foundation is platform, not a calculator built by the (not-yet-existent) backend/frontend agents. But the precondition is now met: the platform exists, runs, and is reviewed. The real test begins when the backend agent produces the first calculator (Percentage) and we see whether corrections keep landing in agent definitions and shrink over successive calculators.
 
 ---
 
@@ -271,6 +373,8 @@ So the snapshot stayed gitignored, retention untouched — the in-session integr
 
 **Agents:** `pm` (Opus; tracking/docs/Issues), `ci-monitor` (Sonnet; report-only CI watcher), `historian` (Opus; writes only `JOURNEY.md`, background fire-and-forget, anchor-driven). *Pending:* backend, frontend.
 **North-star docs:** `JOURNEY.md` (this), `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md`.
-**Tracking:** `docs/inventory.md` (191 calculators), `docs/logs/` (iterations), GitHub Issues (`engineering`/`agents`).
-**Specs/plans:** `docs/superpowers/specs/2026-06-12-project-tracking-pm-agent-design.md`, `docs/superpowers/plans/2026-06-12-pm-agent.md`.
-**Tooling:** `bin/ci-watch`, `bin/snapshot-transcripts` (mirrors all session + subagent transcripts into the gitignored `conversations/` on every historian run).
+**App foundation (first product code, subagent-built):** session auth (`User`/`Session`/`Current`, no email/reset/signup), RBAC (`RoleType` seeded `ADMIN`, `Role`, `User#admin?`), `Discardable` soft-delete concern, `Calculation` model + `calculation_logs` DB view (real schema in `db/structure.sql`), CLI rake tasks (`users:create`/`set_password`, `admins:grant`/`revoke`), SimpleCov 100% line+branch gate. Ran live end-to-end on PR #5 (`Closes #4`), CI green, awaiting human merge.
+**Tracking:** `docs/inventory.md` (191 calculators), `docs/logs/` (iterations), GitHub Issues (`engineering`/`agents`). Issue #4 (foundation) → PR #5.
+**Specs/plans:** `docs/superpowers/specs/2026-06-12-project-tracking-pm-agent-design.md`, `docs/superpowers/plans/2026-06-12-pm-agent.md`, `docs/superpowers/plans/2026-06-13-app-foundation.md`.
+**Conventions added:** `CLAUDE.md` now carries a **Branching & PR workflow** (tenor-adapted: `fix/N-desc`, worktrees-going-forward, `Closes #N` in PR, merge-commit-not-squash, never auto-merge) and a **Starting the app** section (`bin/rails db:prepare && bin/dev`; importmap/propshaft, no foreman).
+**Tooling:** `bin/ci-watch`, `bin/snapshot-transcripts` (mirrors all session + subagent transcripts into the gitignored `conversations/` on every historian run), `bin/dev` (server start).
