@@ -17,11 +17,15 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
   test "invalid login is rejected" do
     post session_path, params: { username: "alice", password: "nope" }
     assert_redirected_to new_session_path
+    follow_redirect!
+    assert_select "body", /invalid username or password/i
   end
 
   test "logout terminates the session" do
     post session_path, params: { username: "alice", password: "password" }
-    delete session_path
+    assert_difference "Session.count", -1 do
+      delete session_path
+    end
     assert_redirected_to root_path
     follow_redirect!
     assert_select "body", /not signed in/i
