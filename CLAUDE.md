@@ -25,7 +25,7 @@ We build by iterating on **agent definitions** (`.claude/agents/`), *not* by han
 ## The agents
 
 - **`project-manager-agent`** (Opus) — project tracking. Owns `docs/` + GitHub Issues. Never writes app code or agent definitions; stewards `PRODUCT.md`. Runs a full-context ingestion at every launch.
-- **backend** *(not built yet)* — calculator math in `app/calculators/`, per `ARCHITECTURE.md`.
+- **`backend`** (Opus) — everything server-side of the route. Builds/regenerates calculator math (`app/calculators/`) from each calculator's spec (its GitHub issue body), and owns routes, controllers, models, migrations/`db`, initializers, `lib`, jobs, and rake tasks; codes the JSON envelope (`ARCHITECTURE.md §4`). Creates its own worktree per task. Never writes client-side-of-the-route code (ERB, CSS, JS, view helpers).
 - **`frontend`** (Opus) — the UI. Owns `app/views`, `app/helpers`, `app/assets` (Tailwind theme/tokens), and Stimulus controllers; builds to `DESIGN.md` (BLEND) and codes against the JSON envelope (`ARCHITECTURE.md §4`). Never writes calculator math, models, controller business logic, migrations, or routes.
 
 Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code; **UI builds also ingest `DESIGN.md`.**
