@@ -14,6 +14,7 @@ This file is the shared contract for **all** work in this repo — the main sess
 
 - **`docs/PRODUCT.md`** — what we're building, for whom (the vision).
 - **`docs/ARCHITECTURE.md`** — how we build it (conventions). **Required reading before writing any app code.**
+- **`docs/DESIGN.md`** — the **BLEND** design system (tokens, type, components). **Required reading before any UI work.**
 - **`docs/inventory.md`** — the calculator catalog (191 calculators; complexity + tags).
 - **`docs/INDEX.md`** — the `docs/` layout and the iteration/log concept.
 
@@ -25,9 +26,9 @@ We build by iterating on **agent definitions** (`.claude/agents/`), *not* by han
 
 - **`pm`** (Opus) — project tracking. Owns `docs/` + GitHub Issues. Never writes app code or agent definitions; stewards `PRODUCT.md`. Runs a full-context ingestion at every launch.
 - **backend** *(not built yet)* — calculator math in `app/calculators/`, per `ARCHITECTURE.md`.
-- **frontend** *(not built yet)* — the UI.
+- **`frontend`** (Opus) — the UI. Owns `app/views`, `app/helpers`, `app/assets` (Tailwind theme/tokens), and Stimulus controllers; builds to `DESIGN.md` (BLEND) and codes against the JSON envelope (`ARCHITECTURE.md §4`). Never writes calculator math, models, controller business logic, migrations, or routes.
 
-Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code.
+Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code; **UI builds also ingest `DESIGN.md`.**
 
 ## How work is tracked
 
@@ -66,7 +67,7 @@ Feature work follows **Issue → Branch → Commit → PR → Merge → Cleanup*
 When asked to **spin up / run / start the app**:
 
 1. **Migrate if needed:** `bin/rails db:prepare` — idempotent: creates the DB if absent, applies any pending migrations, and runs seeds (`db/seeds.rb`, e.g. the ADMIN `RoleType`). Safe to run every startup.
-2. **Start the server:** `bin/dev`. This app is **importmap + propshaft** (no JS/CSS build step), so `bin/dev` is simply `bin/rails server` — **no Procfile, no foreman**. Serves on http://localhost:3000.
+2. **Start the server:** `bin/dev`. JS is **importmap** (no build step), but **CSS is Tailwind** (`tailwindcss-rails`, a standalone binary — no Node), so `bin/dev` runs **foreman** from `Procfile.dev`: `web` (the Rails server) + `css` (`tailwindcss:watch`, which rebuilds `app/assets/builds/tailwind.css` on change). The built CSS is gitignored; CI builds it with `bin/rails tailwindcss:build`. Serves on http://localhost:3000.
 
 There is no sign-up. To log in, create a user via the CLI first: `bin/rails "users:create[name,password]"` (and `bin/rails "admins:grant[name]"` for admin).
 
