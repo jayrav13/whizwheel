@@ -16,6 +16,11 @@ module Whizwheel
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Use SQL schema format: the app relies on Postgres-specific features
+    # (the `calculation_logs` view, jsonb) that the Ruby schema dumper can't
+    # represent. Produces db/structure.sql.
+    config.active_record.schema_format = :sql
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
