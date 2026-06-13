@@ -59,6 +59,14 @@ After **any** push or PR, the CI run must be watched to completion — never ass
 - Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run); the agent wraps it with diagnosis.
 - **Never auto-merge.** A green PR merges only on explicit human instruction.
 
+## JOURNEY.md — the experiment log
+
+`JOURNEY.md` (repo root) is the detailed, running record of this experiment — answering "does this work?".
+
+- **Main thread only.** At the start of a fresh session, read `JOURNEY.md` while responding to the first prompt, unless it is already in context. **Subagents do NOT read it** — they don't need the saga and it would waste their context.
+- **You (the main thread) keep it current.** At each meaningful decision or pivot, fire the **`historian`** agent **in the background** (`run_in_background: true`) to journal it. Emit one short visible line when you do — a marker such as `📝 journaling that in the background` — then continue immediately; never block on it, and handle its completion quietly (surface only errors). The historian reads the session transcript + `JOURNEY.md`'s coverage anchor and writes the gap itself — you do **not** push it context.
+- Until `historian` is a registered type, fire a generic background subagent pointed at `.claude/agents/historian.md` + this file.
+
 ## The rules that matter most
 
 1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code.
