@@ -27,6 +27,72 @@ CREATE TABLE public.ar_internal_metadata (
 
 
 --
+-- Name: calculations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calculations (
+    id bigint NOT NULL,
+    user_id bigint,
+    calculator character varying NOT NULL,
+    inputs jsonb DEFAULT '{}'::jsonb NOT NULL,
+    result jsonb DEFAULT '{}'::jsonb NOT NULL,
+    deleted_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id bigint NOT NULL,
+    username character varying NOT NULL,
+    password_digest character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: calculation_logs; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.calculation_logs AS
+ SELECT c.id,
+    c.calculator,
+    c.inputs,
+    c.result,
+    c.user_id,
+    u.username,
+    c.deleted_at,
+    c.created_at,
+    c.updated_at
+   FROM (public.calculations c
+     LEFT JOIN public.users u ON ((u.id = c.user_id)));
+
+
+--
+-- Name: calculations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.calculations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: calculations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.calculations_id_seq OWNED BY public.calculations.id;
+
+
+--
 -- Name: role_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -135,19 +201,6 @@ ALTER SEQUENCE public.sessions_id_seq OWNED BY public.sessions.id;
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.users (
-    id bigint NOT NULL,
-    username character varying NOT NULL,
-    password_digest character varying NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -164,6 +217,13 @@ CREATE SEQUENCE public.users_id_seq
 --
 
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
+
+
+--
+-- Name: calculations id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calculations ALTER COLUMN id SET DEFAULT nextval('public.calculations_id_seq'::regclass);
 
 
 --
@@ -200,6 +260,14 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 ALTER TABLE ONLY public.ar_internal_metadata
     ADD CONSTRAINT ar_internal_metadata_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: calculations calculations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calculations
+    ADD CONSTRAINT calculations_pkey PRIMARY KEY (id);
 
 
 --
@@ -240,6 +308,27 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: index_calculations_on_calculator; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_calculations_on_calculator ON public.calculations USING btree (calculator);
+
+
+--
+-- Name: index_calculations_on_deleted_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_calculations_on_deleted_at ON public.calculations USING btree (deleted_at);
+
+
+--
+-- Name: index_calculations_on_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_calculations_on_user_id ON public.calculations USING btree (user_id);
 
 
 --
@@ -286,6 +375,14 @@ ALTER TABLE ONLY public.sessions
 
 
 --
+-- Name: calculations fk_rails_8abd8d8e0c; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calculations
+    ADD CONSTRAINT fk_rails_8abd8d8e0c FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: roles fk_rails_ab35d699f0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -308,6 +405,8 @@ ALTER TABLE ONLY public.roles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260613062708'),
+('20260613062657'),
 ('20260613062239'),
 ('20260613062235'),
 ('20260613060934'),

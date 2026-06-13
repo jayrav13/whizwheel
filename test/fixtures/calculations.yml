@@ -1,0 +1,9 @@
+anon_pct:
+  calculator: percentage
+  inputs: "{}"
+  result: "{}"
+alice_pct:
+  calculator: percentage
+  user: alice
+  inputs: "{}"
+  result: "{}"
