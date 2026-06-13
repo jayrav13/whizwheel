@@ -44,12 +44,31 @@ Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code
 - **Path-scoped staging** (`git add <explicit paths>`, never `git add -A`).
 - A PR that finishes a calculator/issue closes it: `Closes #N`.
 
+## Branching & PR workflow
+
+Feature work follows **Issue → Branch → Commit → PR → Merge → Cleanup**:
+
+- **Branch** off `main`, named **`fix/<issue#>-<brief-description>`** (e.g. `fix/4-app-foundation`). Prefer a **git worktree** (EnterWorktree) for isolation / concurrent sessions and the fan-out future; a plain branch is fine for a single linear effort.
+- **PR** via `gh pr create`; put **`Closes #<issue>`** in the PR body; end the body with the Claude Code footer.
+- **Merge with a merge commit, never squash** (`gh pr merge <pr> --merge`) — preserve the per-task commit story.
+- **Never auto-merge** — merge only on explicit human instruction, after CI is green (see CI/CD monitoring).
+- **After merge:** delete the remote branch, remove the worktree if one was used, and `git pull` on `main`.
+
 ## Running things
 
 - **Tests:** `bin/rails test` (Minitest). **Coverage gate: 100%** via SimpleCov — the build fails below it.
 - **CI:** `.github/workflows/ci.yml` — brakeman, rubocop, tests-with-coverage. **Must be green.**
-- **Server:** `bin/rails server`.
+- **Start the app:** `bin/rails db:prepare && bin/dev` — details in "Starting the app" below.
 - **Users/roles are CLI-managed** (no web UI), once the foundation exists: `bin/rails "users:create[name]"`, `"users:set_password[name]"`, `"admins:grant[name]"`, `"admins:revoke[name]"`.
+
+## Starting the app
+
+When asked to **spin up / run / start the app**:
+
+1. **Migrate if needed:** `bin/rails db:prepare` — idempotent: creates the DB if absent, applies any pending migrations, and runs seeds (`db/seeds.rb`, e.g. the ADMIN `RoleType`). Safe to run every startup.
+2. **Start the server:** `bin/dev`. This app is **importmap + propshaft** (no JS/CSS build step), so `bin/dev` is simply `bin/rails server` — **no Procfile, no foreman**. Serves on http://localhost:3000.
+
+There is no sign-up. To log in, create a user via the CLI first: `bin/rails "users:create[name,password]"` (and `bin/rails "admins:grant[name]"` for admin).
 
 ## CI/CD monitoring
 
