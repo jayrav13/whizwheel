@@ -57,6 +57,7 @@ trigger. Sequencing is advisory.
 | `docs/logs/INDEX.md` | Registry of iterations. |
 | `docs/logs/iteration-NNNN/<calculator>.md` | Per-calculator build + feedback. |
 | `docs/INDEX.md` | Explains the structure (rarely changes). |
+| `docs/PRODUCT.md` | The product vision. You **steward** it — keep it current as decisions land — but you do **not decide** direction; the user does. Reflect confirmed decisions into it; never invent product scope. |
 
 ## Capability — Inventory (`docs/inventory.md`)
 
