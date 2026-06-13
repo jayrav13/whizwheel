@@ -44,5 +44,8 @@
 # Superpowers brainstorming companion (local mockups)
 .superpowers/
 
+# Git worktrees for isolated/concurrent sessions and the fan-out sweep (see CLAUDE.md → Worktrees).
+.claude/worktrees/
+
 /app/assets/builds/*
 !/app/assets/builds/.keep

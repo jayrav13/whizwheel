@@ -49,11 +49,25 @@ Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code
 
 Feature work follows **Issue → Branch → Commit → PR → Merge → Cleanup**:
 
-- **Branch** off `main`, named **`fix/<issue#>-<brief-description>`** (e.g. `fix/4-app-foundation`). Prefer a **git worktree** (EnterWorktree) for isolation / concurrent sessions and the fan-out future; a plain branch is fine for a single linear effort.
+- **Branch** off `main`, named **`fix/<issue#>-<brief-description>`** (e.g. `fix/4-app-foundation`). Prefer a **worktree** for isolation (see **Worktrees** below) — required for the fan-out future, optional for a single linear effort.
 - **PR** via `gh pr create`; put **`Closes #<issue>`** in the PR body; end the body with the Claude Code footer.
 - **Merge with a merge commit, never squash** (`gh pr merge <pr> --merge`) — preserve the per-task commit story.
 - **Never auto-merge** — merge only on explicit human instruction, after CI is green (see CI/CD monitoring).
-- **After merge:** delete the remote branch, remove the worktree if one was used, and `git pull` on `main`.
+- **After merge:** delete the remote branch, remove the worktree if one was used (see Worktrees), and `git pull` on `main`.
+
+## Worktrees
+
+Worktrees give each effort an isolated checkout so concurrent sessions — and the **fan-out sweep** (one build agent per calculator, `ARCHITECTURE.md §3.1`) — never collide on a shared working tree. They live under **`.claude/worktrees/<name>/`** (gitignored), each on its own `fix/<issue#>-<desc>` branch.
+
+There are **two lanes**, by who is doing the work:
+
+- **Interactive / main-thread sessions** use the **`EnterWorktree`** tool (creates `.claude/worktrees/<name>/` + the branch) and **`ExitWorktree`** with `action: "remove"` at cleanup.
+- **Dispatched build agents create their own worktree** as the first step of any task, via the **git CLI** (`EnterWorktree`'s session-cwd semantics are unproven inside a subagent; `git worktree add` is deterministic and always works):
+  ```bash
+  git worktree add .claude/worktrees/<slug> -b fix/<issue#>-<desc> main
+  ```
+  The agent then works inside that path (absolute paths), commits, pushes, and opens the PR **from the worktree** — it never merges. We do **not** use the `Agent` tool's dispatch-time `isolation: "worktree"`; the agent owns its own isolation lifecycle.
+- **Removal happens at the standard post-merge cleanup** (main-thread / human, after the human merges the PR): `git worktree remove .claude/worktrees/<slug>` (or `ExitWorktree action: "remove"`), then `git pull` on `main`. An agent that only opened a PR leaves its worktree in place for that cleanup.
 
 ## Running things
 
