@@ -149,7 +149,7 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Mean, Median, Mode, Range Calculator | Math | 3 | statistical, text-output | https://www.calculator.net/mean-median-mode-range-calculator.html |
 | Number Sequence Calculator | Math | 3 | multi-mode, text-output | https://www.calculator.net/number-sequence-calculator.html |
 | Percent Error Calculator | Math | 2 | text-output | https://www.calculator.net/percent-error-calculator.html |
-| Percentage Calculator | Math | 2 | multi-mode | https://www.calculator.net/percent-calculator.html |
+| Percentage Calculator | Math | 3 | multi-mode, multi-input | https://www.calculator.net/percent-calculator.html |
 | Permutation and Combination Calculator | Math | 3 | statistical, text-output | https://www.calculator.net/permutation-and-combination-calculator.html |
 | Probability Calculator | Math | 4 | multi-mode, statistical | https://www.calculator.net/probability-calculator.html |
 | Pythagorean Theorem Calculator | Math | 2 | geometry | https://www.calculator.net/pythagorean-theorem-calculator.html |
