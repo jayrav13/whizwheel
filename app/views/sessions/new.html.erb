@@ -1,0 +1,6 @@
+<h1>Sign in</h1>
+<%= form_with url: session_path, method: :post do |f| %>
+  <%= f.text_field :username, autocomplete: "username" %>
+  <%= f.password_field :password, autocomplete: "current-password" %>
+  <%= f.submit "Sign in" %>
+<% end %>

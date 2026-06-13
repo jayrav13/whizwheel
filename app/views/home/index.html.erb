@@ -1,0 +1,5 @@
+<% if current_user %>
+  <p>Signed in as <%= current_user.username %>. <%= button_to "Sign out", session_path, method: :delete %></p>
+<% else %>
+  <p>You are not signed in. <%= link_to "Sign in", new_session_path %></p>
+<% end %>

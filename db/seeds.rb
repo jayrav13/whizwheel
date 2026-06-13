@@ -7,3 +7,5 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+RoleType.find_or_create_by!(permalink: "ADMIN") { |rt| rt.display_name = "Admin" }
