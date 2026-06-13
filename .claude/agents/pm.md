@@ -107,8 +107,21 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
 
 ## Capability — Iterations (`docs/logs/`)
 
-An **iteration** is the rebuild of `n` sequentially-next calculators (a set of selected
-`engineering` issues) using a frozen, committed agent set (pinned to a SHA).
+An **iteration** is one turn of the agent-improvement loop, pinned to a **frozen, committed
+agent set** (a SHA). It does two things at once:
+
+- **Builds the next `n` new calculators** (a set of selected `engineering` issues), and
+- **Regenerates every previously-built calculator** with that same pinned agent set — a full
+  **fan-out sweep**, one agent invocation per calculator, conflict-free because each calculator
+  owns its own file (`ARCHITECTURE.md §2–3`).
+
+Regeneration is **from each calculator's spec, not from its prior code**: a rebuilt calculator
+is an independent production of the current agents, so its diff against the prior version is a
+clean, controlled measure of what improving the agents changed. **That sweep — not just the new
+builds — is the iteration's primary evidence.** (A code-only fix that never made it into the
+agents or the spec is erased by the next sweep; that is the point — it forces every durable
+decision up into the agent/spec/test layer. The spec artifact itself — its exact format and
+home — is settled when the backend agent is built; see `ARCHITECTURE.md`.)
 
 **Open an iteration** (PM recommends `n` + calculators; user confirms):
 1. Confirm the agent definitions are committed; capture the commit SHA.
@@ -121,9 +134,11 @@ An **iteration** is the rebuild of `n` sequentially-next calculators (a set of s
 6. Note at the top of the iteration folder **what changed in the agents since the previous
    iteration**.
 
-**During the iteration:** for each calculator, maintain
-`docs/logs/iteration-NNNN/<calculator>.md` recording what the agents produced, what was
-right, what missed, and what agent-definition change the miss suggests. Accrue all
+**During the iteration:** for **every** calculator touched — the `n` new builds **and** each
+regenerated prior calculator — maintain `docs/logs/iteration-NNNN/<calculator>.md` recording
+what the agents produced, what was right, what missed, and what agent-definition change the
+miss suggests. For a regenerated calculator, capture the **delta from its previous version**
+(what the improved agents changed) — that delta is the iteration's core data. Accrue all
 feedback/discussion here. These files are **disjoint** (fan-out-safe).
 
 **Close an iteration:** when the user decides to change the agents, set the iteration's

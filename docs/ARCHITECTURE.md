@@ -11,10 +11,11 @@
 | Term | Means | Lives as |
 |---|---|---|
 | **Calculator** | A *type* — the page, the math, the engineering artifact. e.g. "Percentage". | Code: `Calculators::Percentage`. Catalogued in the PM's `docs/inventory.md`. Keyed by a **slug** (`"percentage"`). |
+| **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | **TBD** — its exact format and home are settled when the backend agent is built (issue #6); today it is half-implied by the calculator's `engineering` issue body + its `inventory.md` row. |
 | **Calculation** | A single *run* of a calculator — one invocation, with its inputs and result. | A DB row: `Calculation` (ActiveRecord). |
 | **calculation_logs** | A denormalized read model for reporting/stats. | A DB **view** over `calculations`. |
 
-Calculators are **code, not data** — there is no `calculators` table. Adding a calculator is engineering work (a file), not a database insert.
+Calculators are **code, not data** — there is no `calculators` table. Adding a calculator is engineering work (a file), not a database insert. And that code is **regenerated from the spec each iteration** (§3.1), never hand-refactored in place.
 
 ---
 
@@ -131,6 +132,20 @@ end
 ```
 
 **Adding a calculator never edits `routes.rb`, a controller, or a registry** — you drop one file in `app/calculators/`. That is the auto-discovery property that keeps parallel/fan-out builds conflict-free. It is a hard rule: **no central registration of calculators.**
+
+---
+
+## 3.1 The build model — regenerate from spec, by fan-out sweep
+
+How calculators come into being, as durable convention. (The iteration mechanics — opening, logging, closing — live in the PM agent's Iterations capability; this is the engineering shape it rests on.)
+
+**The spec is the first-class, durable artifact.** Each calculator has a **spec** (§0) — its intent, inputs/outputs, and reference values — and the build agents regenerate the **implementation from that spec**. "Rebuild" therefore means **regenerate-from-spec**, *never* refactor-the-existing-code: a rebuilt calculator is an independent production of the current agents, not an edit of the prior one. Its diff against the previous version is then a clean, controlled A/B on the agents — exactly the signal the experiment is trying to read.
+
+> **Spec format/home is deliberately OPEN.** The spec artifact's concrete shape — file format, schema, directory — is **TBD, to be settled when the backend agent is built (issue #6)**. Today it is only half-implied (the calculator's `engineering` issue body + its `inventory.md` row). We are intentionally not over-specifying it ahead of the first calculator.
+
+**Builds happen as a fan-out sweep.** An iteration both adds the next `n` new calculators **and regenerates every previously-built one** with the pinned agent set — one agent invocation per calculator. This is conflict-free precisely because of §2–3: each calculator owns its own file and there is **no central registration**, so N agents can run in parallel without colliding on `routes.rb`, a registry, or a shared table. The FE/BE build agents are thus **parameterized, fan-out-able workers** (one calculator each), suited to dynamic-workflow orchestration.
+
+**This is what makes the agent-first rule enforceable.** Because every prior calculator is regenerated from its spec each sweep, any fix that lives **only in calculator code** — never lifted up into the agent definition, the spec, or the tests — is **erased** by the next sweep. That forces every durable decision up into the agent/spec/test layer, which is the whole point (`CLAUDE.md` rule #1; calculators are append-only per §12, so prior versions remain comparable). Cross-reference: `pm.md` (the Iterations capability — how a sweep is opened, logged, and closed).
 
 ---
 
