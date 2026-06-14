@@ -85,6 +85,13 @@ SQL
 bin/rails runner 'sql=File.read("/tmp/wz_census_fks.sql"); ActiveRecord::Base.connection.select_all(sql).each { |r| puts "#{r["table_name"]}.#{r["column_name"]} -> #{r["references_table"]}.#{r["references_column"]}" }'
 ```
 
+Two notes on the census so you read it honestly:
+- It excludes the Rails bookkeeping tables `schema_migrations` and `ar_internal_metadata`, so
+  its table count is the *app* surface (it will be lower than `\dt`'s raw count by two).
+- The FK census assumes **single-column** foreign keys (true for the schema today). A
+  composite FK would render as multiple rows via `constraint_column_usage` — if you ever see
+  repeated `(table, references_table)` pairs, fall back to `pg_constraint` to read it correctly.
+
 The census is **authoritative for what exists**. Prefer `bin/rails runner` with ActiveRecord
 reads for all subsequent queries (it respects `Discardable` scopes and jsonb accessors); drop
 to `bin/rails dbconsole` / `psql` for the `calculation_logs` view or raw SQL.
@@ -99,8 +106,9 @@ the census shows the full surface, and you are honest about where your deep know
 **Documented set (deep knowledge as of 2026-06-14):**
 
 - **`calculations`** (table) — `calculator` (string, indexed), `inputs` jsonb, `result`
-  jsonb, `user_id` (nullable → **anonymous vs. attributed**), `deleted_at`. Soft-deletable
-  (`Discardable`): use `.kept` / `.discarded`.
+  jsonb, `user_id` (nullable → **anonymous vs. attributed**), `deleted_at`, `created_at` /
+  `updated_at` (use `created_at` for the test-run time range). Soft-deletable (`Discardable`):
+  use `.kept` / `.discarded`.
 - **`calculation_logs`** (VIEW) — `calculations` LEFT JOIN `users`; adds `username` so
   attribution needs no manual join. Read via `dbconsole`/`psql` or
   `ActiveRecord::Base.connection.select_all`.
