@@ -30,6 +30,10 @@ We build by iterating on **agent definitions** (`.claude/agents/`), *not* by han
 
 Every build agent ingests `ARCHITECTURE.md` + `PRODUCT.md` before producing code; **UI builds also ingest `DESIGN.md`.**
 
+## Orchestration — stay ahead of the airplane (main thread)
+
+The main thread is an **orchestrator**: proactively **catch and kick** any *unblocked* work into the background instead of waiting idle. The moment a PR exists, dispatch its `ci-monitor`; journal at each milestone (the `historian`); run independent builds in parallel. **Only the genuine critical path should gate — everything parallelizable should already be running.** After each action, scan for newly-unblocked background tasks and fire them without being asked; if something *can't* be backgrounded yet, say why (e.g. "no PR exists yet"). (Subagents do one task; this discipline is the orchestrator's.) This proactive multi-agent orchestration is itself part of what the experiment is honing.
+
 ## How work is tracked
 
 - **Task state → GitHub Issues.** Labels: **`backend`** + **`frontend`** (the per-calculator build line — each calculator gets *both*, one issue per layer, both carrying the full `spec:v1` body), `engineering` (non-calculator infra/agent/tooling work), `agents` (deferred agentic-fix queue). PRs close issues with `Closes #N` — a calculator's backend PR closes its `backend` issue, its frontend PR closes its `frontend` issue.
