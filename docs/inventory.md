@@ -42,6 +42,8 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 
 | Calculator | Category | Complexity | Tags | Source | Built (PRs) |
 |---|---|---|---|---|---|
+| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) | BE [#58](https://github.com/jayrav13/whizwheel/pull/58) · FE [#62](https://github.com/jayrav13/whizwheel/pull/62) |
+| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) | BE [#57](https://github.com/jayrav13/whizwheel/pull/57) · FE [#60](https://github.com/jayrav13/whizwheel/pull/60) |
 | Percentage Calculator | Math | 3 | multi-mode, multi-input | [percent-calculator](https://www.calculator.net/percent-calculator.html) | BE [#32](https://github.com/jayrav13/whizwheel/pull/32) · FE [#41](https://github.com/jayrav13/whizwheel/pull/41) |
 | 401K Calculator | Financial | 4 | multi-input, iterative-solve, tabular-output, charts | [401k-calculator](https://www.calculator.net/401k-calculator.html) |  |
 | APR Calculator | Financial | 3 | multi-input | [apr-calculator](https://www.calculator.net/apr-calculator.html) |  |
@@ -116,7 +118,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | VAT Calculator | Financial | 2 | multi-input | [vat-calculator](https://www.calculator.net/vat-calculator.html) |  |
 | Army Body Fat Calculator | Fitness & Health | 3 | multi-input, multi-mode, health | [army-body-fat-calculator](https://www.calculator.net/army-body-fat-calculator.html) |  |
 | BAC Calculator | Fitness & Health | 3 | multi-input, health | [bac-calculator](https://www.calculator.net/bac-calculator.html) |  |
-| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) |  |
 | BMR Calculator | Fitness & Health | 3 | multi-input, multi-mode, health | [bmr-calculator](https://www.calculator.net/bmr-calculator.html) |  |
 | Body Fat Calculator | Fitness & Health | 3 | multi-input, multi-mode, health | [body-fat-calculator](https://www.calculator.net/body-fat-calculator.html) |  |
 | Body Surface Area Calculator | Fitness & Health | 3 | multi-input, multi-mode, health | [body-surface-area-calculator](https://www.calculator.net/body-surface-area-calculator.html) |  |
@@ -212,7 +213,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Molarity Calculator | Other | 3 | multi-input, physics, unit-conversion | [molarity-calculator](https://www.calculator.net/molarity-calculator.html) |  |
 | Molecular Weight Calculator | Other | 3 | multi-input, physics, text-output | [molecular-weight-calculator](https://www.calculator.net/molecular-weight-calculator.html) |  |
 | Mulch Calculator | Other | 3 | multi-input, unit-conversion | [mulch-calculator](https://www.calculator.net/mulch-calculator.html) |  |
-| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) |  |
 | Password Generator | Other | 2 | randomness, multi-mode, text-output | [password-generator](https://www.calculator.net/password-generator.html) |  |
 | Resistor Calculator | Other | 3 | multi-mode, encoding, physics | [resistor-calculator](https://www.calculator.net/resistor-calculator.html) |  |
 | Roman Numeral Converter | Other | 2 | encoding, unit-conversion, text-output | [roman-numeral-converter](https://www.calculator.net/roman-numeral-converter.html) |  |
