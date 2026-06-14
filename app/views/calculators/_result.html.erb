@@ -11,7 +11,7 @@
 <% if calc.nil? %>
   <div class="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-border-input bg-surface/60 px-6 py-12 text-center">
     <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Result</p>
-    <p class="mt-2 text-[15px] leading-relaxed text-muted">Choose a mode, enter your numbers, and your answer appears here.</p>
+    <p class="mt-2 text-[15px] leading-relaxed text-muted">Enter your numbers and your answer appears here.</p>
   </div>
 
 <% elsif calc.errors.any? %>
@@ -32,6 +32,9 @@
 
 <% elsif calc.is_a?(Calculators::Bmi) %>
   <%= render "calculators/results/bmi", calc: calc %>
+
+<% elsif calc.is_a?(Calculators::SimpleInterest) %>
+  <%= render "calculators/results/simple_interest", calc: calc %>
 
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
