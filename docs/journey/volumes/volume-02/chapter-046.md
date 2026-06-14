@@ -1,0 +1,20 @@
+## Chapter 46 — The first real measurement: the backend agent builds the 5-mode Percentage calculator (2026-06-13)
+
+While the assistant was mid-codification on Chapter 45's gap, the **backend build it had already dispatched finished** — and the assistant deliberately did *not* treat the background completion as a cue to drop the codification: *"I'll handle #32's CI/review right after I finish the codification you asked for (not treating the background completion as a cue to stop)."* This is the experiment's **first real measurement of raw agent output against a spec** — the moment the whole apparatus was built to reach.
+
+**PR #32** (`Closes #30`): `Calculators::Percentage`, five modes, 33 tests, **100% line + branch coverage**, rubocop + brakeman clean. The assistant read `percentage.rb` and gave an honest assessment: *"it's strong"* — clean constants (`MODES`/`REQUIRED_INPUTS`), per-mode conditional validation, division-by-zero surfaced as **422 validation errors not exceptions**, `BigDecimal` throughout. *"For a first raw agent output against a spec, this is a good result."*
+
+More valuable than the verdict were **three flags the agent itself surfaced** — *"exactly the experiment's signal"*, candidates to lift into the agent definition (agent-first):
+1. **`send(:"compute_#{mode}")` dispatch** instead of a `case` — chosen to avoid an unreachable `else` branch that would break the 100% *branch* gate. A genuinely reusable multi-mode pattern → belongs in `backend.md`.
+2. **Numericality vs `:decimal` coercion** — a `:decimal` attribute silently coerces `"abc"` → `0`, so "numericality" can't strictly reject non-numeric text. Latent across *every* calculator; flagged as a `Base`-level decision.
+3. **Parallel-coverage fork-merge quirk** — SimpleCov under-reports ~5% under macOS multi-core parallel runs but is true 100% single-process (and on Linux CI).
+
+The assistant also noticed one code nuance the agent hadn't flagged (the `difference` div-by-zero guard adds its error to `:base` while other modes use field-level keys) — *"defensible … but slightly inconsistent. Review-worthy, not a blocker."*
+
+**Two follow-on user questions tested whether the architecture was actually working.** First: *"I don't see an update on this newly created PR on the routes page at all? No routes exist, shouldn't it have created a new route for itself?"* The assistant verified before answering and explained that **#32 correctly creating zero routes is the architecture working as designed** — there is exactly one dynamic registration-free route (`POST /calculators/:slug`), so adding a calculator never touches `routes.rb` (rule #3, "No central registration"). *"If #32 had added a route, that would've been the bug."* It distinguished what the user was likely sensing — there is no *visitable page* yet (that's the frontend, #31). Then: *"What's our next step? Where's CICD?"* — CI was green (all 5 jobs), and the parallel-coverage quirk *did not* manifest on Linux. The visual gate ran (4/4 UNCHANGED, expected on a backend-only diff), fully clearing #32.
+
+The user's merge instruction also set the evaluation cadence: *"Merge, PM should log iteration after FE is done, then let's move to the frontend, at the end of FE being done we'll evaluate the BE/FE agents together."* #32 merged (`781079b` via PR), **#30 closed**, the compute endpoint `POST /calculators/percentage` live on `main`, worktree + branches cleaned. Iteration logging deferred until the frontend lands, so the PM logs both layers together and the agents are evaluated jointly.
+
+**Agent-driven? ✅** The experiment's first calculator was produced entirely by the backend agent from its `spec:v1` issue, in its own worktree, with the full test suite — no hand-written math, no route edit (correctly). The three self-surfaced flags are the *first raw data* on what the next agent improvement should encode — the feedback loop the whole experiment exists to run finally has something to feed back. The thesis is still unproven (this is one calculator, not convergence over many), but the loop has, for the first time, *produced* the thing it measures.
+
+---

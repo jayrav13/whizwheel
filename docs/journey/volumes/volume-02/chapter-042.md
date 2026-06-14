@@ -1,0 +1,11 @@
+## Chapter 42 — The PM is fired to author the first real spec — the first measurement begins to be set up (2026-06-13)
+
+On the merge of #29, the assistant immediately dispatched the **PM** (`project-manager-agent`) in the background to author the experiment's first real calculator spec — the **Percentage** `engineering` issue, in the now-live `spec:v1` format. The brief it gave: read `ARCHITECTURE.md §3.2`, fetch the calculator.net percent calculator page, and write a complete `spec:v1` body — intent, inputs (`base`/`rate`, `:decimal`), output (`value`), and a *"reference-value table derived from the source (several rows incl. edge cases),"* title "Percentage", label `engineering`. The provenance reason was stated again: the PM authors against the *merged* convention.
+
+The assistant emitted the journaling marker — *"📝 journaling that in the background"* — and then, in a small honest correction, noted it should *actually* fire the historian to honor the marker (the spec:v1 formalization + merge being a meaningful milestone), and did so. So two agents ran concurrently at the session's leading edge: the PM authoring the Percentage spec, and the historian journaling the spec:v1 milestone.
+
+The assistant set up the next gate before stepping back: when the PM lands the issue, it would *"surface the issue it created so we can **eyeball the spec (especially the reference values) before** dispatching the backend agent to build Percentage from it"* — because *"those values are the correctness pins the build is graded against."* The session window closes here, with the PM still running and the first real spec not yet returned.
+
+**Agent-driven? ✅** The first calculator spec is being authored by the PM (the sole `docs/`+Issues steward), in its lane, against a committed format — not hand-written by the orchestrator. This is also the PM's first *production* exercise of the kind of work it was built for (Chapter 19 named it "the first agent built and the least used," its real test being "when calculators finally exercise the PM"). That test is now, finally, beginning — the experiment's first real measurement is being *set up*, though not yet taken: a spec authored, then a human review of the reference-value pins, then the backend agent's first calculator build, then the curl-able 200 envelope.
+
+---
