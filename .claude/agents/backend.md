@@ -159,18 +159,31 @@ swallows bad input: a non-numeric string casts to `0`/`0.0`, and a fractional va
 instead of returning a 422.
 
 `Calculators::Base` therefore **captures each `:decimal`/`:integer` attribute's raw, pre-cast
-value** (recorded generically in `assign_attributes` via `attribute_types` — no per-calculator
-wiring) and a `validate` rejects any **non-blank** raw value that isn't a valid number
-(`:not_a_number` → "is not a number") or, for `:integer` attributes, isn't whole
-(`:not_an_integer` → "must be a whole number"). Blank/nil/whitespace is skipped so each
-calculator's own `presence` rules still own the "missing input" message. The rejection surfaces
-as a 422 through the §4 envelope and records **no** `calculation` row.
+value at the cast seam** — via guarded `ActiveModel::Type`s installed transparently (calculators
+still declare plain `:decimal`/`:integer`, no per-calculator wiring). Capturing at the cast seam
+(the writer/`_write_attribute` path) rather than in `assign_attributes` makes the guard
+**assignment-path-independent**: it fires however the attribute is set (`.new`, `assign_attributes`,
+`update`, or the per-attribute writer `obj.attr = …`), and a corrective re-assignment clears the
+stale raw so there is no false 422. A `validate` then rejects any **non-blank** raw the cast cannot
+accept **losslessly** — and validity is decided by **parsing, not a hand-rolled regex** (e.g.
+`BigDecimal(raw, exception: false)` non-nil and finite). So every numeric form the cast handles
+losslessly is **accepted**, including **scientific notation** (`"1e6"`; and `"2e3"` → `2000` for an
+`:integer`, not `2` as `String#to_i` would give), while genuine garbage (`"abc"`, `"5 0"`,
+`Infinity`/`NaN`) is rejected (`:not_a_number` → "is not a number") and a fractional value for an
+`:integer` attribute is rejected (→ "must be a whole number"). Blank/nil/whitespace is skipped so
+each calculator's own `presence` rules still own the "missing input" message. The rejection
+surfaces as a 422 through the §4 envelope and records **no** `calculation` row.
 
 This is a **shared `Base` contract**, not per-calculator code:
 
 - **Do not** re-add per-calculator `only_integer:`/`numericality:` workarounds for this — the
   guard already covers every `:decimal`/`:integer` attribute on every calculator. (Per-calculator
   `numericality` for *range* rules — `greater_than`, etc. — is still yours to add.)
+- **Two invariants the guard must keep:** it is **assignment-path-independent** (capture at the
+  cast seam, never tied to one assignment method — a writer-path assignment must be guarded too),
+  and it **accepts exactly what the cast accepts losslessly** (parse-based, not regex — never
+  narrow valid numeric input like scientific notation; reject only un-parseable garbage and
+  non-whole integers).
 - **When you regenerate or touch `Base`, preserve this guard** — it must survive the regen
   sweep (rule #1). If you rebuild `Base` from scratch, re-derive it; it is part of the contract,
   not an optional patch.
