@@ -21,14 +21,47 @@ module CalculatorsHelper
     "change"          => "New value"
   }.freeze
 
+  # The visible label for each Ohm's Law input (issue #55) — like the Percentage map,
+  # the single source the page renders AND the source the error phrasing maps an
+  # attribute key back to (DESIGN.md §4: phrase against the visible label).
+  OHMS_LAW_FIELD_LABELS = {
+    "voltage"    => "Voltage (V)",
+    "current"    => "Current (I)",
+    "resistance" => "Resistance (R)",
+    "power"      => "Power (P)"
+  }.freeze
+
+  # The four Ohm's Law quantities in V/I/R/P order, each with its label, SI unit, and
+  # which result key it reads — drives the result render (§4). The order is fixed so the
+  # solved-quantity grid always reads V, I, R, P regardless of which pair was supplied.
+  OHMS_LAW_QUANTITIES = [
+    { key: :voltage,    label: "Voltage",    unit: "V", symbol: "V" },
+    { key: :current,    label: "Current",    unit: "A", symbol: "I" },
+    { key: :resistance, label: "Resistance", unit: "Ω", symbol: "R" },
+    { key: :power,      label: "Power",      unit: "W", symbol: "P" }
+  ].freeze
+
   # Format a BigDecimal for display (ARCHITECTURE.md §10 — round only for display):
   # round to 6dp, trim trailing zeros, and delimit thousands. Keeps the figure exact
   # for the reference values (all terminate well within 6dp) while staying readable.
-  def percentage_display(value)
+  def decimal_display(value)
     rounded = value.round(6)
     whole = rounded.frac.zero?
     number = whole ? rounded.to_i.to_s : rounded.to_s("F").sub(/0+\z/, "")
     number_with_delimiter(number)
+  end
+  alias_method :percentage_display, :decimal_display
+
+  # The four Ohm's Law quantities, V/I/R/P order, for the result render — a helper so
+  # the view reaches the constant without qualifying it (templates don't include the
+  # helper module's constants, only its methods).
+  def ohms_law_quantities = OHMS_LAW_QUANTITIES
+
+  # The given pair (a Set of result keys) for an Ohm's Law calc — the two quantities
+  # the user supplied for the selected mode. Those echo back; the other two are solved
+  # and get highlighted in the render (spec issue #55: "highlight the two it solved").
+  def ohms_law_given_keys(calc)
+    Calculators::OhmsLaw::REQUIRED_INPUTS.fetch(calc.mode, []).to_set
   end
 
   # The caption above the hero number, by mode (with a safe fallback).
@@ -57,6 +90,7 @@ module CalculatorsHelper
   def field_labels_for(calc)
     case calc
     when Calculators::Percentage then PERCENTAGE_FIELD_LABELS
+    when Calculators::OhmsLaw    then OHMS_LAW_FIELD_LABELS
     else {}
     end
   end
