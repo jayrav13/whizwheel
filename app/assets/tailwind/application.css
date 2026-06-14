@@ -143,6 +143,18 @@
   .stat-grid {
     @apply grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3;
   }
+  /* Variant: the WIDE-track stat grid — same canonical card system, a wider auto-fit min
+     so a unit-bearing / high-magnitude value+unit stays on one line (DESIGN.md §4: stats
+     must NEVER clip or wrap mid-number). The default 9.5rem track is right for plain money
+     figures, but two grids carry realistic large values WITH a trailing unit that wrap
+     mid-number at 9.5rem: Ohm's Law (`998,001,000 W` breaks to `998,00 / 1,000`) and Simple
+     Interest (`$1,000,000.00` breaks at the cents). 13rem holds those worst-case figures on
+     one line — matching the deliberate wider tracks these two pages used before #143
+     consolidated the component. One sanctioned modifier (the `--solved`/`--surface` pattern),
+     NOT per-page inline widths — the whole point of the shared component (issue #143). */
+  .stat-grid--wide {
+    @apply grid-cols-[repeat(auto-fit,minmax(13rem,1fr))];
+  }
   /* One stat card inside the grid — the canonical card shell: a faint cream-tinted card
      (bg-bg/60) holding a label (<dt>) over a tabular-nums value (<dd>). min-w-0 +
      overflow-hidden let the card shrink within its track and keep a long figure contained;

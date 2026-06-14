@@ -61,6 +61,10 @@ class SimpleInterestScreenshotsTest < ApplicationSystemTestCase
       assert_text "800,000.00"
       assert_text "1,000,000.00"
     end
+    # The wide-track stat grid (.stat-grid--wide) must keep each money figure on ONE line —
+    # a regression earlier wrapped "$1,000,000.00" at the cents. Measure the laid-out value
+    # cells: none may exceed a single line-height (DESIGN.md §4).
+    assert_no_mid_value_wrap("#result dl.stat-grid--wide .stat-card dd")
     screenshot_full_page("44-simple-interest-large")
   end
 

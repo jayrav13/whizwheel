@@ -102,6 +102,10 @@ class OhmsLawPageTest < ActionDispatch::IntegrationTest
     post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "2" } }, headers: TURBO
     assert_response :success
     assert_select "section#result dl.stat-grid", count: 1
+    # Unit-bearing high-magnitude figures (e.g. "998,001,000 W") need the wide-track
+    # modifier so the value+unit holds on one line rather than wrapping mid-number
+    # (DESIGN.md §4 "Stat grid" --wide variant).
+    assert_select "section#result dl.stat-grid.stat-grid--wide", count: 1
     assert_select "section#result dl.stat-grid .stat-card", count: 4
     # V/I given, R/P solved → exactly two solved cards.
     assert_select "section#result dl.stat-grid .stat-card.stat-card--solved", count: 2

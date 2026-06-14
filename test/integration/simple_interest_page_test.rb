@@ -90,6 +90,9 @@ class SimpleInterestPageTest < ActionDispatch::IntegrationTest
     # #143): a `.stat-grid` of three `.stat-card`s, sized to the canonical min width and
     # left to flow.
     assert_select "#{within} dl.stat-grid", count: 1
+    # Large money figures (e.g. "$1,000,000.00") need the wide-track modifier so the value
+    # holds on one line rather than wrapping at the cents (DESIGN.md §4 "Stat grid" --wide).
+    assert_select "#{within} dl.stat-grid.stat-grid--wide", count: 1
     assert_select "#{within} dl.stat-grid .stat-card", count: 3
     assert_select "#{within} dl dt", text: "Principal"
     assert_select "#{within} dl dt", text: "Interest"

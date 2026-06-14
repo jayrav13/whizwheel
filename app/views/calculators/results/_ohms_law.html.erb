@@ -17,8 +17,10 @@
           the derived figure (accent tint + border), reinforcing the accent value text — never
           colour alone (DESIGN.md §6): each card also carries a visible Given/Solved tag. The
           value uses break-all so a large 6+ digit figure plus its unit never clips. Fixed
-          V/I/R/P order. %>
-      <dl class="mt-3 stat-grid">
+          V/I/R/P order. The `--wide` modifier widens the auto-fit track (13rem) so a unit-
+          bearing high-magnitude figure (e.g. `998,001,000 W`) holds on one line rather than
+          wrapping mid-number (DESIGN.md §4: stats must never clip/wrap). %>
+      <dl class="mt-3 stat-grid stat-grid--wide">
         <% ohms_law_quantities.each do |q| %>
           <% solved = !given.include?(q[:key]) %>
           <div class="stat-card<%= " stat-card--solved" if solved %>">

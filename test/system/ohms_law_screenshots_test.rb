@@ -65,6 +65,10 @@ class OhmsLawScreenshotsTest < ApplicationSystemTestCase
       assert_text "998,001,000"  # solved power — a 9-digit figure, rendered in full
       assert_text "999,000"      # given voltage echoes back at full width
     end
+    # The wide-track stat grid (.stat-grid--wide) must keep each value+unit on ONE line —
+    # a regression earlier wrapped "998,001,000 W" mid-number to "998,00 / 1,000". Measure
+    # the laid-out value spans: none may exceed a single line-height (DESIGN.md §4).
+    assert_no_mid_value_wrap("#result dl.stat-grid--wide .stat-card dd span.break-all")
     screenshot_full_page("24-ohms-law-large-values")
   end
 

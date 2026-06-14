@@ -31,8 +31,10 @@
           grid flow (3-across when wide, wrapping/stacking as it narrows). The card shell +
           break-words on the value keep a 6+ digit money figure ($1,800,000.00) whole without
           truncation (DESIGN.md §4 "must never clip"). Interest is the derived/positive figure
-          → accent green (DESIGN.md §1); principal + total read in ink. %>
-      <dl class="mt-6 stat-grid">
+          → accent green (DESIGN.md §1); principal + total read in ink. The `--wide` modifier
+          widens the auto-fit track (13rem) so a large money figure (`$1,000,000.00`) holds on
+          one line rather than wrapping at the cents (DESIGN.md §4: stats must never clip/wrap). %>
+      <dl class="mt-6 stat-grid stat-grid--wide">
         <div class="stat-card">
           <dt class="text-xs font-bold text-label">Principal</dt>
           <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words">$<%= money_display(calc.principal) %></dd>
