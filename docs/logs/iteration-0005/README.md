@@ -1,8 +1,8 @@
 # Iteration 0005
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-14
-**Closed:** —
+**Closed:** 2026-06-14
 **Pinned agent SHA:** `e84b05a` (`main` HEAD at open — merge of PR #126; the post-0004-harvest agent set)
 **Tag:** `iteration-0005`
 **Calculators:** **REGEN-ONLY** — no new builds (`n = 0`). A **FRONTEND-ONLY** regeneration sweep of
@@ -10,7 +10,20 @@
 Tip (FE #76), Simple Interest (FE #78), Mean·Median·Mode·Range (FE #80), Age (FE #82),
 Amortization (FE #84).
 
-**Headline outcome:** — (open)
+**Headline outcome:** **SUCCESS — all 8 FE regens merged green; the harvested `DESIGN.md §4`
+conventions propagated from spec alone.** Regenerating each page from its frontend `spec:v1` +
+the updated `DESIGN.md`/`frontend.md` under `e84b05a`, the three convention-bearing pages came
+through cleanly: **Amortization** rebuilt with **interactive JS charts** (the agent **self-installed
+the importmap pins unprompted** — vendored lightweight-charts + Chart.js, navigating a chart.js
+chunking snag), the stat-bearing pages came out as **responsive auto-fit grids**, and **Age**
+regenerated with the explicit **"Today" quick-fill button** (blank-means-today, no silent
+prefill, none on the required birth-date). The operator reviewed the live app and **had no notes —
+called it "a huge success."** The discrimination controls held (no chart/pin on the 7 chart-free
+pages; no Today button on the date-free pages; the mode-picker rule survived untouched). The
+**visual gate earned its keep**: it caught two real chart bugs (a blank donut, a 1970 x-axis) that
+**every markup test passed over** — both fixed, with a pixel-level chart test added to prevent
+recurrence. FE PRs: Tip #133, Ohms Law #134, BMI #135, Percentage #136, Age #137, Simple
+Interest #138, MMR #139, Amortization #141 (backend unchanged — FE-only iteration).
 
 ---
 
@@ -154,6 +167,87 @@ sharpest evidence; the chart-free / date-free pages are the discrimination contr
 
 ---
 
-## Outcome (filled at close)
+## Outcome (closed 2026-06-14)
 
-— (open)
+**Result: SUCCESS.** All 8 frontend regenerations are **built and merged to `main`, CI green**, and
+the operator reviewed the live app and **had no notes** — they called it **"a huge success."** This
+was the first **regen-only, layer-scoped (frontend-only)** iteration, and the central question —
+*do iteration 0004's harvested `DESIGN.md §4` conventions come through cleanly from spec + the
+updated agent set, without a human flagging anything?* — resolved **yes**.
+
+FE regen PRs, verified against GitHub (each titled as a regeneration, **does not `Closes`** anything
+— the calculators were already built and their FE issues already closed):
+
+| Calculator | FE issue (spec) | FE regen PR (iteration-0005) | Prior FE PR (iteration-0004) |
+|---|---|---|---|
+| Tip | #76 | [#133](https://github.com/jayrav13/whizwheel/pull/133) | #106 |
+| Ohms Law | #55 | [#134](https://github.com/jayrav13/whizwheel/pull/134) | #100 |
+| BMI | #53 | [#135](https://github.com/jayrav13/whizwheel/pull/135) | #101 |
+| Percentage | #31 | [#136](https://github.com/jayrav13/whizwheel/pull/136) | #99 |
+| Age | #82 | [#137](https://github.com/jayrav13/whizwheel/pull/137) | #104 |
+| Simple Interest | #78 | [#138](https://github.com/jayrav13/whizwheel/pull/138) | #103 |
+| Mean·Median·Mode·Range | #80 | [#139](https://github.com/jayrav13/whizwheel/pull/139) | #102 |
+| Amortization | #84 | [#141](https://github.com/jayrav13/whizwheel/pull/141) | #105 |
+
+**Backend unchanged** — this was a deliberately frontend-only iteration, so every calculator's
+`Built (PRs)` backend cell stays at its iteration-0004 value; only the FE cell advances to the
+0005 regen PR above.
+
+### The experimental question — answered: PASS (conventions propagated from spec alone)
+
+Regenerating each page from its frontend `spec:v1` + the updated `DESIGN.md`/`frontend.md` under
+`e84b05a`, the three convention-bearing pages came through cleanly:
+
+1. **Interactive JS charts (Amortization, #141).** The 0004 page shipped a CSS conic-gradient donut +
+   an SVG balance curve — *before* the JS-charts convention existed. Regenerated under the new
+   `DESIGN.md §4` "Charts" entry, the page now renders **hover/crosshair/tooltip JS charts**, and the
+   sharpest open risk resolved in our favor: **the agent self-installed the charting importmap pins
+   unprompted** — it pinned + vendored **lightweight-charts** (balance curve) and **Chart.js** (donut),
+   navigating a **chart.js chunking snag** on its own rather than stalling on the missing dependency.
+   The importmap self-install bet paid off.
+2. **Responsive auto-fit stat grids (all stat-bearing pages).** The stat grids regenerated as
+   **auto-fit `minmax` grids** (no pinned column count, no clipping), per the new convention.
+3. **The Today-button (Age, #137).** Age's optional "age as of" date regenerated with an explicit
+   **"Today" quick-fill button**, the field left **blank** (no silent auto-prefill), and the agent
+   correctly did **not** add the button to the **required** birth-date input.
+
+**Discrimination controls held.** The 7 chart-free pages did **not** sprout a JS chart or pull the
+charting pin; the date-free pages did **not** grow a Today button; and the **mode-picker rule**
+(0004's validated convention) survived the regen unchanged. Moving the UI conventions out of the
+agent and into `DESIGN.md` (the slimmed `frontend.md`, #123) left the agent with enough to build
+well — no regressions from the slim.
+
+### The visual gate earned its keep — real bugs that markup tests missed
+
+The headline process finding: **the visual gate caught two real chart bugs that every markup/render
+test passed over** — a **blank donut** (the chart element present and tested-as-rendered, but
+painting nothing) and a **1970 x-axis** (a date/epoch bug on the balance curve). Markup-level tests
+assert the canvas/structure exists; they cannot see that *no pixels were drawn* or that the axis is
+wrong. Both were **fixed**, and a **pixel-level "chart actually painted" test was added** so the
+class of bug can't recur silently. This is direct evidence for the visual gate as a non-optional
+step for chart-bearing pages — and it drove deferred-harvest issue **#144**.
+
+### Harvest (this iteration)
+
+Applied **before** close, per the codified delivery lifecycle (open → build → evaluate → **harvest**
+→ journal → close):
+
+| Change | PR / Issue | What |
+|---|---|---|
+| **`ci-monitor` reworked to retries-only** | [#142](https://github.com/jayrav13/whizwheel/pull/142) (merged with this close) | `ci-monitor` now retries through transient/inconclusive results rather than reporting a flaky non-result (origin: #140, recurring dispatched-agent socket deaths / inconclusive CI polls). This is the iteration's **encoded** harvest — it lands on `main` as part of the close. |
+
+**Deferred-harvest backlog (filed as issues, not yet encoded):**
+
+| # | Label | What |
+|---|---|---|
+| [#143](https://github.com/jayrav13/whizwheel/issues/143) | engineering | **Promote the responsive stat grid to one shared BLEND component** — the 8 regens implemented the auto-fit grid **6 different ways**; the convention is right but its realization diverged, so it belongs as a single shared component rather than re-derived per page. |
+| [#144](https://github.com/jayrav13/whizwheel/issues/144) | agents | **Codify the chart pixel-test + importmap chart-lib packaging rule in the FE agent** — make the "chart actually painted" pixel test and the importmap charting-pin install/vendor step standing FE-agent requirements (origin: the two chart bugs the visual gate caught + the self-install navigation this iteration).
+
+### Process note
+
+Iteration 0005 was the **first regen-only, layer-scoped (frontend-only) iteration** run under the
+newly-codified **iteration delivery lifecycle** (`CLAUDE.md`, PR [#130](https://github.com/jayrav13/whizwheel/pull/130)) —
+and the first whose pinned set carried a **harvest applied before close** (0004's harvest landed on
+`main`, then 0005 opened pinned at it). It validated three things at once: that a **regen-only**
+iteration is a legitimate unit of delivery, that a **layer-scoped** sweep correctly touches only the
+moved layer (backend stayed put), and that the harvest-before-close ordering works in practice.
