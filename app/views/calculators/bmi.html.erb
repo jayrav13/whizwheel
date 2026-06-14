@@ -1,27 +1,37 @@
 <% content_for :title, "BMI Calculator — whizwheel" %>
 
 <%#
-  BMI calculator page (spec issue #53, DESIGN.md BLEND). A two-mode calculator: a
-  unit-system segmented control (US / Metric) picks the formula and which height inputs show.
-  The form posts over Turbo and re-renders the #result region in place; it works
-  WITHOUT JS — the canonical posted fields are inputs[weight], inputs[height] (total
-  inches for US, cm for metric) and the checked inputs[unit_system]. With JS, US mode
-  offers friendlier feet + inches helper fields (no name → never posted) that the
-  bmi_controller sums into the canonical height field, and swaps the weight unit affix.
+  BMI calculator page — regenerated from spec issue #53 against DESIGN.md (BLEND).
 
-  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing
-  to one column on mobile. Spacing scale ("targets not minimums"):
-    • unit-system segmented control → halves tight on the Affix tier (gap-1)
-    • stacked fields    → space-y-5
-    • mode → fields → submit (major blocks) → mt-8 (Section tier)
-    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+  Two unit systems (US / Metric) select the server-side formula and which height
+  affordance the page collects. The page is server-rendered and progressively enhanced
+  (DESIGN.md §0): it works WITHOUT JS, posting over Turbo and re-rendering the #result
+  region in place. The canonical posted fields are always inputs[weight], inputs[height]
+  (total inches for US, centimetres for metric) and the checked inputs[unit_system].
+
+  Picker choice (the picker rule, DESIGN.md §4 "Mode picker"): the unit system is a
+  variant selector with N=2 short labels (US / Metric, ≤12 chars) — and DESIGN.md names
+  "BMI's US|Metric" as a canonical SEGMENTED CONTROL. So it is the connected horizontal
+  track (the same vocabulary as the Percentage page's increase/decrease toggle), NOT a
+  wrapping pill row and NOT the .mode-option list (which is reserved for N ≥ 4 or
+  multi-word labels). It stays a native radio <fieldset>/<legend> posting
+  inputs[unit_system]; the .peer:checked baseline paints the active half with no JS.
+
+  Progressive enhancement of height (DESIGN.md §0): without JS the user types a single
+  height value into the canonical field (total inches for US, cm for metric). With JS the
+  bmi_controller offers US users friendlier feet + inches helper fields (no name → never
+  posted), summing them into the canonical inputs[height], and swaps the weight unit affix.
+
+  Layout (DESIGN.md §3): an input column + a results panel (≈380px 1fr), one column on
+  mobile. Spacing — segmented halves tight (gap-1, Affix tier), stacked fields space-y-5,
+  major blocks mt-8 (Section tier), column gutter/card padding gap-8 / p-7–p-8 (Layout).
 %>
 
 <header class="max-w-2xl">
   <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Fitness &amp; Health</p>
   <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">BMI Calculator</h1>
   <p class="mt-3 text-[15px] leading-relaxed text-muted">
-    Body Mass Index from your weight and height, in US or metric units, with the World
+    Your Body Mass Index from weight and height, in US or metric units, with the World
     Health Organization adult classification band. Every answer is computed server-side.
   </p>
 </header>
@@ -32,17 +42,12 @@
     <%= form_with url: "/calculators/bmi", scope: :inputs, method: :post,
           data: { controller: "bmi", bmi_weight_units_value: { us: "lb", metric: "kg" }.to_json } do |f| %>
 
-      <%# Unit-system selector — a mode/variant picker with N=2 short options, so per the
-          picker rule it is a SEGMENTED CONTROL: one connected horizontal track, the two
-          options as halves, the active half filled/lifted (NOT the wrapping pill row that
-          scrunched the two chips). Reuses the existing segmented-control vocabulary from
-          the Percentage page's increase/decrease toggle — a bg-tinted bordered track with
-          the two halves tight on the Affix tier (gap-1, parts of one control — DESIGN.md
-          §3), each half a `.direction-pill` that lifts to surface white when chosen.
-          Native radio <fieldset>/<legend> with peer sr-only radios posting
-          inputs[unit_system]; the active half is painted by peer :checked (the no-JS
-          baseline) and .is-active (the bmi_controller's paintPills hook), so it works
-          without JS and the controller's field show/hide is unchanged. %>
+      <%# Unit-system picker — SEGMENTED CONTROL (DESIGN.md §4 picker rule: N=2, short
+          labels; DESIGN.md names BMI's US|Metric as the canonical example). One connected,
+          bg-tinted, bordered track; the two systems are halves (.direction-pill) tight on
+          the Affix tier (gap-1 — parts of one control). The active half lifts to surface
+          white via .peer:checked (no-JS baseline) and .is-active (the controller's
+          paintPills hook). Native radio <fieldset>/<legend> posting inputs[unit_system]. %>
       <fieldset>
         <legend class="text-xs font-bold text-label">Unit system</legend>
         <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
@@ -58,46 +63,47 @@
         </div>
       </fieldset>
 
-      <%# Fields. Weight is shared; height is per-system. Stacked tier: space-y-5. %>
+      <%# Fields — weight is shared (its unit affix swaps lb↔kg); height is per-system.
+          Stacked tier: space-y-5 down the column (DESIGN.md §3). %>
       <div class="mt-8 space-y-5">
-        <%# Weight — shared across both systems; the unit affix swaps (lb ↔ kg) with the
-            mode. The Affix tier (gap-2) sits the unit next to its field (DESIGN.md §3). %>
+        <%# Weight — shared across both systems; the affix swaps with the mode. Affix tier
+            (gap-2) sits the unit beside its field. shrink-0 keeps the affix from
+            compressing when the field is wide. %>
         <div>
           <%= f.label :weight, "Weight", class: "field-label", for: "inputs_weight" %>
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :weight, id: "inputs_weight", step: "any", inputmode: "decimal",
                   min: "0", placeholder: "0", class: "field-input" %>
-            <span class="w-7 text-sm font-bold text-label" data-bmi-target="weightUnit" aria-hidden="true">lb</span>
+            <span class="w-7 shrink-0 text-sm font-bold text-label" data-bmi-target="weightUnit" aria-hidden="true">lb</span>
           </div>
         </div>
 
-        <%# Height (metric) — a single centimetres field. Carries the canonical
-            inputs[height] name. Hidden by default in markup so the no-JS baseline shows
-            exactly ONE height field (US, the default system) and the two inputs[height]
-            fields never both post and clobber each other; the controller toggles which
-            system's block shows. (No-JS users compute in the default US units; switching
-            systems is the JS enhancement — DESIGN.md §0 progressive enhancement.) %>
+        <%# Height (metric) — a single centimetres field carrying the canonical
+            inputs[height] name. Hidden by default in the markup so the no-JS baseline
+            shows exactly ONE height affordance (US, the default system) and the two
+            inputs[height] fields never both post and clobber each other; the controller
+            toggles which system's block shows. (No-JS users compute in the default US
+            units; switching systems is the JS enhancement — DESIGN.md §0.) %>
         <div data-bmi-target="field" data-bmi-systems="metric" hidden>
           <%= f.label :height, "Height", class: "field-label", for: "inputs_height_cm" %>
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :height, id: "inputs_height_cm", step: "any", inputmode: "decimal",
                   min: "0", placeholder: "0", class: "field-input" %>
-            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">cm</span>
+            <span class="w-7 shrink-0 text-sm font-bold text-label" aria-hidden="true">cm</span>
           </div>
         </div>
 
-        <%# Height (US). Progressive enhancement with exactly ONE height affordance per
-            path (DESIGN.md §0 — server-rendered, progressively enhanced):
+        <%# Height (US) — exactly ONE affordance per path (DESIGN.md §0 progressive
+            enhancement):
               • No JS  → the canonical "Total height in inches" field (visible by default);
-                         the ft+in helpers stay hidden (they're inert without the
-                         controller, which sums them).
+                         the ft+in helpers stay hidden (inert without the controller).
               • With JS → bmi_controller reveals the ft+in helpers and hides the raw
                          total-inches field, summing ft×12 + in into the canonical field. %>
         <div data-bmi-target="field" data-bmi-systems="us">
           <%# Feet + inches helpers — hidden until JS reveals them. NO name → never posted;
               the controller writes their sum into the canonical height field below. Each
-              gets a real <label> (DESIGN.md §6 — a label for every input) carrying its
-              unit, so the affix is the label and no separate ft/in span is needed. %>
+              has its own <label> (DESIGN.md §6 — a label for every input). Wrapping pair
+              on the Grouped-wrapping tier (gap-x-3 gap-y-4). %>
           <div data-bmi-target="feetInches" hidden>
             <span class="field-label">Height</span>
             <div class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-4">
@@ -107,7 +113,7 @@
                   <%= f.number_field :feet, name: nil, id: "inputs_height_feet", step: "any",
                         inputmode: "decimal", min: "0", placeholder: "0", class: "field-input",
                         data: { bmi_target: "feet", action: "bmi#syncHeight" } %>
-                  <span class="w-7 text-sm font-bold text-label" aria-hidden="true">ft</span>
+                  <span class="w-7 shrink-0 text-sm font-bold text-label" aria-hidden="true">ft</span>
                 </div>
               </div>
               <div>
@@ -116,21 +122,20 @@
                   <%= f.number_field :inches, name: nil, id: "inputs_height_inches", step: "any",
                         inputmode: "decimal", min: "0", placeholder: "0", class: "field-input",
                         data: { bmi_target: "inches", action: "bmi#syncHeight" } %>
-                  <span class="w-7 text-sm font-bold text-label" aria-hidden="true">in</span>
+                  <span class="w-7 shrink-0 text-sm font-bold text-label" aria-hidden="true">in</span>
                 </div>
               </div>
             </div>
           </div>
           <%# Canonical total-inches field — the no-JS affordance (visible by default), the
-              JS write-target (hidden by the controller). data-bmi-target=usHeight lets the
-              controller write the summed ft×12 + in total here. %>
+              JS write-target (the controller hides it and writes the summed total here). %>
           <div data-bmi-target="totalInches">
             <%= f.label :height, "Total height in inches", class: "field-label", for: "inputs_height_in" %>
             <div class="mt-1.5 flex items-center gap-2">
               <%= f.number_field :height, id: "inputs_height_in", step: "any", inputmode: "decimal",
                     min: "0", placeholder: "0", class: "field-input",
                     data: { bmi_target: "usHeight" } %>
-              <span class="w-7 text-sm font-bold text-label" aria-hidden="true">in</span>
+              <span class="w-7 shrink-0 text-sm font-bold text-label" aria-hidden="true">in</span>
             </div>
           </div>
         </div>

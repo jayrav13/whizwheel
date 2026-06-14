@@ -1,13 +1,20 @@
-<%# BMI hero result (DESIGN.md §4 Hero-result + the WHO classification scale). A richer-
-    than-single-number result: the big tabular-nums BMI on the coral-ruled hero card, the
-    WHO category as a green accent badge, and a thin stacked bar (DESIGN.md §4 "Charts —
-    thin stacked bar") plotting the four broad WHO bins over a 15–40 window with the
-    person's BMI marked and the band that contains them lifted to accent green. `calc:`
-    is a valid Calculators::Bmi; result keys are `bmi` + `category` (ARCHITECTURE.md §4). %>
+<%# BMI hero result — regenerated from spec issue #53 against DESIGN.md (BLEND).
+
+    A richer-than-a-single-number answer (DESIGN.md §4 "Hero-result"): the big
+    tabular-nums BMI on a surface card with the 5px coral left rule, the WHO category as a
+    green accent badge (positive-stat green, DESIGN.md §1), and a thin stacked bar
+    (DESIGN.md §4 "Charts — thin stacked bar") plotting the four broad WHO bins across a
+    15–40 window with a marker pinning this person's BMI and the band containing them
+    lifted to accent green. A text legend carries the bands so meaning never rests on
+    colour alone (DESIGN.md §6).
+
+    `calc:` is a valid Calculators::Bmi; the rendered result keys are `bmi` + `category`
+    (the JSON envelope's result shape, ARCHITECTURE.md §4). %>
 <% bmi = calc.result[:bmi] %>
 <% category = calc.result[:category] %>
 <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
   <div class="flex gap-5 p-7">
+    <%# The 5px coral left rule (DESIGN.md §4 Hero-result). %>
     <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
     <div class="min-w-0 flex-1">
       <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Body Mass Index</p>
@@ -16,8 +23,8 @@
         <p class="text-sm font-semibold text-faint">kg/m&sup2;</p>
       </div>
 
-      <%# Category badge — the WHO band as a green accent chip (positive-stat green,
-          DESIGN.md §1). Text carries the meaning, not color alone (DESIGN.md §6). %>
+      <%# Category badge — the WHO band as a green accent chip. The text is the meaning;
+          colour is reinforcement, not the sole signal (DESIGN.md §6). %>
       <p class="mt-3">
         <span class="inline-flex items-center rounded-full bg-accent/12 px-3 py-1 text-sm font-bold text-accent">
           <%= category %>
@@ -26,7 +33,8 @@
 
       <%# WHO classification scale — a thin stacked bar over the 15–40 window. Each broad
           bin sizes to its share of the window; the active bin (the one containing this
-          BMI) lifts to accent green, and a marker pins the exact BMI on the bar. %>
+          BMI) lifts to accent green, and a marker tick pins the exact BMI. The bar is
+          decorative — the legend below names the bands as text. %>
       <div class="mt-6">
         <div class="relative">
           <div class="flex h-2.5 overflow-hidden rounded-full" role="presentation">
@@ -35,14 +43,14 @@
                     style="width: <%= band[:width] %>%" aria-hidden="true"></span>
             <% end %>
           </div>
-          <%# Marker — a thin ink tick at the BMI's position along the bar. %>
+          <%# Marker — a thin ink tick at this BMI's position along the bar. It lives in the
+              relative wrapper (not the overflow-hidden bar) so it is never clipped. %>
           <span class="absolute -top-1 h-4.5 w-0.5 -translate-x-1/2 rounded-full bg-ink"
                 style="left: <%= bmi_marker_position(bmi) %>%" aria-hidden="true"></span>
         </div>
 
-        <%# Band legend — label + range, the active one in ink, the rest faint. The
-            stacked bar above is decorative; this legend carries the bands as text so the
-            classification never relies on color alone (DESIGN.md §6). %>
+        <%# Band legend — label + range, the active band in ink (with an accent dot), the
+            rest faint. Carries the classification as text (DESIGN.md §6). %>
         <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
           <% bmi_scale_bands(bmi).each do |band| %>
             <div class="<%= band[:active] ? "text-ink" : "text-faint" %>">
