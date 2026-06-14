@@ -94,6 +94,22 @@ class TipPageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /\$20\.00/
   end
 
+  test "a 6+ digit per-person split figure renders in the responsive auto-fit grid without clipping" do
+    # The worst case for the per-person stat grid (frontend agent: "test the worst case"):
+    # a large bill split, so the per-person total carries 6+ digits + cents. The auto-fit
+    # grid must surface the full figure (delimited, never truncated) — $2,000,000 @ 20% / 2
+    # → total 2,400,000.00; per-person 1,200,000.00.
+    post "/calculators/tip",
+      params: { inputs: { bill: "2000000", tip_percent: "20", people: "2" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result", text: /\$2,400,000\.00/
+    assert_select "section#result", text: /Split 2 ways/i
+    # The full per-person figure is present (the auto-fit min-width + break-words keep it
+    # whole) — not a clipped/rounded form.
+    assert_select "section#result", text: /\$1,200,000\.00/
+    assert_select "section#result dl.grid", count: 1
+  end
+
   # ── POST /calculators/tip — Turbo Stream 422 (invalid) ──────────────────
 
   test "a missing bill renders the error fragment with 422" do

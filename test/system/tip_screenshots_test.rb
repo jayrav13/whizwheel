@@ -48,6 +48,22 @@ class TipScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("32-tip-single-result")
   end
 
+  test "a large split renders the per-person figures in the auto-fit grid without clipping" do
+    visit "/calculators/tip"
+    fill_in "Bill amount", with: "2000000"
+    fill_in "Tip", with: "20"
+    fill_in "People", with: "2"
+    click_button "Calculate"
+    within "#result" do
+      assert_text "$2,400,000.00"
+      assert_text "SPLIT 2 WAYS"
+      # The full 6+ digit per-person figure is present — the worst case the responsive
+      # auto-fit stat grid must hold without truncation (DESIGN.md §4 Stat grid).
+      assert_text "$1,200,000.00"
+    end
+    screenshot_full_page("34-tip-large-split")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/tip"
     # Submit with no bill and no tip → server 422 → error fragment in #result.
