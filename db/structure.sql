@@ -93,6 +93,44 @@ ALTER SEQUENCE public.calculations_id_seq OWNED BY public.calculations.id;
 
 
 --
+-- Name: calculators; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calculators (
+    id bigint NOT NULL,
+    slug character varying NOT NULL,
+    name character varying NOT NULL,
+    category character varying,
+    complexity integer,
+    tags character varying,
+    description text,
+    source character varying,
+    deprecated_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: calculators_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.calculators_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: calculators_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.calculators_id_seq OWNED BY public.calculators.id;
+
+
+--
 -- Name: role_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -227,6 +265,13 @@ ALTER TABLE ONLY public.calculations ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: calculators id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calculators ALTER COLUMN id SET DEFAULT nextval('public.calculators_id_seq'::regclass);
+
+
+--
 -- Name: role_types id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -268,6 +313,14 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 ALTER TABLE ONLY public.calculations
     ADD CONSTRAINT calculations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: calculators calculators_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calculators
+    ADD CONSTRAINT calculators_pkey PRIMARY KEY (id);
 
 
 --
@@ -329,6 +382,27 @@ CREATE INDEX index_calculations_on_deleted_at ON public.calculations USING btree
 --
 
 CREATE INDEX index_calculations_on_user_id ON public.calculations USING btree (user_id);
+
+
+--
+-- Name: index_calculators_on_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_calculators_on_category ON public.calculators USING btree (category);
+
+
+--
+-- Name: index_calculators_on_deprecated_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_calculators_on_deprecated_at ON public.calculators USING btree (deprecated_at);
+
+
+--
+-- Name: index_calculators_on_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_calculators_on_slug ON public.calculators USING btree (slug);
 
 
 --
@@ -405,6 +479,7 @@ ALTER TABLE ONLY public.roles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260614170000'),
 ('20260613062708'),
 ('20260613062657'),
 ('20260613062239'),

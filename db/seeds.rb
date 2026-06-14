@@ -9,3 +9,8 @@
 #   end
 
 RoleType.find_or_create_by!(permalink: "ADMIN") { |rt| rt.display_name = "Admin" }
+
+# Populate the derived calculator registry from docs/INVENTORY.md (idempotent —
+# upsert by slug, reconciled against Base.lookup). Tests get this data from fixtures
+# instead, since db:test:prepare runs neither migrations nor seeds.
+Registry::Ingest.new.call
