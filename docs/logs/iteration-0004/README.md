@@ -255,3 +255,98 @@ agent-definition fix: guarantee the per-calculator registration steps).
 
 The next agent edit (encoding these findings — most centrally **#107/#108** on FE registration and
 **#109/#110** on coercion-vs-validation) will open iteration 0005.
+
+---
+
+## Harvest — post-build agent/process/design changes (operator review)
+
+> **One-time catch-up.** Under the codified **iteration delivery lifecycle**
+> (open → build → evaluate → **harvest** → journal → close), the agent/process/design changes
+> an iteration's results *drive* — the "harvest" — are part of **that iteration's record**, applied
+> **before** close. Iteration 0004 was closed (2026-06-14) **before** the harvest concept existed,
+> so this section is a **retroactive expansion** capturing what 0004's results actually drove. All
+> changes below are **merged to `main`**. **Going forward, harvest precedes close** — this catch-up
+> is the last time a close runs ahead of its harvest.
+
+What iteration 0004's results drove, post-build, all landed on `main`:
+
+### Frontend UX conventions → `DESIGN.md` (the design-system lever)
+
+The iteration-0004 review surfaced three recurring UI conventions that the agents reached for
+ad-hoc on the new build set (Amortization's charts, the stat grids, Age's date field) but that the
+design system had not yet pinned. They were lifted up into **`DESIGN.md §4`** so every future
+calculator inherits them for free, and the **frontend agent was slimmed to defer to `DESIGN.md`**
+rather than carry UI conventions in its own definition:
+
+| Convention | Where codified | PR |
+|---|---|---|
+| **Interactive JS charts** (hover/crosshair/tooltip via importmap — lightweight-charts for line/time-series, a complementary hover-capable lib for donut/breakdown; charts read the §4 envelope; no-JS data-table/legend fallback always retained) | `DESIGN.md §4` "Charts" | [#125](https://github.com/jayrav13/whizwheel/pull/125) |
+| **Responsive auto-fit stat grids** (`grid-cols-[repeat(auto-fit,minmax(<min>,1fr))]` — never a pinned column count; `tabular-nums`, never clip) | `DESIGN.md §4` "Stat grid" | [#125](https://github.com/jayrav13/whizwheel/pull/125) |
+| **"Today" quick-fill date button** (for an *optional* date whose blank value means "today"; never silently auto-prefill; never on a required/primary date) | `DESIGN.md §4` "Date field with Today quick-fill" | [#125](https://github.com/jayrav13/whizwheel/pull/125) |
+| **Frontend agent slimmed to defer to `DESIGN.md`** — UI conventions live in the design system, the agent keeps only agent-process notes | `.claude/agents/frontend.md` | [#123](https://github.com/jayrav13/whizwheel/pull/123) |
+
+This is the design-system lever doing exactly what iterations 0002–0003 established: a convention
+observed in the build is encoded **once** in `DESIGN.md` (not per-page), and the agent is pointed at
+it. The charts/stat-grid conventions came directly out of **Amortization (#105)**; the Today-button
+out of **Age (#104)**.
+
+### Process / agent-isolation hardening
+
+| Change | PR | Origin |
+|---|---|---|
+| **Worktree-isolation hardening** added to **all 4 writing-agent definitions** (the mandatory after-`git worktree add` checklist: `cd`+`pwd`, worktree-absolute paths, all `git` from inside, pre-commit main-checkout self-check) | [#118](https://github.com/jayrav13/whizwheel/pull/118) | issue [#98](https://github.com/jayrav13/whizwheel/issues/98) (FE agent wrote to the main checkout) |
+
+### Tooling
+
+| Tool | PR | Origin |
+|---|---|---|
+| **`bin/serve-headless`** — non-TTY/agent app standup (build-once CSS + server, survives a non-TTY shell where `bin/dev` tears down) | [#116](https://github.com/jayrav13/whizwheel/pull/116) | issue [#113](https://github.com/jayrav13/whizwheel/issues/113) |
+| **`bin/merge-cleanup`** — worktree-safe post-merge cleanup (correct ordering so a worktree-held branch's remote delete doesn't get skipped) | [#117](https://github.com/jayrav13/whizwheel/pull/117) | issue [#86](https://github.com/jayrav13/whizwheel/issues/86) |
+
+Both are now documented in `CLAUDE.md` (the "Starting the app headlessly" and "After merge" sections).
+
+### Test / smaller design fixes
+
+| Fix | PR | Origin |
+|---|---|---|
+| **Home-card guard test** — asserts every page-backed calculator has a home catalog card (the MMR "shipped without a home card" miss can't recur silently) | [#119](https://github.com/jayrav13/whizwheel/pull/119) | issue [#108](https://github.com/jayrav13/whizwheel/issues/108) |
+| **Home eyebrow color → `DESIGN.md §2`** (accent green) — *partial* close of the eyebrow half of #112; the financial semantic-color half (interest green-in-donut vs coral-in-table) remains open | [#120](https://github.com/jayrav13/whizwheel/pull/120) | issue [#112](https://github.com/jayrav13/whizwheel/issues/112) (financial-color, partial) |
+
+### The parity audit
+
+The **calculator.net parity audit** (`docs/experiments/parity-calculator-net.md`,
+[#126](https://github.com/jayrav13/whizwheel/pull/126)) quantified how much of calculator.net's
+functionality the 8 completed calculators reproduce: **~75% feature-weighted (74.7%)**, **100%
+correctness** (we are never *wrong*, only *narrower*). Critically, it found the gaps are **not 24
+one-off features** but cluster into **two reusable shapes** — **(a) inverse / multi-mode solving**
+(Simple Interest's solve-for-principal/rate/term, etc.) and **(b) input-side unit conversion**
+(Ohm's Law's kV/mA/kΩ prefixes, etc.). Encoding those two shapes into the agents once would lift the
+*whole backlog's* expected parity — a higher-leverage path than chasing per-calculator long-tail
+outputs. This reframes the build sequencing for future iterations.
+
+### Deferred-harvest backlog (filed as issues, not yet encoded)
+
+Findings that warrant action but were **deferred** out of the 0004 harvest — filed as issues so they
+are not lost, to be picked up in a later agent edit / iteration:
+
+| # | Label | What |
+|---|---|---|
+| [#87](https://github.com/jayrav13/whizwheel/issues/87) | engineering | Screenshot capture non-deterministic → false-positive CHANGED on non-UI PRs. |
+| [#93](https://github.com/jayrav13/whizwheel/issues/93) | engineering | Proposed **visual-qa-agent** — vision-capable screenshot review for the visual gate. |
+| [#107](https://github.com/jayrav13/whizwheel/issues/107) | engineering | Frontend de-facto **central registration** (3 shared files) → parallel-build merge conflicts. |
+| [#109](https://github.com/jayrav13/whizwheel/issues/109) | agents | `:integer` coercion **defeats `only_integer`** — fractional input silently truncated. |
+| [#110](https://github.com/jayrav13/whizwheel/issues/110) | agents | Non-numeric input **silently coerced to 0** by `:decimal`/`:integer` cast — numericality not enforced. |
+| [#111](https://github.com/jayrav13/whizwheel/issues/111) | engineering | SimpleCov **parallel-fork coverage undercount** locally. |
+| [#112](https://github.com/jayrav13/whizwheel/issues/112) | engineering | **Financial semantic color** (interest green-in-donut vs coral-in-table) — the half of #112 left open after the eyebrow fix. |
+| [#122](https://github.com/jayrav13/whizwheel/issues/122) | engineering | Home calculator **catalog won't scale** — needs a browse UI before the grid crowds. |
+| [#124](https://github.com/jayrav13/whizwheel/issues/124) | engineering | Per-calculator **informational modal** (definitions + underlying math + worked example). |
+| [#127](https://github.com/jayrav13/whizwheel/issues/127) | engineering | `CLAUDE.md`: add a **database-agent persistence-verify** step for new calculators. |
+| [#128](https://github.com/jayrav13/whizwheel/issues/128) | engineering | Rename `docs/inventory.md` → `docs/INVENTORY.md` for naming consistency. |
+| [#129](https://github.com/jayrav13/whizwheel/issues/129) | engineering | **GitHub Pages site** — human-readable overview of all agents, kept in lockstep with the defs. |
+
+**Net of the 0004 harvest under test in 0005:** the **frontend-facing** changes — the three
+`DESIGN.md §4` UX conventions (#125) and the slimmed frontend agent (#123). Iteration 0005 is the
+controlled, regen-only, **frontend-only** sweep that measures whether those harvested conventions
+come through cleanly from spec + the updated agent set (see `iteration-0005/README.md`). The
+backend-facing findings (#109/#110 coercion) were **not** encoded in this harvest, so backend is
+**out of scope** for 0005.
