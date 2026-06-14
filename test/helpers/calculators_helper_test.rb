@@ -180,4 +180,74 @@ class CalculatorsHelperTest < ActionView::TestCase
     c.valid?
     assert_includes calculator_error_messages(c), "Current (I) must be other than 0"
   end
+
+  # ── BMI helpers (issue #53) ─────────────────────────────────────────────
+
+  def bmi(attrs)
+    Calculators::Bmi.new(attrs)
+  end
+
+  # bmi_display — the calculator rounds to 1dp; the helper renders a fixed single decimal.
+  test "bmi_display renders an integer-valued BMI with a trailing .0" do
+    assert_equal "23.0", bmi_display(BigDecimal("23.0"))
+  end
+
+  test "bmi_display keeps the single decimal of a fractional BMI" do
+    assert_equal "31.6", bmi_display(BigDecimal("31.6"))
+  end
+
+  # bmi_scale_bands — four broad WHO bins, each with its window-share width and whether
+  # it contains the given BMI (exactly one active for an in-window BMI).
+  test "bmi_scale_bands returns the four broad WHO bins with proportional widths" do
+    bands = bmi_scale_bands(BigDecimal("23.0"))
+    assert_equal %w[Underweight Normal Overweight Obese], bands.map { |b| b[:label] }
+    # The 15–40 window is 25 wide; Normal (18.5–25) is 6.5 wide → 26%.
+    assert_in_delta 26.0, bands[1][:width], 0.001
+    # The widths cover the whole window.
+    assert_in_delta 100.0, bands.sum { |b| b[:width] }, 0.001
+  end
+
+  test "bmi_scale_bands marks exactly the band containing the BMI active" do
+    bands = bmi_scale_bands(BigDecimal("23.0")) # Normal
+    assert_equal [ "Normal" ], bands.select { |b| b[:active] }.map { |b| b[:label] }
+  end
+
+  test "bmi_scale_bands respects the [lower, upper) boundary (25.0 is Overweight)" do
+    bands = bmi_scale_bands(BigDecimal("25.0"))
+    assert_equal [ "Overweight" ], bands.select { |b| b[:active] }.map { |b| b[:label] }
+  end
+
+  test "bmi_scale_bands marks none active for a nil BMI" do
+    bands = bmi_scale_bands(nil)
+    assert_empty bands.select { |b| b[:active] }
+  end
+
+  # bmi_marker_position — a left-offset percentage along the 15–40 window, clamped.
+  test "bmi_marker_position places a mid-window BMI proportionally" do
+    # 25 sits 10 into a 25-wide window → 40%.
+    assert_in_delta 40.0, bmi_marker_position(BigDecimal("25.0")), 0.001
+  end
+
+  test "bmi_marker_position clamps a below-window BMI to 0%" do
+    assert_in_delta 0.0, bmi_marker_position(BigDecimal("12.0")), 0.001
+  end
+
+  test "bmi_marker_position clamps an above-window BMI to 100%" do
+    assert_in_delta 100.0, bmi_marker_position(BigDecimal("45.0")), 0.001
+  end
+
+  # field_labels_for / calculator_error_messages — BMI's bespoke label map.
+  test "field_labels_for returns the BMI label map for a Bmi instance" do
+    assert_equal "Weight", field_labels_for(bmi({}))["weight"]
+    assert_equal "Height", field_labels_for(bmi({}))["height"]
+    assert_equal "Unit system", field_labels_for(bmi({}))["unit_system"]
+  end
+
+  test "BMI errors are phrased against the visible labels, not the raw keys" do
+    c = bmi(unit_system: "metric", weight: "", height: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Weight can't be blank"
+    assert_includes messages, "Height can't be blank"
+  end
 end
