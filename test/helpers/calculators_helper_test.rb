@@ -514,4 +514,51 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes messages, "Annual rate can't be blank"
     assert_includes messages, "Time can't be blank"
   end
+
+  # ── Tip helpers (issue #76) ─────────────────────────────────────────────
+
+  def tip(attrs)
+    Calculators::Tip.new(attrs)
+  end
+
+  # money_display — the calculator rounds money to the cent; the helper renders a fixed
+  # two decimals + thousands delimiter so currency columns align (the numeric branch of
+  # the shared money_display, which rounds half-up to 2dp).
+  test "money_display renders a fixed two decimals" do
+    assert_equal "57.50", money_display(BigDecimal("57.5"))
+  end
+
+  test "money_display keeps both cents digits and pads a whole amount" do
+    assert_equal "120.00", money_display(BigDecimal("120"))
+  end
+
+  test "money_display delimits thousands for a numeric amount" do
+    assert_equal "1,234.00", money_display(BigDecimal("1234"))
+  end
+
+  test "tip_percent_presets are the common restaurant rates" do
+    assert_equal [ 15, 18, 20, 25 ], tip_percent_presets
+  end
+
+  test "field_labels_for returns the Tip label map for a Tip instance" do
+    assert_equal "Bill amount", field_labels_for(tip({}))["bill"]
+    assert_equal "Tip", field_labels_for(tip({}))["tip_percent"]
+    assert_equal "People", field_labels_for(tip({}))["people"]
+  end
+
+  test "Tip errors are phrased against the visible labels, not the raw keys" do
+    c = tip(bill: "", tip_percent: "", people: "1")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Bill amount can't be blank"
+    assert_includes messages, "Tip can't be blank"
+    # Never the raw attribute key.
+    assert_empty messages.grep(/\btip_percent\b/)
+  end
+
+  test "a sub-1 people count is phrased against its visible label" do
+    c = tip(bill: "50", tip_percent: "15", people: "0")
+    c.valid?
+    assert_includes calculator_error_messages(c), "People must be greater than or equal to 1"
+  end
 end

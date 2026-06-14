@@ -1,0 +1,95 @@
+<% content_for :title, "Tip Calculator — whizwheel" %>
+
+<%#
+  Tip calculator page (spec issue #76, DESIGN.md BLEND). A SINGLE-MODE, multi-input
+  calculator — there is no variant/mode selector, so NO Mode picker component applies
+  (DESIGN.md §4): it is a plain multi-input form. The three inputs are the bill ($), the
+  tip percentage (%, with quick-pick chips), and the number of people sharing the bill
+  (defaults to 1). The form posts over Turbo and re-renders the #result region in place;
+  it works WITHOUT JS — every field is directly editable and the server validates and
+  re-renders the result fragment. The tip_controller is pure enhancement (the quick-pick
+  chips).
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • quick-pick chips → Grouped-wrapping tier (gap-x-3 gap-y-3)
+    • $/% / count affixes → Affix tier (gap-2)
+    • stacked fields → space-y-5
+    • fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Everyday</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Tip Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Work out the tip and the grand total on a restaurant bill, and split it evenly across
+    your party. Enter the bill and a tip percentage; set how many people are sharing to see
+    the per-person amount. Every answer is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/tip", scope: :inputs, method: :post,
+          data: { controller: "tip" } do |f| %>
+
+      <%# Fields. No mode picker (single-mode calculator). Stacked tier: space-y-5. %>
+      <div class="space-y-5">
+        <%# Bill — a $ leading affix on the Affix tier (gap-2, DESIGN.md §3). %>
+        <div>
+          <%= f.label :bill, "Bill amount", class: "field-label", for: "inputs_bill" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :bill, id: "inputs_bill", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Tip percentage — a % trailing affix, plus quick-pick chips for common rates.
+            The field is directly editable (the no-JS baseline); the chips are convenience
+            wired by the tip_controller (DESIGN.md §0 progressive enhancement). %>
+        <div>
+          <%= f.label :tip_percent, "Tip", class: "field-label", for: "inputs_tip_percent" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :tip_percent, id: "inputs_tip_percent", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input",
+                  data: { tip_target: "percent", action: "tip#sync" } %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+          <%# Quick-pick chips — Grouped-wrapping tier (gap-x-3 gap-y-3): breathing,
+              separately-hittable chips that each write a common rate into the field. %>
+          <div class="mt-3 flex flex-wrap gap-x-3 gap-y-3">
+            <% tip_percent_presets.each do |rate| %>
+              <button type="button" class="tip-preset" data-tip-target="preset"
+                      data-action="tip#pick" data-tip-value-param="<%= rate %>">
+                <%= rate %>%
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <%# People — a whole-party count; defaults to 1. A "people" trailing affix on the
+            Affix tier. min/step keep the browser's stepper to whole numbers ≥ 1. %>
+        <div>
+          <%= f.label :people, "People", class: "field-label", for: "inputs_people" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :people, value: 1, id: "inputs_people",
+                  inputmode: "numeric", min: "1", step: "1", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">people</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

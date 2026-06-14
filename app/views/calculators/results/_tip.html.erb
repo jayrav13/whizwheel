@@ -1,0 +1,74 @@
+<%# Tip result (DESIGN.md §4 Hero-result + Stat grid). The headline answer is the grand
+    total on a surface card with the 5px coral left rule and a big tabular-nums number;
+    the tip amount reads beneath it as the detail line. A stat grid then breaks the bill
+    down (bill, tip, total). When the party is split (people > 1) a second, accent-led
+    per-person block surfaces the per-person tip and total — the figures the table actually
+    needs. `calc:` is a valid Calculators::Tip; result keys are tip_amount / total /
+    tip_per_person / total_per_person (ARCHITECTURE.md §4). %>
+<% r = calc.result %>
+<% split = calc.people > 1 %>
+<div class="space-y-4">
+  <%# Hero — the grand total, the page's headline answer. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Total to pay</p>
+        <p class="mt-2 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+          $<%= money_display(r[:total]) %>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          $<%= money_display(calc.bill) %> bill plus a
+          <span class="font-semibold text-ink">$<%= money_display(r[:tip_amount]) %></span>
+          tip (<%= percentage_display(calc.tip_percent) %>%).
+        </p>
+
+        <%# Bill breakdown — a small data table (DESIGN.md §4 "Data table"): thin rule
+            borders, right-aligned tabular-nums money, a hard total row (top border ink). %>
+        <table class="mt-6 w-full text-[15px]">
+          <tbody>
+            <tr class="border-b border-rule">
+              <th scope="row" class="py-2 text-left font-medium text-muted">Bill</th>
+              <td class="py-2 text-right tabular-nums text-ink">$<%= money_display(calc.bill) %></td>
+            </tr>
+            <tr class="border-b border-rule">
+              <th scope="row" class="py-2 text-left font-medium text-muted">Tip (<%= percentage_display(calc.tip_percent) %>%)</th>
+              <td class="py-2 text-right tabular-nums text-ink">$<%= money_display(r[:tip_amount]) %></td>
+            </tr>
+            <tr>
+              <th scope="row" class="border-t-2 border-ink py-2 text-left font-bold text-ink">Total</th>
+              <td class="border-t-2 border-ink py-2 text-right font-bold tabular-nums text-ink">$<%= money_display(r[:total]) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <%# Per-person split — only when there is more than one person. Accent-led (the split is
+      the positive, useful figure, DESIGN.md §1) two-up stat grid (DESIGN.md §4 "Stat grid"):
+      per-person total and per-person tip, each label + value. %>
+  <% if split %>
+    <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+      <div class="p-7">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
+          Split <%= pluralize(calc.people, "way") %>
+        </p>
+        <dl class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-[13px] border border-border bg-bg p-5">
+            <dt class="text-xs font-bold text-label">Each person pays</dt>
+            <dd class="mt-2 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-accent">
+              $<%= money_display(r[:total_per_person]) %>
+            </dd>
+          </div>
+          <div class="rounded-[13px] border border-border bg-bg p-5">
+            <dt class="text-xs font-bold text-label">Tip each</dt>
+            <dd class="mt-2 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
+              $<%= money_display(r[:tip_per_person]) %>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -45,6 +45,9 @@
 <% elsif calc.is_a?(Calculators::MeanMedianModeRange) %>
   <%= render "calculators/results/mean_median_mode_range", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::Tip) %>
+  <%= render "calculators/results/tip", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>

@@ -103,6 +103,19 @@
     @apply outline-none ring-2 ring-inset ring-accent;
   }
 
+  /* Tip-percentage quick-pick chip (Tip page, issue #76) — a small, breathing,
+     separately-hittable button chip (DESIGN.md §3 rule 2: chips need air) that writes a
+     common rate into the percent field. It is convenience over an already-editable field
+     (progressive enhancement), so it is a real <button>, not a radio — the active rate is
+     lifted to accent green via the .is-active JS hook (the chip merely reflects the field;
+     the field is the source of truth, so there is no no-JS active state to paint). */
+  .tip-preset {
+    @apply cursor-pointer rounded-full border border-border-input bg-bg px-4 py-1.5 text-sm font-semibold text-faint transition-colors hover:border-accent/50 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+  .tip-preset.is-active {
+    @apply border-accent bg-accent text-surface hover:border-accent hover:text-surface;
+  }
+
   /* Direction toggle (increase / decrease) for `change` mode — segmented control,
      the chosen half lifted to surface white on the bg-tinted track (Affix tier: the
      two halves sit tight, gap-1, as parts of one control — DESIGN.md §3). */

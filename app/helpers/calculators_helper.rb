@@ -137,6 +137,20 @@ module CalculatorsHelper
     format("%.1f", value)
   end
 
+  # The visible label for each Tip input (issue #76) — same single-source-of-truth role
+  # as the other maps: the page renders these AND the error phrasing maps an attribute key
+  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  TIP_FIELD_LABELS = {
+    "bill"        => "Bill amount",
+    "tip_percent" => "Tip",
+    "people"      => "People"
+  }.freeze
+
+  # Common restaurant tip rates offered as quick-pick chips on the Tip page (the field
+  # stays directly editable, so these are pure progressive-enhancement convenience).
+  TIP_PERCENT_PRESETS = [ 15, 18, 20, 25 ].freeze
+  def tip_percent_presets = TIP_PERCENT_PRESETS
+
   # The visible label for the Mean/Median/Mode/Range input (issue #80) — same single-
   # source-of-truth role as the other maps: the page renders this label AND the error
   # phrasing maps the `numbers` key back to it (DESIGN.md §4 — phrase against the visible
@@ -320,6 +334,7 @@ module CalculatorsHelper
     when Calculators::SimpleInterest      then SIMPLE_INTEREST_FIELD_LABELS
     when Calculators::Amortization        then AMORTIZATION_FIELD_LABELS
     when Calculators::MeanMedianModeRange then MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS
+    when Calculators::Tip                 then TIP_FIELD_LABELS
     else {}
     end
   end
