@@ -1,14 +1,73 @@
 # The calculator registry is normally populated by Registry::Ingest from
 # docs/INVENTORY.md (via seeds). db:test:prepare runs neither migrations nor seeds,
 # so tests get registry data from these fixtures instead.
+#
+# These cover every BUILT calculator (one row per app/views/calculators/<slug>.html.erb)
+# so the registry-driven home catalog (issue #107) renders the full library in tests,
+# plus one deprecated row to exercise the .active scope excluding it. Names/categories/
+# descriptions mirror docs/INVENTORY.md (the registry's source of truth).
 percentage:
   slug: percentage
   name: Percentage Calculator
   category: Math
   complexity: 3
   tags: multi-mode, multi-input
-  description: Five percentage operations.
+  description: Five percentage operations — % of a number, what percent, percent of what, difference, and increase/decrease.
   source: "[percent-calculator](https://www.calculator.net/percent-calculator.html)"
+
+ohms_law:
+  slug: ohms_law
+  name: Ohms Law Calculator
+  category: Other
+  complexity: 2
+  tags: multi-input, multi-mode, physics
+  description: Voltage, current, resistance, and power — supply any two and solve the other two.
+  source: "[ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html)"
+
+bmi:
+  slug: bmi
+  name: BMI Calculator
+  category: Fitness & Health
+  complexity: 2
+  tags: multi-input, health, unit-conversion
+  description: Body Mass Index from weight and height, in US or metric units, with the WHO classification band.
+  source: "[bmi-calculator](https://www.calculator.net/bmi-calculator.html)"
+
+age:
+  slug: age
+  name: Age Calculator
+  category: Other
+  complexity: 3
+  tags: date-math, multi-mode
+  description: Your exact age between two dates — years, months and days, plus total months, weeks, days and hours.
+  source: "[age-calculator](https://www.calculator.net/age-calculator.html)"
+
+simple_interest:
+  slug: simple_interest
+  name: Simple Interest Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input
+  description: Interest on the original principal only — never compounded. Enter a principal, rate, and term in years or months.
+  source: "[simple-interest-calculator](https://www.calculator.net/simple-interest-calculator.html)"
+
+amortization:
+  slug: amortization
+  name: Amortization Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input, tabular-output, charts
+  description: The monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest breakdown, and the full schedule.
+  source: "[amortization-calculator](https://www.calculator.net/amortization-calculator.html)"
+
+mean_median_mode_range:
+  slug: mean_median_mode_range
+  name: Mean, Median, Mode, Range Calculator
+  category: Math
+  complexity: 3
+  tags: statistical, text-output
+  description: The central tendency and spread of a list of numbers — mean, median, mode, range, sum, count and more.
+  source: "[mean-median-mode-range-calculator](https://www.calculator.net/mean-median-mode-range-calculator.html)"
 
 tip:
   slug: tip
@@ -16,7 +75,7 @@ tip:
   category: Other
   complexity: 2
   tags: multi-input
-  description: The tip and grand total on a bill.
+  description: The tip and grand total on a bill, split evenly across your party for the per-person amount.
   source: "[tip-calculator](https://www.calculator.net/tip-calculator.html)"
 
 retired_thing:

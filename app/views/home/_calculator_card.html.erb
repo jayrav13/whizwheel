@@ -1,0 +1,11 @@
+<%# A single catalog card (DESIGN.md §3 Card, §4 catalog), rendered once per active
+    registry calculator (issue #107 — the grid iterates the registry rather than
+    hand-listing cards). `calculator` is a Calculator registry row; the card leads with a
+    green category eyebrow (DESIGN.md §2), the calculator name, and its description blurb,
+    linking to /calculators/<slug>. %>
+<%= link_to "/calculators/#{calculator.slug}",
+      class: "group rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" do %>
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= calculator.category %></p>
+  <h2 class="mt-2 text-lg font-extrabold tracking-[-0.02em] text-ink group-hover:text-primary"><%= calculator.name %></h2>
+  <p class="mt-1.5 text-[15px] leading-relaxed text-muted"><%= calculator.description %></p>
+<% end %>

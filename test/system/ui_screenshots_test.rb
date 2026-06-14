@@ -9,6 +9,12 @@ class UiScreenshotsTest < ApplicationSystemTestCase
     visit root_path
     assert_text "Every answer, computed"
     assert_selector "a", text: "Sign in"
+    # The catalog is registry-driven (issue #107): one card per active calculator,
+    # rendered from the registry's metadata (name + category eyebrow). Assert the grid
+    # actually painted the full library, not an empty/hand-listed set.
+    Calculator.active.find_each do |calc|
+      assert_selector "a[href='/calculators/#{calc.slug}']", text: calc.name
+    end
     screenshot_full_page("01-home-anonymous")
   end
 

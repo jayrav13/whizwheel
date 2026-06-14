@@ -1,45 +1,14 @@
-# Display-only formatting + per-mode copy for calculator pages, and the label-based
-# validation-error phrasing required by DESIGN.md §4. Ruby helpers are coverage-counted
-# (ARCHITECTURE.md §11), so every branch here is exercised by a test.
+# Shared, calculator-agnostic display formatting + the convention-based resolvers that
+# make the frontend discover calculators the way the backend does (issue #107): a new
+# calculator drops in its own result partial (calculators/results/<slug>) and its own
+# per-calculator helper module (Calculators::<Slug>Helper, holding FIELD_LABELS + its
+# display methods) and edits NO shared file. This module keeps only what every calculator
+# shares — the formatters and the error-phrasing/dispatch resolvers.
+#
+# Ruby helpers are coverage-counted (ARCHITECTURE.md §11), so every branch here is
+# exercised by a test.
 module CalculatorsHelper
-  # The visible label for each Percentage input — the single source the page renders
-  # AND the source the error phrasing maps an attribute key back to (DESIGN.md §4:
-  # "phrase each message against the field's visible label, never the raw key").
-  PERCENTAGE_FIELD_LABELS = {
-    "v1"        => "Value (V1)",
-    "v2"        => "Value (V2)",
-    "percent"   => "Percent (P)",
-    "direction" => "Direction"
-  }.freeze
-
-  # Per-mode caption above the hero result number.
-  PERCENTAGE_RESULT_CAPTIONS = {
-    "percent_of"      => "Result",
-    "what_percent"    => "Percentage",
-    "percent_of_what" => "The whole",
-    "difference"      => "Percentage difference",
-    "change"          => "New value"
-  }.freeze
-
-  # The visible label for each Ohm's Law input (issue #55) — like the Percentage map,
-  # the single source the page renders AND the source the error phrasing maps an
-  # attribute key back to (DESIGN.md §4: phrase against the visible label).
-  OHMS_LAW_FIELD_LABELS = {
-    "voltage"    => "Voltage (V)",
-    "current"    => "Current (I)",
-    "resistance" => "Resistance (R)",
-    "power"      => "Power (P)"
-  }.freeze
-
-  # The four Ohm's Law quantities in V/I/R/P order, each with its label, SI unit, and
-  # which result key it reads — drives the result render (§4). The order is fixed so the
-  # solved-quantity grid always reads V, I, R, P regardless of which pair was supplied.
-  OHMS_LAW_QUANTITIES = [
-    { key: :voltage,    label: "Voltage",    unit: "V", symbol: "V" },
-    { key: :current,    label: "Current",    unit: "A", symbol: "I" },
-    { key: :resistance, label: "Resistance", unit: "Ω", symbol: "R" },
-    { key: :power,      label: "Power",      unit: "W", symbol: "P" }
-  ].freeze
+  # ── Shared formatters (used across multiple calculators' result partials) ──────────
 
   # Format a BigDecimal for display (ARCHITECTURE.md §10 — round only for display):
   # round to 6dp, trim trailing zeros, and delimit thousands. Keeps the figure exact
@@ -52,279 +21,12 @@ module CalculatorsHelper
   end
   alias_method :percentage_display, :decimal_display
 
-  # The four Ohm's Law quantities, V/I/R/P order, for the result render — a helper so
-  # the view reaches the constant without qualifying it (templates don't include the
-  # helper module's constants, only its methods).
-  def ohms_law_quantities = OHMS_LAW_QUANTITIES
-
-  # The given pair (a Set of result keys) for an Ohm's Law calc — the two quantities
-  # the user supplied for the selected mode. Those echo back; the other two are solved
-  # and get highlighted in the render (spec issue #55: "highlight the two it solved").
-  def ohms_law_given_keys(calc)
-    Calculators::OhmsLaw::REQUIRED_INPUTS.fetch(calc.mode, []).to_set
-  end
-
-  # The caption above the hero number, by mode (with a safe fallback).
-  def percentage_result_caption(mode)
-    PERCENTAGE_RESULT_CAPTIONS.fetch(mode, "Result")
-  end
-
-  # A short human sentence describing what was computed, by mode — shown under the
-  # hero number so the answer reads in context ("20% of 50").
-  def percentage_result_detail(calc)
-    v1 = percentage_display(calc.v1) if calc.v1
-    v2 = percentage_display(calc.v2) if calc.v2
-    p  = percentage_display(calc.percent) if calc.percent
-
-    case calc.mode
-    when "percent_of"      then "#{p}% of #{v1}"
-    when "what_percent"    then "#{v1} is this percent of #{v2}"
-    when "percent_of_what" then "#{v1} is #{p}% of this amount"
-    when "difference"      then "between #{v1} and #{v2}"
-    when "change"          then "#{v1} #{calc.direction == 'increase' ? 'increased' : 'decreased'} by #{p}%"
-    end
-  end
-
-  # The visible label for each BMI input (issue #53) — same single-source-of-truth role
-  # as the Percentage map: the page renders these AND the error phrasing maps a key back
-  # to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
-  BMI_FIELD_LABELS = {
-    "unit_system" => "Unit system",
-    "weight"      => "Weight",
-    "height"      => "Height"
-  }.freeze
-
-  # The WHO adult classification scale (issue #53): the band segments the page draws as a
-  # thin stacked bar (the WHO scale + marker, DESIGN.md §4) AND lists as a responsive
-  # auto-fit stat grid (DESIGN.md §4 "Stat grid"). The backend owns the math
-  # (Calculators::Bmi::BANDS); this is display-only metadata — a visible BMI range, a human
-  # label, and the band's [lower, upper) bounds within the plotted 15–40 window so the
-  # segments size proportionally without a runaway open-ended slice.
-  #
-  # The finer WHO bands (Severe/Moderate/Mild Thinness, Obese Class I–III) collapse into
-  # these four broad bins for the bar; the precise band text comes from `category`.
-  BMI_SCALE_MIN = 15.0
-  BMI_SCALE_MAX = 40.0
-  BMI_BANDS = [
-    { label: "Underweight", range: "< 18.5", lower: 15.0, upper: 18.5 },
-    { label: "Normal",      range: "18.5–25", lower: 18.5, upper: 25.0 },
-    { label: "Overweight",  range: "25–30",   lower: 25.0, upper: 30.0 },
-    { label: "Obese",       range: "≥ 30",    lower: 30.0, upper: 40.0 }
-  ].freeze
-
-  # The four broad scale bands, each with its percentage width of the 15–40 window and
-  # whether the given BMI falls in it (so the view highlights the active segment). A nil
-  # BMI (pristine state never renders the scale, but keep it total) marks none active.
-  def bmi_scale_bands(bmi)
-    span = BMI_SCALE_MAX - BMI_SCALE_MIN
-    value = bmi&.to_f
-    BMI_BANDS.map do |band|
-      width = (band[:upper] - band[:lower]) / span * 100
-      active = !value.nil? && value >= band[:lower] && value < band[:upper]
-      band.merge(width: width, active: active)
-    end
-  end
-
-  # Where the marker sits along the 15–40 bar, as a left-offset percentage clamped to the
-  # window so an off-the-chart BMI still lands on the bar (a BMI of 12 pins to 0%, 45 to 100%).
-  def bmi_marker_position(bmi)
-    clamped = bmi.to_f.clamp(BMI_SCALE_MIN, BMI_SCALE_MAX)
-    (clamped - BMI_SCALE_MIN) / (BMI_SCALE_MAX - BMI_SCALE_MIN) * 100
-  end
-
-  # BMI for display (ARCHITECTURE.md §10 — the calculator already rounds `bmi` to 1dp;
-  # render it with a fixed single decimal so 23 reads "23.0", keeping the figure aligned).
-  def bmi_display(value)
-    format("%.1f", value)
-  end
-
-  # The visible label for each Tip input (issue #76) — same single-source-of-truth role
-  # as the other maps: the page renders these AND the error phrasing maps an attribute key
-  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
-  TIP_FIELD_LABELS = {
-    "bill"        => "Bill amount",
-    "tip_percent" => "Tip",
-    "people"      => "People"
-  }.freeze
-
-  # Common restaurant tip rates offered as quick-pick chips on the Tip page (the field
-  # stays directly editable, so these are pure progressive-enhancement convenience).
-  TIP_PERCENT_PRESETS = [ 15, 18, 20, 25 ].freeze
-  def tip_percent_presets = TIP_PERCENT_PRESETS
-
-  # The visible label for the Mean/Median/Mode/Range input (issue #80) — same single-
-  # source-of-truth role as the other maps: the page renders this label AND the error
-  # phrasing maps the `numbers` key back to it (DESIGN.md §4 — phrase against the visible
-  # label, never the raw key, so a bad list reads "Numbers contains a value that is not a
-  # number", not "numbers …").
-  MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS = {
-    "numbers" => "Numbers"
-  }.freeze
-
-  # The three "central + spread" headline statistics, in display order, each with its
-  # result key and a one-line caption — drives the primary stat grid on the result
-  # (DESIGN.md §4 Stat grid). `mode` is rendered on its own hero row (its value is an
-  # array — the deliberate non-scalar output, spec issue #80), so it is not listed here.
-  MMR_PRIMARY_STATS = [
-    { key: :mean,   label: "Mean",   caption: "Average of all values" },
-    { key: :median, label: "Median", caption: "Middle value" },
-    { key: :range,  label: "Range",  caption: "Largest − smallest" }
-  ].freeze
-
-  # The four supporting figures, in display order — the secondary stat row beneath the
-  # headline statistics (sum / count / smallest / largest).
-  MMR_SUPPORTING_STATS = [
-    { key: :sum,      label: "Sum" },
-    { key: :count,    label: "Count" },
-    { key: :smallest, label: "Smallest" },
-    { key: :largest,  label: "Largest" }
-  ].freeze
-
-  def mmr_primary_stats    = MMR_PRIMARY_STATS
-  def mmr_supporting_stats = MMR_SUPPORTING_STATS
-
-  # Format one statistic for display. `count` is a plain Integer; every other figure is a
-  # BigDecimal the backend already display-rounded (§10). Integers delimit thousands
-  # directly; decimals route through decimal_display (whole-number-aware + delimited).
-  def mmr_stat_display(value)
-    value.is_a?(Integer) ? number_with_delimiter(value) : decimal_display(value)
-  end
-
-  # The mode array rendered as a human phrase (DESIGN.md §4 — the interesting render
-  # question on this calculator). Empty → "No mode"; one value → that value; several →
-  # "a, b and c" so a multimodal set reads naturally ("23 and 38").
-  def mmr_mode_display(modes)
-    return "No mode" if modes.empty?
-
-    formatted = modes.map { |m| decimal_display(m) }
-    return formatted.first if formatted.one?
-
-    "#{formatted[0..-2].join(', ')} and #{formatted.last}"
-  end
-
-  # The visible label for each Amortization input (issue #84) — same single-source-of-
-  # truth role as the maps above: the page renders these AND the error phrasing maps a
-  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
-  AMORTIZATION_FIELD_LABELS = {
-    "principal"   => "Loan amount",
-    "annual_rate" => "Annual interest rate",
-    "years"       => "Loan term"
-  }.freeze
-
-  # The donut series for the Amortization result (DESIGN.md §4 "Charts — donut via CSS
-  # conic-gradient; largest slice green, then coral"). The donut compares principal vs.
-  # total interest. Returns each slice with its share (0–100, for the conic stops) and
-  # which token paints it — the LARGER slice gets accent green per DESIGN.md, the smaller
-  # gets coral. The backend owns the figures; this only derives display proportions.
-  def amortization_donut(chart)
-    principal = BigDecimal(chart[:principal])
-    interest  = BigDecimal(chart[:total_interest])
-    total     = principal + interest
-    # total is always > 0 here (principal validates greater_than 0).
-    p_pct = (principal / total * 100).to_f
-    i_pct = 100.0 - p_pct
-    principal_bigger = principal >= interest
-    [
-      { key: :principal,      label: "Principal",     amount: chart[:principal],      pct: p_pct, color: principal_bigger ? "accent" : "primary" },
-      { key: :total_interest, label: "Total interest", amount: chart[:total_interest], pct: i_pct, color: principal_bigger ? "primary" : "accent" }
-    ]
-  end
-
-  # The conic-gradient value for the donut: the first slice fills 0→p_pct, the second
-  # fills the remainder. Returns a ready-to-use `conic-gradient(...)` string composed of
-  # the two token colours so the chart needs no inline hex (DESIGN.md §5 guardrail —
-  # the colours come from CSS custom properties the @theme tokens define).
-  def amortization_donut_gradient(slices)
-    first = slices.first
-    stop = first[:pct].round(4)
-    "conic-gradient(var(--color-#{first[:color]}) 0 #{stop}%, var(--color-#{slices.last[:color]}) #{stop}% 100%)"
-  end
-
-  # The donut series as the flat object the Stimulus chart controller reads from a data
-  # attribute (DESIGN.md §4 "Charts" — the Chart.js doughnut). It carries each slice's
-  # numeric amount, its visible label, and which token paints it (the colour decision —
-  # larger slice green, smaller coral — already made in `amortization_donut`, so the JS
-  # never re-derives it). Amounts are the backend's money strings as plain numbers (no
-  # delimiters) so Chart.js can size the arcs; the FE does no math (ARCHITECTURE.md §4).
-  def amortization_donut_data(slices)
-    principal, interest = slices
-    {
-      principal:      principal[:amount],
-      principalLabel: principal[:label],
-      principalColor: principal[:color],
-      interest:       interest[:amount],
-      interestLabel:  interest[:label],
-      interestColor:  interest[:color]
-    }
-  end
-
-  # The balance-over-time curve as SVG polyline/area points in a unit viewBox
-  # (0..100 × 0..100), derived from the backend's `balance_curve` samples (month →
-  # remaining balance). The FE does no math beyond mapping the supplied points into the
-  # plot box: x by month over the term, y by balance over the starting principal
-  # (inverted so a falling balance descends). Returns "x,y x,y …" for the points attr.
-  def amortization_curve_points(curve)
-    max_month   = curve.last[:month].to_f
-    max_balance = curve.first[:balance].to_f # month 0 = starting principal, the peak
-    max_month = 1.0 if max_month.zero?       # single-point guard (never in practice)
-    max_balance = 1.0 if max_balance.zero?
-    curve.map do |point|
-      x = point[:month].to_f / max_month * 100
-      y = 100 - (point[:balance].to_f / max_balance * 100)
-      "#{x.round(3)},#{y.round(3)}"
-    end.join(" ")
-  end
-
-  # The visible label for each Age input (issue #82) — same single-source-of-truth role
-  # as the other maps: the page renders these AND the error phrasing maps an attribute
-  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
-  AGE_FIELD_LABELS = {
-    "birth_date" => "Date of birth",
-    "end_date"   => "Age at the date of"
-  }.freeze
-
-  # The four total-unit conversions the Age result reports beneath the Y/M/D breakdown,
-  # in coarse-to-fine order, each with its result key and a human label. Drives the
-  # Age result stat grid (DESIGN.md §4 "Stat grid") so the same interval reads four ways.
-  AGE_TOTAL_UNITS = [
-    { key: :total_months, label: "Months" },
-    { key: :total_weeks,  label: "Weeks" },
-    { key: :total_days,   label: "Days" },
-    { key: :total_hours,  label: "Hours" }
-  ].freeze
-
-  # The four Age total-unit conversions, coarse-to-fine, for the result render — a helper
-  # so the view reaches the constant without qualifying it (templates see the module's
-  # methods, not its constants).
-  def age_total_units = AGE_TOTAL_UNITS
-
-  # A whole-integer count for display (the Age outputs are all integers — ARCHITECTURE.md
-  # §10, no rounding) with thousands delimiters so large spans (12,418 days) stay readable
-  # and align under tabular-nums.
+  # A whole-integer count for display (e.g. the Age outputs — ARCHITECTURE.md §10, no
+  # rounding) with thousands delimiters so large spans (12,418 days) stay readable and
+  # align under tabular-nums.
   def integer_display(value)
     number_with_delimiter(value.to_i)
   end
-
-  # The "33 years · 11 months · 30 days" breakdown phrase from an Age result, dropping any
-  # leading zero units so a 24y-0m-0d age reads "24 years", not "24 years 0 months 0 days"
-  # — but never empty: a same-day age (all zeros) still reads "0 days". Each unit is
-  # singular/plural correct ("1 year", "2 years").
-  def age_breakdown_phrase(result)
-    parts = [ [ :years, result[:years] ], [ :months, result[:months] ], [ :days, result[:days] ] ]
-      .reject { |_unit, count| count.zero? }
-      .map { |unit, count| "#{count} #{count == 1 ? unit.to_s.singularize : unit}" }
-    parts.empty? ? "0 days" : parts.join(" · ")
-  end
-
-  # The visible label for each Simple Interest input (issue #78) — same single-source-of-
-  # truth role as the other maps: the page renders these AND the error phrasing maps a key
-  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
-  SIMPLE_INTEREST_FIELD_LABELS = {
-    "principal" => "Principal",
-    "rate"      => "Annual rate",
-    "time"      => "Time",
-    "unit"      => "Time unit"
-  }.freeze
 
   # Money for display (ARCHITECTURE.md §10 — round only for display): a fixed two decimal
   # places, half-up, thousands-delimited — so money always reads with cents ("150.00",
@@ -342,20 +44,26 @@ module CalculatorsHelper
     end
   end
 
-  # The label map for a calculator instance — each built calculator has a bespoke map;
-  # anything else gets none (error phrasing then falls back to a humanized attribute).
+  # ── Convention-based dispatch + label resolution (issue #107) ─────────────────────
+
+  # The result partial for a calculator instance, resolved by slug (the no-central-
+  # registration convention, ARCHITECTURE.md §3): the per-slug partial
+  # `calculators/results/<slug>` when it exists, otherwise the generic key/value render.
+  # Adding a calculator drops in `calculators/results/<slug>.html.erb` and edits nothing
+  # shared.
+  def calculator_result_partial(calc)
+    slug = calc.class.slug
+    partial = "calculators/results/#{slug}"
+    lookup_context.exists?(partial, [], true) ? partial : "calculators/results/generic"
+  end
+
+  # The label map for a calculator instance, resolved dynamically (no hand-edited `case`):
+  # the calculator's per-calculator helper module (Calculators::<Slug>Helper) supplies its
+  # FIELD_LABELS. Anything without one (an unmapped calculator, or a non-calculator
+  # ActiveModel object) gets {} — error phrasing then falls back to a humanized attribute.
   def field_labels_for(calc)
-    case calc
-    when Calculators::Percentage          then PERCENTAGE_FIELD_LABELS
-    when Calculators::OhmsLaw             then OHMS_LAW_FIELD_LABELS
-    when Calculators::Bmi                 then BMI_FIELD_LABELS
-    when Calculators::Age                 then AGE_FIELD_LABELS
-    when Calculators::SimpleInterest      then SIMPLE_INTEREST_FIELD_LABELS
-    when Calculators::Amortization        then AMORTIZATION_FIELD_LABELS
-    when Calculators::MeanMedianModeRange then MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS
-    when Calculators::Tip                 then TIP_FIELD_LABELS
-    else {}
-    end
+    mod = calculator_helper_module(calc)
+    mod&.const_defined?(:FIELD_LABELS) ? mod.const_get(:FIELD_LABELS) : {}
   end
 
   # Turn an ActiveModel errors object into label-led sentences (DESIGN.md §4). A
@@ -372,5 +80,16 @@ module CalculatorsHelper
         "#{label} #{error.message}"
       end
     end
+  end
+
+  private
+
+  # The per-calculator helper module for a calc, or nil. Resolves Calculators::<Slug>Helper
+  # from the calc's slug; guards a non-calculator object (no `.slug`) and an unbuilt module.
+  def calculator_helper_module(calc)
+    klass = calc.class
+    return nil unless klass.respond_to?(:slug)
+
+    "Calculators::#{klass.slug.camelize}Helper".safe_constantize
   end
 end

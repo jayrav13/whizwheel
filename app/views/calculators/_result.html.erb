@@ -3,11 +3,13 @@
     §4 Hero-result / Validation errors). Pass `calc:` (a Calculators::* instance) or
     nil for the pristine empty state.
 
-    The success state dispatches by calculator: Percentage gets its bespoke hero
-    (mode caption + detail sentence); BMI gets a hero number + category badge + the WHO
-    classification scale; any other calculator falls back to a generic key/value render
-    so this partial stays honest for the dynamic controller (which renders it for every
-    slug). The empty + error states are calculator-agnostic. %>
+    The success state dispatches by CONVENTION (issue #107), mirroring the backend's
+    no-central-registration rule (CLAUDE.md rule #3, ARCHITECTURE.md §3): the per-slug
+    partial `calculators/results/<slug>` is rendered when it exists, otherwise the
+    generic key/value render. Adding a calculator therefore drops in only its own result
+    partial and edits no shared file. `calculator_result_partial` resolves the slug → an
+    existing partial or the generic fallback. The empty + error states are
+    calculator-agnostic. %>
 <% if calc.nil? %>
   <div class="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-border-input bg-surface/60 px-6 py-12 text-center">
     <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Result</p>
@@ -24,30 +26,6 @@
     </ul>
   </div>
 
-<% elsif calc.is_a?(Calculators::Percentage) %>
-  <%= render "calculators/results/percentage", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::OhmsLaw) %>
-  <%= render "calculators/results/ohms_law", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::Bmi) %>
-  <%= render "calculators/results/bmi", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::Age) %>
-  <%= render "calculators/results/age", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::SimpleInterest) %>
-  <%= render "calculators/results/simple_interest", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::Amortization) %>
-  <%= render "calculators/results/amortization", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::MeanMedianModeRange) %>
-  <%= render "calculators/results/mean_median_mode_range", calc: calc %>
-
-<% elsif calc.is_a?(Calculators::Tip) %>
-  <%= render "calculators/results/tip", calc: calc %>
-
 <% else %>
-  <%= render "calculators/results/generic", calc: calc %>
+  <%= render calculator_result_partial(calc), calc: calc %>
 <% end %>
