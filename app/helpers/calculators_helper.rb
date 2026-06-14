@@ -178,14 +178,34 @@ module CalculatorsHelper
     parts.empty? ? "0 days" : parts.join(" · ")
   end
 
-  # The label map for a calculator instance — Percentage, Ohm's Law, BMI and Age have
-  # bespoke maps; anything else gets none (error phrasing then falls back to humanizing).
+  # The visible label for each Simple Interest input (issue #78) — same single-source-of-
+  # truth role as the other maps: the page renders these AND the error phrasing maps a key
+  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  SIMPLE_INTEREST_FIELD_LABELS = {
+    "principal" => "Principal",
+    "rate"      => "Annual rate",
+    "time"      => "Time",
+    "unit"      => "Time unit"
+  }.freeze
+
+  # Money for display (ARCHITECTURE.md §10 — round only for display): a fixed two
+  # decimal places, half-up, thousands-delimited. Simple Interest's outputs are money
+  # (interest, total), so they always read with cents — "150.00", "1,150.00".
+  def money_display(value)
+    rounded = value.round(2, BigDecimal::ROUND_HALF_UP)
+    number_with_delimiter(format("%.2f", rounded))
+  end
+
+  # The label map for a calculator instance — Percentage, Ohm's Law, BMI, Age and Simple
+  # Interest have bespoke maps; anything else gets none (error phrasing then falls back to
+  # a humanized attribute).
   def field_labels_for(calc)
     case calc
-    when Calculators::Percentage then PERCENTAGE_FIELD_LABELS
-    when Calculators::OhmsLaw    then OHMS_LAW_FIELD_LABELS
-    when Calculators::Bmi        then BMI_FIELD_LABELS
-    when Calculators::Age        then AGE_FIELD_LABELS
+    when Calculators::Percentage     then PERCENTAGE_FIELD_LABELS
+    when Calculators::OhmsLaw        then OHMS_LAW_FIELD_LABELS
+    when Calculators::Bmi            then BMI_FIELD_LABELS
+    when Calculators::Age            then AGE_FIELD_LABELS
+    when Calculators::SimpleInterest then SIMPLE_INTEREST_FIELD_LABELS
     else {}
     end
   end

@@ -36,6 +36,9 @@
 <% elsif calc.is_a?(Calculators::Age) %>
   <%= render "calculators/results/age", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::SimpleInterest) %>
+  <%= render "calculators/results/simple_interest", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>
