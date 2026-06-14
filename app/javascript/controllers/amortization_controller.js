@@ -61,9 +61,14 @@ export default class extends Controller {
 
     const d = this.donutValue
     const css = (name) => getComputedStyle(this.element).getPropertyValue(name).trim()
+    // Chart.js needs the <canvas> element itself (not its wrapper div) to acquire a 2D
+    // context — passing the wrapper fails with "can't acquire context from the given item"
+    // and renders nothing. The wrapper is the target (so we can size/reveal it); the canvas
+    // lives inside it.
+    const canvas = this.donutCanvasTarget.querySelector("canvas")
     // Slice order largest → smaller is already decided server-side (the colour each slice
     // carries: green for the larger, coral for the smaller — DESIGN.md §1). We honour it.
-    const chart = new Chart(this.donutCanvasTarget, {
+    const chart = new Chart(canvas, {
       type: "doughnut",
       data: {
         labels: [d.principalLabel, d.interestLabel],
@@ -76,7 +81,10 @@ export default class extends Controller {
         }],
       },
       options: {
-        responsive: true,
+        // responsive:false → Chart.js draws at the canvas's own width/height attributes
+        // (112×112, set in the view), independent of when the parent's layout reflows.
+        // responsive:true read a not-yet-laid-out parent on CI and rendered a blank 0×0.
+        responsive: false,
         maintainAspectRatio: false,
         cutout: "62%",
         plugins: {
@@ -106,6 +114,16 @@ export default class extends Controller {
     // Reveal the canvas wrapper before createChart() so autoSize measures a sized box.
     this.reveal(this.curveCanvasTarget)
 
+    // The series time is the elapsed-MONTH index (0, 12, 24, …). lightweight-charts reads a
+    // bare integer `time` as a UNIX timestamp (which rendered "1970"/"1" on the axis), so we
+    // format both the axis ticks and the crosshair/tooltip label as the loan YEAR (month/12)
+    // — the honest loan-timeline label, not an epoch date. (Backend owns the numbers; this
+    // is display formatting only.)
+    const yearLabel = (month) => {
+      const yr = Math.round(Number(month) / 12)
+      return yr === 0 ? "Start" : `Yr ${yr}`
+    }
+
     const chart = createChart(this.curveCanvasTarget, {
       autoSize: true,
       layout: {
@@ -119,14 +137,25 @@ export default class extends Controller {
         horzLines: { color: css("--color-rule") },
       },
       rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
+      timeScale: {
+        borderVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        // Render the integer month index as the loan year, not an epoch date.
+        tickMarkFormatter: (time) => yearLabel(time),
+      },
+      localization: {
+        // Crosshair/tooltip time label → the loan year (matches the axis).
+        timeFormatter: (time) => yearLabel(time),
+      },
       crosshair: { mode: 1 },
       handleScroll: false,
       handleScale: false,
     })
 
-    // lightweight-charts wants a sorted {time, value} series; months map to a numeric
-    // (business-day-free) time via the linear scale — we use month index as the time.
+    // lightweight-charts wants a sorted {time, value} series with strictly increasing
+    // integer times; the elapsed-month index serves as that ordinal time (formatted to the
+    // loan year above). The backend already emits month 0 + yearly samples in order.
     const points = this.curveValue.map((p) => ({
       time: Number(p.month),
       value: Number(p.balance),

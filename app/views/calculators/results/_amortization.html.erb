@@ -74,9 +74,12 @@
     <div class="rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
       <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Where your money goes</p>
       <div class="mt-4 flex items-center gap-5">
-        <%# Live Chart.js donut canvas — hidden until the controller draws it. %>
+        <%# Live Chart.js donut canvas — hidden until the controller draws it. The canvas
+            carries explicit pixel dimensions so Chart.js (responsive:false) sizes from the
+            element itself, not from a parent measured before layout reflows — which on a
+            slower (CI) render left the canvas 0×0 and blank. 112px = the size-28 box. %>
         <div class="relative size-28 shrink-0" data-amortization-target="donutCanvas" hidden>
-          <canvas></canvas>
+          <canvas width="112" height="112" class="size-28"></canvas>
         </div>
 
         <%# No-JS fallback donut — a CSS conic-gradient composed from the two token colours
