@@ -14,6 +14,7 @@ logs reference issue numbers, so the repo tells the whole story on its own.
 | Path | What it holds |
 |---|---|
 | `INVENTORY.md` | The full catalog of calculators on calculator.net, with complexity (1–5) and tags. Refreshed idempotently from the site. |
+| `INTELLIGENCE.md` | The agent system's context/intelligence flow — a Mermaid diagram of sources → agents → outputs plus a "who knows what, when" table. Derived from `CLAUDE.md` + `.claude/agents/*.md`; refresh when agent definitions change. |
 | `logs/` | One folder per iteration plus `logs/INDEX.md`. |
 | `superpowers/specs/` | Design specs. |
 | `superpowers/plans/` | Implementation plans. |
