@@ -15,15 +15,21 @@ What this calculator stresses for the experiment:
   mode-picker rule generalizes beyond the three calculators it was retrofitted onto in 0003.
 - A months → years conversion that must happen **before** the formula.
 
-**Build status:** _pending._
+**Build status:** ✅ built & merged — **BE [#89](https://github.com/jayrav13/whizwheel/pull/89)** (`Closes #77`) · **FE [#103](https://github.com/jayrav13/whizwheel/pull/103)** (`Closes #78`).
 
 ---
 
-## Backend (#77)
-_— pending build._
+## Backend (#89)
+Built from spec #77 under `3f2ac29`. `I = P · r · t` with the months → years conversion applied
+**before** the formula. Reference-value table and 100% gate held.
 
-## Frontend (#78)
-_— pending build. **Watch:** does the unit selector render as a segmented control unprompted?_
+## Frontend (#103) — **picker-rule generalization: PASS**
+The `years`/`months` **unit selector (N=2, short)** came out a **segmented control on the first
+build, with no human prompt.** This is the cleanest evidence in the iteration that the mode-picker
+rule **generalizes to an unseen calculator** — not just the three it was retrofitted onto in 0003.
+Together with the three regen PASSes, it makes the rule **3/3 correct on regen + correct on a fresh
+build, with discrimination** (segmented for N≤3/short vs. option-list for N≥4/multi-word).
 
 ## Misses → agent-change candidates
-_— pending._
+- Shares the cross-cutting **#110** non-numeric-coercion issue (numericality not actually enforced;
+  `:decimal` casts a non-number to `0` before validation runs) filed at iteration level.

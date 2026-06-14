@@ -17,16 +17,23 @@ What this calculator stresses for the experiment:
 - Despite the `multi-mode` tag, there is **no input mode picker** (the tag is about the multiple
   output representations) — a second control case for not over-applying the picker rule.
 
-**Build status:** _pending._
+**Build status:** ✅ built & merged — **BE [#95](https://github.com/jayrav13/whizwheel/pull/95)** (`Closes #81`) · **FE [#104](https://github.com/jayrav13/whizwheel/pull/104)** (`Closes #82`).
 
 ---
 
-## Backend (#81)
-_— pending build. **Watch:** leap-aware borrow of the month preceding the **end** month (the
-`2020-02-29 → 2024-02-28` row is the guard); a stubbed-clock test for the today default._
+## Backend (#95) — **first date-math: PASS**
+Built from spec #81 under `3f2ac29`. `:date` ActiveModel attributes; the **leap-aware borrowing**
+algorithm (years/months/days) reproduced the spec exactly — including the `2020-02-29 → 2024-02-28`
+guard row — plus the total-unit conversions. Date validation works as a new failure surface
+(unparseable dates and `birth_date` after `end_date` are rejected), and the **default-end_date-to-today**
+path is tested under a stubbed clock (no today-dependent reference row). 100% gate held.
 
-## Frontend (#82)
-_— pending build. **Watch:** native date inputs; label-based date-validation errors._
+## Frontend (#104)
+Built from spec #82. Native date inputs; label-based date-validation errors render. **Control case
+held: despite the `multi-mode` tag (which refers to the multiple output representations, not an input
+mode), the agent did not invent an input picker** — a second confirmation alongside Tip that the
+mode-picker rule is not over-applied.
 
 ## Misses → agent-change candidates
-_— pending._
+_None calculator-specific. Cross-cutting process findings (#86, #98) surfaced around this build's
+merge/worktree handling — recorded at iteration level._

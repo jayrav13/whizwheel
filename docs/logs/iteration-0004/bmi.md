@@ -15,15 +15,22 @@ alone, does the FE agent land the **segmented control** for US|Metric (N=2, shor
 try, unprompted** — i.e. never re-introduce the scrunched pill row? Plus a re-confirmation that the
 derived-text `category` (WHO band) + the raw-vs-display band discipline (§10) survive the rebuild.
 
-**Build status:** _pending regen (separate PR)._
+**Build status:** ✅ regenerated & merged — **BE [#92](https://github.com/jayrav13/whizwheel/pull/92)** (no `Closes`) · **FE [#101](https://github.com/jayrav13/whizwheel/pull/101)** (no `Closes`).
 
 ---
 
-## Backend regen (#52)
-_— pending. Re-confirm raw-vs-display band seam (24.95 → "25.0" display but stays Normal)._
+## Backend regen (#92)
+Regenerated from spec #52 under `3f2ac29`. The raw-vs-display band seam survived the rebuild
+(compute at full precision; round only for display per §10) and the derived-text WHO `category`
+band reproduced from spec. 100% gate held.
 
-## Frontend regen (#53)
-_— pending. **The A/B watch:** US|Metric reproduced as a segmented control unprompted (no scrunch)?_
+## Frontend regen (#101) — **A/B verdict: PASS**
+From spec #53 alone, the FE agent landed the **US|Metric selector as a segmented control (N=2,
+short)** **on the first try, unprompted** — it never re-introduced the scrunched pill row that, in
+iteration 0003, was the very thing a human had to flag (and that PR #65 then converted). This is the
+strongest single data point that the rule is durable: the calculator that *surfaced* the missing
+element-choice axis now self-corrects from spec.
 
 ## Delta vs. iteration-0003 version
-_— pending (diff vs. PRs #62/#65 page)._
+**Rendered-equivalent** to the PR #62/#65 page — correct segmented control, no scrunch, derived
+category band intact. The miss that opened the mode-picker investigation does not recur.

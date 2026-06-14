@@ -15,15 +15,19 @@ option list** unprompted — reproducing the prototype that is now the rule? Plu
 the six-mode guarded solver (div-by-zero → 422, valid-zero success, `rp` square-root domain, all
 four quantities returned) survives the BE regen at the 100% gate.
 
-**Build status:** _pending regen (separate PR)._
+**Build status:** ✅ regenerated & merged — **BE [#96](https://github.com/jayrav13/whizwheel/pull/96)** (no `Closes`) · **FE [#100](https://github.com/jayrav13/whizwheel/pull/100)** (no `Closes`).
 
 ---
 
-## Backend regen (#54)
-_— pending. Re-confirm six-mode dispatch, div-by-zero 422 vs. valid-zero success, `rp` √-domain._
+## Backend regen (#96)
+Regenerated from spec #54 under `3f2ac29`. The six-mode guarded solver survived the rebuild:
+div-by-zero → 422 vs. valid-zero success distinction held, the `rp` square-root domain guard held,
+and all four quantities are returned. 100% gate held.
 
-## Frontend regen (#55)
-_— pending. **The A/B watch:** the 6 multi-word modes reproduced as a `.mode-option` option list?_
+## Frontend regen (#100) — **A/B verdict: PASS**
+From spec #55 alone, the FE agent reproduced the **6 multi-word modes as a `.mode-option` option
+list** unprompted — i.e. it independently arrived at the very prototype (PR #63) that *became* the
+rule (PR #64). The N≥4/multi-word → option-list branch self-applies.
 
 ## Delta vs. iteration-0003 version
-_— pending (diff vs. PRs #60/#63 page)._
+**Rendered-equivalent** to the PR #60/#63 page — correct option-list picker, guarded solver intact.
