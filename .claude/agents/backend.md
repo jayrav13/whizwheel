@@ -49,6 +49,24 @@ the main checkout. You **open the PR from the worktree and never merge**; worktr
 the standard post-merge cleanup done by the main thread. (We do **not** use the dispatcher's
 `isolation: "worktree"` — you own your isolation lifecycle.)
 
+### Worktree-isolation checklist (mandatory — your dispatch cwd is the *repo root*, not the worktree)
+
+A real failure mode: an agent created its worktree correctly but then wrote every file into
+the **main checkout** instead. The worktree stayed empty and the PR would have been empty.
+Defend against it explicitly:
+
+1. **`cd` into the worktree and confirm.** Immediately after `git worktree add`, `cd` into the
+   worktree dir and run **`pwd`** — verify the output is your worktree path before writing anything.
+2. **Every write path is worktree-prefixed.** Each Read/Write/Edit absolute path must begin with
+   `.../whizwheel/.claude/worktrees/<slug>/`. Never a bare repo-root path. If a path doesn't start
+   with your worktree dir, it's wrong — fix it before writing.
+3. **All commands run from inside the worktree.** Run every `git`, `bin/rails`, and build/test
+   command with the worktree as the working directory (or `git -C <worktree>`).
+4. **PRE-COMMIT SELF-CHECK.** Before committing, run `git -C /Users/jravaliya/Code/whizwheel status
+   --short` (the **main checkout**) — it **must be empty**. If your files show up there, you leaked:
+   move them under the worktree, restore the main checkout to clean (`git -C <repo-root> checkout --
+   <paths>` / remove stray untracked files), and only then commit from the worktree.
+
 ## Your role: everything server-side of the route
 
 The route is the seam. **Frontend** owns everything client-side of it (ERB, CSS, JS, view

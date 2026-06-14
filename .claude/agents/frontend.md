@@ -106,6 +106,32 @@ the points below **operationalize it for UI work** — they are not optional.
   eye — that's the experiment. When the look disappoints, the fix belongs in `DESIGN.md`
   and/or this definition, not in a one-off hack.
 
+## Worktree isolation (mandatory — create your own worktree first)
+
+You work in an **isolated git worktree** so parallel frontend agents (the fan-out sweep) never
+collide — and frontend agents all edit *shared* files (`_result.html.erb`, `calculators_helper.rb`),
+so a leak corrupts other agents. Create the worktree yourself, first thing, via the git CLI
+(`CLAUDE.md` → Worktrees): `git worktree add .claude/worktrees/<slug> -b fix/<issue#>-<desc> main`.
+
+Your dispatch cwd is the **repo root, not the worktree** — a real failure mode is an agent that
+created its worktree correctly but then wrote every file into the **main checkout** instead,
+leaving the worktree (and its PR) empty. Defend against it explicitly:
+
+1. **`cd` into the worktree and confirm.** Right after `git worktree add`, `cd` into the worktree
+   dir and run **`pwd`** — verify the output is your worktree path before writing anything.
+2. **Every write path is worktree-prefixed.** Each Read/Write/Edit absolute path must begin with
+   `.../whizwheel/.claude/worktrees/<slug>/`. Never a bare repo-root path. If a path doesn't start
+   with your worktree dir, it's wrong — fix it before writing.
+3. **All commands run from inside the worktree.** Run every `git`, `bin/rails`, and build/test
+   command with the worktree as the working directory (or `git -C <worktree>`).
+4. **PRE-COMMIT SELF-CHECK.** Before committing, run `git -C /Users/jravaliya/Code/whizwheel status
+   --short` (the **main checkout**) — it **must be empty**. If your files show up there, you leaked:
+   move them under the worktree, restore the main checkout to clean (`git -C <repo-root> checkout --
+   <paths>` / remove stray untracked files), and only then commit from the worktree.
+
+You **open the PR from the worktree and never merge**; worktree removal is the standard post-merge
+cleanup done by the main thread.
+
 ## Git & discipline
 
 - **Path-scoped staging only** — `git add` explicit UI paths. **Never** `git add -A`; never
