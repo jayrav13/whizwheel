@@ -1,18 +1,19 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Percentage page (spec issue #31). A multi-mode calculator: a required `mode` selects
-// one of five percentage operations, and each mode needs a different subset of inputs.
+// Percentage page (spec issue #31), regenerated for iteration-0005. A multi-mode
+// calculator: a required `mode` selects one of five percentage operations, and each mode
+// needs a different subset of inputs.
 //
 // This controller is pure progressive enhancement (DESIGN.md §0.5). The page works with
 // NO JS — the <form> posts inputs[...] over Turbo and the server validates exactly the
 // selected mode and re-renders the #result fragment, and the .mode-option / .direction-pill
 // active states are already painted by their peer:checked CSS before this connects. The
-// controller only sharpens the form: (a) it reveals just the active mode's field blocks
-// and disables the inputs in the others so they aren't submitted, (b) it lifts the active
-// mode-option row, and (c) it lifts the chosen increase/decrease half.
+// controller only sharpens the form: (a) it reveals just the active mode's field blocks and
+// disables the inputs in the others so a hidden mode's value is never posted, (b) it lifts
+// the active mode-option row, and (c) it lifts the chosen increase/decrease half.
 //
-// Field visibility is data-driven: each per-mode block declares the modes it belongs to
-// via `data-percentage-modes` (space-separated). The active mode shows only its blocks.
+// Field visibility is data-driven: each per-mode block declares the modes it belongs to via
+// `data-percentage-modes` (space-separated); the active mode shows only its blocks.
 export default class extends Controller {
   static targets = ["modeInput", "field", "modeOption", "directionPill"]
 
@@ -36,8 +37,8 @@ export default class extends Controller {
       const modes = (field.dataset.percentageModes || "").split(/\s+/)
       const on = modes.includes(mode)
       field.hidden = !on
-      // Disable inactive-block inputs so a hidden mode's value is never posted. The mode
-      // radios themselves stay enabled — the picker must always submit the chosen mode.
+      // Disable an inactive block's inputs so its value isn't posted. The mode radios
+      // themselves stay enabled — the picker must always submit the chosen mode.
       field.querySelectorAll("input").forEach((input) => {
         if (!(input.type === "radio" && input.name === "inputs[mode]")) {
           input.disabled = !on

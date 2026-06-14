@@ -106,6 +106,36 @@ class BmiPageTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the WHO band legend is a responsive auto-fit stat grid" do
+    # DESIGN.md §4 "Stat grid": stats render in a `.stat-grid` (auto-fit/minmax track) of
+    # `.stat-card`s so the cards wrap/flow and never clip — applied here to the four WHO
+    # bands. There is exactly one grid, holding the four band cards.
+    post "/calculators/bmi", params: { inputs: { unit_system: "us", weight: "160", height: "70" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result dl.stat-grid", count: 1
+    assert_select "section#result dl.stat-grid .stat-card", count: 4
+  end
+
+  test "the result renders the WHO scale marker for the computed BMI" do
+    # The thin stacked bar carries a marker tick pinning the exact BMI (DESIGN.md §4 WHO
+    # scale + marker). It is an aria-hidden span positioned by an inline left offset.
+    post "/calculators/bmi", params: { inputs: { unit_system: "us", weight: "160", height: "70" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result span[aria-hidden=true][style*=left]"
+  end
+
+  test "a very large BMI still renders without clipping the hero or the stat grid" do
+    # Worst-case render (the frontend agent's "test the worst case"): a tiny height yields
+    # an enormous BMI. The hero number and the auto-fit stat grid must still render — the
+    # grid's min-width + card padding (DESIGN.md §4) keep large figures from clipping.
+    post "/calculators/bmi", params: { inputs: { unit_system: "metric", weight: "200", height: "30" } }, headers: TURBO
+    assert_response :success
+    # 200 / (0.30)^2 = 2222.2 — a 4-digit BMI; Obese Class III, marker clamps to the top.
+    assert_select "section#result", text: /2,?222\.2/
+    assert_select "section#result", text: /Obese Class III/
+    assert_select "section#result dl.stat-grid .stat-card", count: 4
+  end
+
   # ── POST /calculators/bmi — Turbo Stream 422 (invalid) ──────────────────
 
   test "missing required inputs render the error fragment with 422" do

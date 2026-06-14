@@ -46,24 +46,28 @@
   </div>
 
   <%# Per-person split — only when there is more than one person. Accent-led (the split is
-      the positive, useful figure, DESIGN.md §1) two-up stat grid (DESIGN.md §4 "Stat grid"):
-      per-person total and per-person tip, each label + value. %>
+      the positive, useful figure, DESIGN.md §1) responsive auto-fit stat grid (DESIGN.md §4
+      "Stat grid"): per-person total and per-person tip, each label + value. The grid sizes
+      each card to a MIN width and flows — never a pinned column count — so it is two-up on a
+      wide panel and stacks when narrow. The min width (and break-words on the value) keep a
+      large 6+ digit per-person figure from clipping. The auto-fit arbitrary value is the one
+      DESIGN.md §4 sanctions for this pattern (the standard scale can't express auto-fit). %>
   <% if split %>
     <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
       <div class="p-7">
         <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
           Split <%= pluralize(calc.people, "way") %>
         </p>
-        <dl class="mt-4 grid grid-cols-2 gap-3">
+        <dl class="mt-4 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
           <div class="rounded-[13px] border border-border bg-bg p-5">
             <dt class="text-xs font-bold text-label">Each person pays</dt>
-            <dd class="mt-2 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-accent">
+            <dd class="mt-2 break-words text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-accent">
               $<%= money_display(r[:total_per_person]) %>
             </dd>
           </div>
           <div class="rounded-[13px] border border-border bg-bg p-5">
             <dt class="text-xs font-bold text-label">Tip each</dt>
-            <dd class="mt-2 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
+            <dd class="mt-2 break-words text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
               $<%= money_display(r[:tip_per_person]) %>
             </dd>
           </div>

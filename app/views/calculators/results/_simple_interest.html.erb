@@ -1,9 +1,13 @@
-<%# Simple Interest result (spec issue #78, DESIGN.md §4 Hero-result + Data table). The
+<%# Simple Interest result (spec issue #78, DESIGN.md §4 Hero-result + Stat grid). The
     ending balance (total) is the headline answer — a big tabular-nums figure on the coral-
-    ruled hero card — with the interest accrued as a green accent eyebrow stat beside it.
-    Below, a thin-ruled breakdown reads the arithmetic: principal + interest = total, the
-    total row a hard ink-topped total row (DESIGN.md §4 "Data table"). `calc:` is a valid
-    Calculators::SimpleInterest; result keys are `interest` + `total` (ARCHITECTURE.md §4). %>
+    ruled hero card — with the interest accrued read into the detail sentence beside the
+    principal/rate/term it came from. Below, the principal → interest → total breakdown is a
+    RESPONSIVE AUTO-FIT STAT GRID (DESIGN.md §4 "Stat grid"): three label-over-value cards
+    sized to a min width and left to wrap/flow (≈3-across on a wide panel, collapsing as it
+    narrows), tabular-nums so the money columns align and never clip even at 6+ digits.
+    Interest is the positive/derived figure, so it reads in accent green (DESIGN.md §1).
+    `calc:` is a valid Calculators::SimpleInterest; result keys are `interest` + `total`
+    (ARCHITECTURE.md §4). %>
 <% interest = calc.result[:interest] %>
 <% total = calc.result[:total] %>
 <% unit_label = calc.unit == "months" ? "months" : "years" %>
@@ -22,20 +26,28 @@
         <%= decimal_display(calc.rate) %>% over <%= decimal_display(calc.time) %> <%= unit_label %>.
       </p>
 
-      <%# Breakdown — a thin-ruled data table: principal + interest, then a hard total row
-          (top border ink, DESIGN.md §4). Figures right-aligned tabular-nums so they line up. %>
-      <dl class="mt-6 space-y-2.5 text-[15px]">
-        <div class="flex items-baseline justify-between">
-          <dt class="text-muted">Principal</dt>
-          <dd class="font-semibold tabular-nums text-ink">$<%= money_display(calc.principal) %></dd>
+      <%# Breakdown — a responsive auto-fit stat grid (DESIGN.md §4 "Stat grid"): the cards
+          size to a min width and flow, so the same panel reads 3-across when wide and
+          wraps/stacks as it narrows, never pinning a fixed column count. The arbitrary
+          grid-template-columns is justified per DESIGN.md §5 (the standard scale can't
+          express auto-fit). The min width is 11rem — wide enough that a 6+ digit money
+          figure ($1,800,000.00) fits one card without truncation, and so the grid drops to
+          fewer columns (giving each card more room) on a narrower panel before any value can
+          clip (DESIGN.md §4 "must never clip"). text-xl + tabular-nums + break-words keeps
+          the figure whole at large magnitudes. Interest is the derived/positive figure →
+          accent green (DESIGN.md §1); principal + total read in ink. %>
+      <dl class="mt-6 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3">
+        <div class="rounded-[13px] border border-border bg-bg/60 p-4">
+          <dt class="text-xs font-bold text-label">Principal</dt>
+          <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words">$<%= money_display(calc.principal) %></dd>
         </div>
-        <div class="flex items-baseline justify-between">
-          <dt class="text-muted">Interest</dt>
-          <dd class="font-semibold tabular-nums text-accent">+ $<%= money_display(interest) %></dd>
+        <div class="rounded-[13px] border border-border bg-bg/60 p-4">
+          <dt class="text-xs font-bold text-label">Interest</dt>
+          <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-accent break-words">+&nbsp;$<%= money_display(interest) %></dd>
         </div>
-        <div class="flex items-baseline justify-between border-t border-ink pt-2.5">
-          <dt class="font-bold text-ink">Total</dt>
-          <dd class="font-extrabold tabular-nums text-ink">$<%= money_display(total) %></dd>
+        <div class="rounded-[13px] border border-border bg-bg/60 p-4">
+          <dt class="text-xs font-bold text-label">Total</dt>
+          <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words">$<%= money_display(total) %></dd>
         </div>
       </dl>
     </div>

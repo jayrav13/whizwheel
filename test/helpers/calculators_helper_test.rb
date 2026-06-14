@@ -375,6 +375,19 @@ class CalculatorsHelperTest < ActionView::TestCase
     refute_match(/#/, g) # never an inline hex (DESIGN.md §5 guardrail)
   end
 
+  # amortization_donut_data — the flat object the JS chart controller reads. Carries each
+  # slice's amount/label/colour; the colour decision is made upstream in amortization_donut.
+  test "amortization_donut_data flattens the slices into the chart controller payload" do
+    chart = { principal: "100000.00", total_interest: "115838.45" } # interest larger → green
+    data = amortization_donut_data(amortization_donut(chart))
+    assert_equal "100000.00", data[:principal]
+    assert_equal "Principal", data[:principalLabel]
+    assert_equal "primary", data[:principalColor]    # principal smaller → coral
+    assert_equal "115838.45", data[:interest]
+    assert_equal "Total interest", data[:interestLabel]
+    assert_equal "accent", data[:interestColor]      # interest larger → green
+  end
+
   # amortization_curve_points — map (month, balance) samples into a 0..100 unit box.
   test "amortization_curve_points maps the endpoints to the box corners" do
     curve = [
