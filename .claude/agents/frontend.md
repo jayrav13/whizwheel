@@ -91,12 +91,27 @@ Operator review of iteration-0004 added three UI patterns to the BLEND system in
 builds *and* every calculator the regeneration sweep rebuilds. **`DESIGN.md` is the source of
 truth for the *what* — build to it.** Two process points are specifically yours:
 
-- **You install the charting library.** Charts use a hover-capable JS library via importmap (per
-  `DESIGN.md §4`: lightweight-charts for line/time-series, a complementary library for donut). It
-  won't be pinned yet — **detect and install it yourself**: `bin/importmap pin lightweight-charts`
-  or pin its ESM CDN URL in `config/importmap.rb`. That config file is within your remit (a
-  JS-dependency pin for your UI), **not** a backend hand-off. Wire the chart via a Stimulus
-  controller, and keep the no-JS data fallback DESIGN.md requires.
+- **You install the charting library — and it must be a self-contained, single-file bundle (or
+  vendored).** Charts use a hover-capable JS library via importmap (per `DESIGN.md §4`:
+  lightweight-charts for line/time-series, a complementary library for donut). It won't be pinned
+  yet — **detect and install it yourself**: `bin/importmap pin lightweight-charts` or pin its ESM
+  CDN URL in `config/importmap.rb`. That config file is within your remit (a JS-dependency pin for
+  your UI), **not** a backend hand-off. **Importmap has no Node build step, so a split-chunk dist
+  build — one whose entry imports sub-chunks — 404s at runtime** (the sub-chunk URLs don't
+  resolve). Pin a **single-file ESM bundle**, or **vendor the bundle under `vendor/javascript`**
+  and pin to that. Known-good setups: **`lightweight-charts`** (vendored), and **`chart.js` pinned
+  to the self-contained `chart.js/auto` esm.sh bundle, vendored under `vendor/javascript`** (the
+  bare `chart.js` package is split-chunk and 404s). Wire the chart via a Stimulus controller, and
+  keep the no-JS data fallback DESIGN.md requires.
+- **Every JS chart ships a pixel-level "did it actually paint" system-test assertion — a blank
+  canvas is a HARD CI FAILURE.** In the chart's system test, after the page renders, **sample the
+  canvas and require a minimum count of non-transparent pixels** (read `getImageData` and count
+  pixels with alpha > 0; e.g. *"> 500 non-transparent pixels"* for a donut). **Why this is
+  mandatory, not optional:** markup/integration assertions cannot *see* a blank canvas — every one
+  of them passed while iteration-0005 shipped a blank donut (Chart.js was handed the wrapper
+  `<div>` instead of the `<canvas>`), and only the human visual gate caught it. The durable guard
+  belongs **in the test**, so a chart that fails to paint fails CI on its own — never relying on a
+  human to notice. (Reference: `test/system/amortization_screenshots_test.rb`.)
 - **Test the worst case.** When you build a responsive stat grid, add a render/state test that
   exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip a
   large one.
