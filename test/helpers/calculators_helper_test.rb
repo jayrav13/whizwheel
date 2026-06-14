@@ -73,4 +73,52 @@ class CalculatorsHelperTest < ActionView::TestCase
   test "detail for change decrease" do
     assert_equal "500 decreased by 10%", percentage_result_detail(calc(mode: "change", v1: "500", percent: "10", direction: "decrease"))
   end
+
+  # ── calculator_error_messages (label-based phrasing, DESIGN.md §4) ───────
+
+  test "phrases blank errors against the field's visible label, not the raw key" do
+    c = calc(mode: "percent_of", v1: "", percent: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Value (V1) can't be blank"
+    assert_includes messages, "Percent (P) can't be blank"
+    # Never the raw attribute key.
+    assert_empty messages.grep(/\bV1 can't be blank\b/)
+  end
+
+  test "phrases the direction error against its visible label" do
+    c = calc(mode: "change", v1: "5", percent: "10", direction: "")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Direction can't be blank"
+  end
+
+  test "phrases a division-by-zero field error against its label" do
+    c = calc(mode: "percent_of_what", v1: "10", percent: "0")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Percent (P) must be other than 0"
+  end
+
+  test "shows a :base whole-record error as a full sentence, with no label prefix" do
+    c = calc(mode: "difference", v1: "5", v2: "-5")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "must be other than 0"
+    # No attribute label is prepended to a base error.
+    assert_empty messages.grep(/\ABase /)
+  end
+
+  # A non-Percentage calculator with no bespoke label map — exercises the
+  # humanized-attribute fallback so the shared error partial stays honest.
+  class UnmappedCalc
+    include ActiveModel::Model
+    attr_accessor :widget_count
+    validates :widget_count, presence: true
+  end
+
+  test "falls back to a humanized attribute for an unmapped calculator/field" do
+    other = UnmappedCalc.new
+    other.valid?
+    assert_equal [ "Widget count can't be blank" ], calculator_error_messages(other)
+    assert_empty field_labels_for(other)
+  end
 end

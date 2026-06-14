@@ -26,6 +26,45 @@ module CalculatorsHelper
     number_with_delimiter(formatted)
   end
 
+  # Visible-label map for the Percentage page's fields — the exact labels the form
+  # renders (DESIGN.md §4: phrase validation errors against the field's visible
+  # label, never the raw attribute key). Keyed by the attribute symbol the envelope
+  # returns; presentation-only (no math), so it lives in the FE layer.
+  PERCENTAGE_FIELD_LABELS = {
+    mode:      "Mode",
+    v1:        "Value (V1)",
+    v2:        "Value (V2)",
+    percent:   "Percent (P)",
+    direction: "Direction"
+  }.freeze
+
+  # Render the envelope's validation errors phrased against each field's *visible
+  # label* — "Value (V1) can't be blank", not "V1 can't be blank" (DESIGN.md §4).
+  # We rebuild each message from the raw error (attribute + message) rather than
+  # ActiveModel's full_messages so the human label leads. Falls back to the
+  # humanized attribute for any field without a mapped label, keeping the shared
+  # error partial honest for other calculators.
+  def calculator_error_messages(calc)
+    labels = field_labels_for(calc)
+    calc.errors.map do |error|
+      label = labels.fetch(error.attribute) { error.attribute.to_s.humanize }
+      base_error?(error) ? error.message : "#{label} #{error.message}"
+    end
+  end
+
+  # The error :base attribute carries a whole-record message (e.g. a guard like a
+  # division-by-zero check) that already reads as a full sentence — show it as-is,
+  # with no label prefix.
+  def base_error?(error)
+    error.attribute == :base
+  end
+
+  # The label map for a given calculator. Percentage has a bespoke map; anything
+  # else falls back to humanized attribute names (handled in the caller).
+  def field_labels_for(calc)
+    calc.is_a?(Calculators::Percentage) ? PERCENTAGE_FIELD_LABELS : {}
+  end
+
   # A plain-language restatement of the answer, by mode, echoing the inputs so the
   # result is self-explanatory (never relying on the form alone).
   def percentage_result_detail(calc)

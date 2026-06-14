@@ -93,6 +93,15 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /Check your input/i
   end
 
+  test "errors are phrased against the field's visible label, not the raw key" do
+    post "/calculators/percentage", params: { inputs: { mode: "percent_of", v1: "", percent: "" } }, headers: TURBO
+    assert_response :unprocessable_entity
+    # The visible label leads — "Value (V1) can't be blank", never "V1 can't be blank".
+    assert_select "section#result [role=alert] li", text: "Value (V1) can't be blank"
+    assert_select "section#result [role=alert] li", text: "Percent (P) can't be blank"
+    assert_select "section#result [role=alert] li", text: /\AV1 /, count: 0
+  end
+
   test "division-by-zero input surfaces as a validation error, not a 500" do
     post "/calculators/percentage", params: { inputs: { mode: "what_percent", v1: "10", v2: "0" } }, headers: TURBO
     assert_response :unprocessable_entity

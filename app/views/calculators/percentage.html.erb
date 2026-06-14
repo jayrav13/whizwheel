@@ -28,7 +28,9 @@
     <%# Mode selector — accessible radio group styled as tab pills (DESIGN.md §4). %>
     <fieldset>
       <legend class="text-xs font-bold text-label">Mode</legend>
-      <div class="mt-2.5 flex flex-wrap gap-2">
+      <%# Pill group: wrapping flex row, comfortable gap on BOTH axes so the pills
+          breathe even when they wrap to a second row (DESIGN.md §3/§4 — gap-2.5 min). %>
+      <div class="mt-2.5 flex flex-wrap gap-2.5">
         <% [
              ["percent_of",      "% of a number"],
              ["what_percent",    "What percent"],

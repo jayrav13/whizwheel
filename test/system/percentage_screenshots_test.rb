@@ -55,8 +55,10 @@ class PercentageScreenshotsTest < ApplicationSystemTestCase
     click_button "Calculate"
     within "#result" do
       # The eyebrow is uppercased by CSS, so the rendered text is "CHECK YOUR INPUT".
-      assert_selector "[role=alert]", text: /can't be blank/i
       assert_text "CHECK YOUR INPUT"
+      # Errors read against the visible labels, not the raw attribute keys.
+      assert_selector "[role=alert] li", text: "Value (V1) can't be blank"
+      assert_selector "[role=alert] li", text: "Percent (P) can't be blank"
     end
     screenshot_full_page("13-percentage-error")
   end
