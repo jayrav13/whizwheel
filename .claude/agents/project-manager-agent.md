@@ -80,7 +80,7 @@ Maintain the full catalog of calculator.net calculators, idempotently.
 
 **Catalog table — columns & rendering (exact):** the table has these columns, in order:
 
-`| Calculator | Category | Complexity | Tags | Source | Built (PRs) |`
+`| Calculator | Slug | Category | Complexity | Tags | Description | Source | Built (PRs) |`
 
 - **Source** — a markdown link whose **display text is just the page slug** (the `*` in
   `https://www.calculator.net/*.html` — i.e. the URL's filename with `.html` stripped),
@@ -97,13 +97,23 @@ Maintain the full catalog of calculator.net calculators, idempotently.
   list the **most recent merged** PR per layer (the one reflecting current built state).
   Leave the cell **blank** when no build PR has merged yet — a blank cell *is* the "still
   backlog / not yet migrated" signal, so the column doubles as the build-coverage view.
+- **Slug** — the calculator's **routing slug** = `Calculators::X.slug` (`Base.slug` — the
+  `app/calculators/<slug>.rb` filename, e.g. `ohms_law`), **distinct from the `Source` page
+  slug**. It is the exact key the derived calculator registry's ingest joins on (`Base.lookup`).
+  **Build-time, not scrape-derivable:** fill it for a calculator only once it is built; blank
+  otherwise. (See the calculator registry — `CLAUDE.md` → "The calculator registry", #153.)
+- **Description** — a one-line **card blurb**, transcribed from the calculator's spec
+  (`spec:v1` → "Card description", `ARCHITECTURE.md §3.2`). Feeds the catalog card / derived
+  registry. **Build-time, not scrape-derivable** (calculator.net has no such blurb).
 
 **Idempotent merge (critical):** before writing, read the existing `INVENTORY.md`.
-- Keep existing rows and **preserve their current complexity and tags** (these may have
-  been empirically corrected — do not overwrite with fresh hypotheses).
+- Keep existing rows and **preserve their current complexity, tags, Slug, and Description**
+  (these are empirically corrected or build-time-authored — do not overwrite with fresh
+  hypotheses, and never blank a populated Slug/Description on refresh).
 - **Source** and **Built (PRs)** are **derived, not preserved** — always (re)render Source
   from the row's URL per the rule above, and always recompute Built (PRs) from live GitHub
-  state. The preserve rule protects only the *judgment* columns (complexity, tags).
+  state. The preserve rule protects the *judgment* columns (complexity, tags) **and the
+  build-time columns (Slug, Description)** the scrape cannot derive.
 - **Add** newly-found calculators with hypothesis complexity/tags and a blank Built (PRs).
 - **Mark** calculators no longer found as `removed` in the Tags column (keep the row).
 
@@ -212,9 +222,14 @@ feedback/discussion here. These files are **disjoint** (fan-out-safe).
 `docs/INVENTORY.md` as part of the same close.** An iteration's built calculators and the
 inventory's `Built (PRs)` build-coverage column are the same fact — "these calculators
 shipped" — so closing must recompute that column from live GitHub state (per the Inventory
-capability above) and float the newly-completed calculators into the completed block. A
-close must never leave the inventory stale; do it in the same close PR — it is `docs/` work
-you already own. The subsequent agent edit + commit opens the next iteration.
+capability above) and float the newly-completed calculators into the completed block. **And
+for each calculator that shipped this iteration, author its `Slug` (= `Base.slug`, the
+`app/calculators/<slug>.rb` filename) and `Description` (transcribed from the spec's "Card
+description", `ARCHITECTURE.md §3.2`) into its INVENTORY row** — these are build-time columns
+the calculator.net scrape cannot derive, and the derived calculator registry's ingest joins
+on `Slug` and renders `Description` (it warns loudly if a built calculator is missing them —
+see `CLAUDE.md` → "The calculator registry", #153). A close must never leave the inventory
+stale; do it in the same close PR — it is `docs/` work you already own. The subsequent agent edit + commit opens the next iteration.
 
 **Dates:** never fabricate a date — obtain it with `date +%F` via Bash, or ask.
 `logs/INDEX.md` is a serial aggregate; update it in one pass.
