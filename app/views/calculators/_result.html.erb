@@ -39,6 +39,9 @@
 <% elsif calc.is_a?(Calculators::SimpleInterest) %>
   <%= render "calculators/results/simple_interest", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::Amortization) %>
+  <%= render "calculators/results/amortization", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>
