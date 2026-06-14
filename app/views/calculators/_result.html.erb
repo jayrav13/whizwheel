@@ -33,6 +33,9 @@
 <% elsif calc.is_a?(Calculators::Bmi) %>
   <%= render "calculators/results/bmi", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::Amortization) %>
+  <%= render "calculators/results/amortization", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>

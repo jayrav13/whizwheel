@@ -250,4 +250,98 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes messages, "Weight can't be blank"
     assert_includes messages, "Height can't be blank"
   end
+
+  # ── Amortization helpers (issue #84) ────────────────────────────────────
+
+  def amort(attrs)
+    Calculators::Amortization.new(attrs)
+  end
+
+  # money_display — delimit thousands, keep the 2dp the envelope already rounded to.
+  test "money_display delimits thousands and keeps two decimals" do
+    assert_equal "215,838.45", money_display("215838.45")
+  end
+
+  test "money_display leaves a sub-thousand amount untouched" do
+    assert_equal "599.55", money_display("599.55")
+  end
+
+  test "money_display keeps a zero amount as 0.00" do
+    assert_equal "0.00", money_display("0.00")
+  end
+
+  # amortization_donut — two slices; the LARGER one is accent green (DESIGN.md §1).
+  test "amortization_donut puts the larger slice (interest > principal) in accent green" do
+    # 100000 @ 6%/30y: interest 115,838.45 > principal 100,000 → interest is green.
+    chart = { principal: "100000.00", total_interest: "115838.45" }
+    slices = amortization_donut(chart)
+    assert_equal :principal, slices.first[:key]
+    assert_equal "primary", slices.first[:color]      # smaller → coral
+    assert_equal "accent",  slices.last[:color]        # larger → green
+    assert_in_delta 46.33, slices.first[:pct], 0.01    # principal share
+    assert_in_delta 100.0, slices.first[:pct] + slices.last[:pct], 0.0001
+  end
+
+  test "amortization_donut puts the larger slice (principal >= interest) in accent green" do
+    # 10000 @ 4.5%/5y: principal 10,000 > interest 1,185.83 → principal is green.
+    chart = { principal: "10000.00", total_interest: "1185.83" }
+    slices = amortization_donut(chart)
+    assert_equal "accent",  slices.first[:color]       # principal, larger → green
+    assert_equal "primary", slices.last[:color]        # interest, smaller → coral
+  end
+
+  test "amortization_donut treats an equal split as principal-larger (>= boundary)" do
+    chart = { principal: "100.00", total_interest: "100.00" }
+    slices = amortization_donut(chart)
+    assert_equal "accent", slices.first[:color] # principal, on the >= boundary, green
+  end
+
+  # amortization_donut_gradient — a conic-gradient from the two TOKEN colours (no hex).
+  test "amortization_donut_gradient composes a conic-gradient from token custom properties" do
+    chart = { principal: "100000.00", total_interest: "100000.00" } # 50/50
+    g = amortization_donut_gradient(amortization_donut(chart))
+    assert_match(/conic-gradient\(/, g)
+    assert_includes g, "var(--color-accent)"
+    assert_includes g, "var(--color-primary)"
+    assert_includes g, "50.0%"
+    refute_match(/#/, g) # never an inline hex (DESIGN.md §5 guardrail)
+  end
+
+  # amortization_curve_points — map (month, balance) samples into a 0..100 unit box.
+  test "amortization_curve_points maps the endpoints to the box corners" do
+    curve = [
+      { month: 0,   balance: "100000.00" },
+      { month: 180, balance: "50000.00" },
+      { month: 360, balance: "0.00" }
+    ]
+    pts = amortization_curve_points(curve).split(" ")
+    # month 0, full balance → top-left (x=0, y=0); month 360, zero balance → bottom-right.
+    assert_equal "0.0,0.0", pts.first
+    assert_equal "100.0,100.0", pts.last
+    # midpoint: half the months, half the balance → (50, 50).
+    assert_equal "50.0,50.0", pts[1]
+  end
+
+  test "amortization_curve_points guards a degenerate all-zero curve without dividing by zero" do
+    # A pathological single-point/zero curve (never produced in practice) must not raise.
+    curve = [ { month: 0, balance: "0.00" } ]
+    assert_equal "0.0,100.0", amortization_curve_points(curve)
+  end
+
+  # field_labels_for / calculator_error_messages — Amortization's bespoke label map.
+  test "field_labels_for returns the Amortization label map for an Amortization instance" do
+    labels = field_labels_for(amort({}))
+    assert_equal "Loan amount", labels["principal"]
+    assert_equal "Annual interest rate", labels["annual_rate"]
+    assert_equal "Loan term", labels["years"]
+  end
+
+  test "Amortization errors are phrased against the visible labels, not the raw keys" do
+    c = amort(principal: "", annual_rate: "", years: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Loan amount can't be blank"
+    assert_includes messages, "Annual interest rate can't be blank"
+    assert_includes messages, "Loan term can't be blank"
+  end
 end
