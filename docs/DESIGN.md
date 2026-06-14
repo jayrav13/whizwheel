@@ -55,6 +55,7 @@ The aesthetic is named **BLEND** — *warm, sharpened, with a touch of green.* I
 - **Radii:** cards `18px`, inputs `11–13px`, buttons `13px`, pills/tabs `999px`.
 - **Card:** `surface` background, `1px` `border` outline, shadow `0 10px 34px rgba(150,110,80,.12)`.
 - **Whitespace:** generous. Let pages breathe; density is achieved with rules and alignment, not crowding.
+- **Pill / tab / chip groups:** a **wrapping** flex row (`flex flex-wrap`) with a comfortable gap on **both** axes — use **`gap-2.5`** (≈`10px`) minimum, never less than `gap-2`. Pills must never touch or look bunched; a group that wraps to multiple lines needs the row-gap as much as the column-gap (`gap` sets both — don't use `gap-x` alone). This is part of "let pages breathe," applied to inline groups.
 - **Layout grid:** desktop = an input column + a results panel (roughly `380px 1fr`); collapses to a single stacked column on mobile (**mobile-first**).
 
 ---
@@ -67,8 +68,9 @@ The login/home pages are the first **reference implementation**; new pages copy 
 - **Footer** — quiet, `faint`/`muted`, single row.
 - **Flash** — `success` (green-leaning) and `alert` (coral/red-leaning) banners; legible, dismissible-looking, never raw browser text. The failed-login *"Invalid username or password"* alert is the canonical `alert`.
 - **Input** — labeled; optional `$` / `%` / unit affix; `border-input` border, focus ring → `accent`; `tabular-nums` for numeric inputs.
+- **Validation errors** — when the envelope returns `errors` (`ARCHITECTURE.md §4`), surface them in a coral-tinted card (eyebrow e.g. *"Check your input"*). **Phrase each message against the field's visible label, never the raw attribute key** — "Value can't be blank", not "v1 can't be blank". The UI knows the labels it rendered; map the error key → that label.
 - **Primary button** — `primary` (coral), white text, `13px` radius, subtle coral shadow.
-- **Tab pills** — pill row; active pill filled `accent` (green), inactive `faint` on a tint.
+- **Tab pills** — a **wrapping pill row with a comfortable gap on both axes** (§3, `gap-2.5`); active pill filled `accent` (green), inactive `faint` on a tint. Pills should breathe — never crowded, even when the row wraps.
 - **Card** — the base container (§3).
 - **Hero-result** — a `surface` card with a **5px coral left rule** and a big `tabular-nums` number; the page's headline answer.
 - **Stat grid** — a 3-up row of small stat cards (label + value); positive values may use `accent`.
