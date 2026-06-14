@@ -83,6 +83,66 @@ without it.
   or any multi-word/long label. **Never a raw `<select>` as the primary picker** — reserve it
   for a genuinely long menu (N > ~8). `DESIGN.md §4` is the source of truth; build to it.
 
+## UI conventions (operator review — applies to every build from iteration-0004 on)
+
+These three patterns came out of operator review of the iteration-0004 calculators. They are
+**standing conventions**, not one-offs: apply them to **new builds and to every calculator the
+regeneration sweep rebuilds** (Rule 1 — they only stick because they live here, not in any one
+calculator's code). Each is built to the BLEND system and the §4 envelope like everything else.
+
+### A "Today" button on date fields that default to today (never silent auto-prefill)
+
+- For an **optional** date input whose **blank value semantically means "today"** — an as-of /
+  end / measure-to date (e.g. the Age calculator's *"Age at the date of"*) — render a small,
+  explicit **"Today" quick-fill control** (a button/chip) beside the field that fills it with
+  the current date on click. Make it discoverable; it's a visible shortcut, not hidden behavior.
+- **Never silently auto-prefill** such a field's value, and **never auto-default a
+  primary/required date input** (e.g. a birth date) — those stay **empty** until the user types
+  them. The "Today" affordance only ever applies to the optional "means today when blank" field.
+- **Keep the server-side "blank means today" default intact** — the button is a visible,
+  discoverable shortcut *layered on top* of that default, not a replacement for it. (The
+  quick-fill is the kind of progressive-enhancement polish a Stimulus controller is for; the
+  page must still work, and still default to today, with the field left blank and no JS.)
+
+### Stat grids fit content and never clip
+
+- Render a **multi-stat result grid** (the §4 "Stat grid" component — e.g. Age's *Total
+  Months / Weeks / Days / Hours*) as a **responsive auto-fit layout**: cards sized to a sensible
+  **min-width** that **wrap/flow** (≈4 across on a wide viewport, collapsing to 2×2 then 1-up as
+  it narrows) — **not a rigid fixed N-up** that crams cards or truncates large values. (This
+  refines `DESIGN.md §4`'s "3-up row" into an auto-fit grid; if the wording diverges, raise it in
+  `DESIGN.md` — the design doc leads.)
+- Numeric values stay **`tabular-nums`** and **must never be clipped or overflow** their card.
+- **Required test:** add a frontend render/state test that exercises a **worst-case large value**
+  — a 6+ digit count (e.g. a total-hours figure) — to guard against clipping/overflow. A grid
+  that looks fine on small numbers but truncates a big one is exactly the regression this catches.
+
+### Charts use a hover-capable JS charting library (you install it via importmap)
+
+This **supersedes `DESIGN.md §4`'s "CSS-only for now" charts.** Result charts now render with a
+**JavaScript charting library that gives hover / crosshair / tooltip interactivity**, instead of
+a hand-rolled CSS `conic-gradient` / SVG. (Raise the wording change in `DESIGN.md §4` so the
+design doc stays the source of truth.)
+
+- **Math stays server-side.** The chart **data comes from the §4 JSON envelope** — the library
+  only *renders* it. Never compute or derive chart values client-side.
+- **Library choice by chart type:**
+  - **Line / time-series** (e.g. Amortization's *Balance over time*) → **TradingView
+    lightweight-charts**.
+  - **Donut / breakdown** (e.g. Amortization's principal-vs-interest split) → lightweight-charts
+    has **no pie/donut type**, so use a **complementary hover-capable library** for these (or a
+    single library that covers both line *and* donut) — your judgment, **prioritizing a
+    consistent hover/tooltip UX across the whole page**.
+- **Delivery is importmap (no Node build step).** **Do not assume the library is already pinned —
+  detect, then install it yourself** as part of the work: `bin/importmap pin lightweight-charts`,
+  or pin its ESM CDN URL in `config/importmap.rb`. (`config/importmap.rb` is a config file, not
+  app math/routes/models — pinning a charting library there is within your remit; it is *not* a
+  backend hand-off.) Wire the chart through a **Stimulus controller** per the interaction model.
+- **Always retain a no-JS fallback for the underlying data** — the schedule **data table**, a
+  **text legend**, etc. — so the page stays functional without JS and remains accessible
+  (semantic markup, **never colour-alone**), per `DESIGN.md §6`. The chart is enhancement over a
+  page that already conveys its data without it.
+
 ## Quality bar
 
 The testing canon for the whole project is `ARCHITECTURE.md §11` (every feature ships tests);
