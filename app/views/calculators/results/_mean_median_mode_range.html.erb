@@ -42,14 +42,19 @@
       </dl>
 
       <%# Mean / Median / Range — the headline figures in the shared responsive stat grid
-          (DESIGN.md §4 "Stat grid", issue #143): `.stat-grid` / `.stat-card` size each card
-          to a min width and let the grid flow, collapsing as the panel narrows. The card
-          shell comfortably holds a 6+ digit tabular-nums figure. %>
-      <dl class="mt-5 stat-grid">
+          (DESIGN.md §4 "Stat grid", issue #143). These are PLAIN unit-less statistics and
+          are UNBOUNDED (a mean/median/range can run to 7+ digits, e.g. `6,419,754`), so the
+          grid uses `.stat-grid--wide` (the high-magnitude track) to hold the big
+          tabular-nums figure on one line rather than wrapping mid-number — `--wide` is for
+          high-magnitude values whether unit-bearing, money, or plain large numbers. The
+          `.stat-card` never-clip safety net (overflow-wrap on the value `<dd>`) is the floor
+          below that: a figure exceeding even the wide track wraps, never clips (DESIGN.md
+          §4: stats must NEVER clip). %>
+      <dl class="mt-5 stat-grid stat-grid--wide">
         <% mmr_primary_stats.each do |stat| %>
           <div class="stat-card">
             <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>
-            <dd class="mt-1.5 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
+            <dd class="mt-1.5 break-words text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
               <%= mmr_stat_display(calc.result[stat[:key]]) %>
             </dd>
             <p class="mt-1 text-[11px] leading-snug text-faint"><%= stat[:caption] %></p>
@@ -58,12 +63,15 @@
       </dl>
 
       <%# Supporting figures — sum / count / smallest / largest. The same shared responsive
-          track (`.stat-grid`, issue #143) under a thin rule (DESIGN.md §4 Data table rules),
-          but deliberately CARD-LESS: a quieter supporting row of bare label-over-value
-          figures (no `.stat-card` shell), so it reads as a footnote to the headline cards
-          above rather than a second card row. The shared track still sizes each figure to
-          the canonical min width and flows, so a large count or sum never clips. %>
-      <dl class="mt-6 stat-grid border-t border-rule pt-5">
+          track (issue #143) under a thin rule (DESIGN.md §4 Data table rules), but
+          deliberately CARD-LESS: a quieter supporting row of bare label-over-value figures
+          (no `.stat-card` shell), so it reads as a footnote to the headline cards above
+          rather than a second card row. It uses the WIDE track too — a SUM is larger than
+          any single statistic above (the figures here are unbounded), so it needs the same
+          high-magnitude headroom. break-words on each value is the never-clip floor (no
+          `.stat-card` shell here means the component-level safety net doesn't apply, so it's
+          set on the value `<dd>` directly). %>
+      <dl class="mt-6 stat-grid stat-grid--wide border-t border-rule pt-5">
         <% mmr_supporting_stats.each do |stat| %>
           <div class="min-w-0">
             <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>

@@ -29,16 +29,18 @@
       <p class="mt-3 text-[15px] leading-relaxed text-muted"><%= age_breakdown_phrase(result) %> old</p>
 
       <%# Total-unit conversions — the same interval four other ways, in the shared
-          responsive stat grid (DESIGN.md §4 "Stat grid", issue #143): `.stat-grid` /
-          `.stat-card` size each card to a min width and let the grid wrap/flow (≈4 across
-          on a wide panel, collapsing to 2×2 when narrow). The card shell keeps even a large
-          6+ digit Total hours (e.g. 306,792) in full; the value is whitespace-nowrap
-          tabular-nums so it never wraps mid-number. %>
-      <dl class="mt-6 stat-grid">
+          responsive stat grid (DESIGN.md §4 "Stat grid", issue #143). Total hours is a
+          high-magnitude unit-less figure (a centenarian is ≈900,000 hours — 6 digits, and
+          unbounded above), so the grid uses `.stat-grid--wide` to hold it on one line.
+          The `.stat-card` never-clip safety net (overflow-wrap on the value `<dd>`) is the
+          floor below that — so even a larger total wraps rather than clips (DESIGN.md §4:
+          stats must NEVER clip). (Removed the old `whitespace-nowrap`, which would have
+          forced the value to clip under overflow-hidden instead of wrapping.) %>
+      <dl class="mt-6 stat-grid stat-grid--wide">
         <% age_total_units.each do |unit| %>
           <div class="stat-card">
             <dt class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Total <%= unit[:label].downcase %></dt>
-            <dd class="mt-1.5 whitespace-nowrap text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= integer_display(result[unit[:key]]) %></dd>
+            <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= integer_display(result[unit[:key]]) %></dd>
           </div>
         <% end %>
       </dl>

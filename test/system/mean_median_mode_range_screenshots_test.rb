@@ -49,6 +49,17 @@ class MeanMedianModeRangeScreenshotsTest < ApplicationSystemTestCase
       assert_text "7,654,321"  # largest
       assert_text "1,234,567"  # smallest
     end
+    # The large mean/median/range figures (7-digit, unit-less) must NOT clip at the card's
+    # right edge (DESIGN.md §4: stats must NEVER clip). A text assertion can't see a clip —
+    # the value is in the DOM but truncated under the `.stat-card`'s overflow-hidden shell —
+    # so measure the laid-out geometry: the value's content must fit within its visible box.
+    # This is the regression #176 reworked: MMR's primary grid had migrated to the default
+    # 9.5rem track with no fit handling, so a `text-3xl` 7-digit value clipped. The wide
+    # track + the never-clip safety net keep it whole. Both the primary CARDS and the
+    # card-less SUPPORTING row (sum/count/smallest/largest — a sum is larger still) are
+    # checked, since statistical values are unbounded.
+    assert_no_value_clip("#result dl.stat-grid--wide .stat-card dd")
+    assert_no_value_clip("#result dl.stat-grid--wide dd[class*='text-lg']")
     screenshot_full_page("34-mmr-large-values")
   end
 

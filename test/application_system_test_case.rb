@@ -51,6 +51,31 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
+  # Assert that EVERY element matching `css` renders its text WITHOUT being clipped — i.e. the
+  # laid-out content is fully visible, not cut off at the box edge. Clipping (data loss) is the
+  # worst stat-grid failure (DESIGN.md §4: "stats must NEVER clip"): a too-wide tabular-nums
+  # value inside a `.stat-card`'s `overflow-hidden` shell is silently truncated at the right
+  # edge, and a markup/text assertion can't see it (the text is in the DOM, just not painted).
+  # We measure the laid-out geometry: when an element's `scrollWidth` exceeds its `clientWidth`,
+  # its content overflows the box and is being clipped. The never-clip safety net (overflow-wrap
+  # on the value, plus the `--wide` track) keeps scrollWidth within clientWidth; a regression
+  # that drops it pushes scrollWidth past clientWidth and this assertion fails. (1px slack for
+  # sub-pixel layout rounding.)
+  def assert_no_value_clip(css)
+    measured = page.evaluate_script(<<~JS)
+      Array.from(document.querySelectorAll(#{css.to_json})).map(function (el) {
+        return { scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, text: el.textContent.trim() };
+      })
+    JS
+    assert_not_empty measured, "expected at least one element matching #{css.inspect} to measure for clipping"
+    measured.each do |m|
+      assert_operator m["scrollWidth"], :<=, m["clientWidth"] + 1,
+        "expected #{css.inspect} (#{m["text"].inspect}) to render fully without clipping " \
+        "(content scrollWidth #{m["scrollWidth"]}px exceeds visible clientWidth #{m["clientWidth"]}px) " \
+        "— the value is being truncated at the card edge"
+    end
+  end
+
   # Sign in through the real login form (drives the browser, exercising the full stack).
   def sign_in_as(username, password)
     visit new_session_path

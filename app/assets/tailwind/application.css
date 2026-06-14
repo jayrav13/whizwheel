@@ -144,27 +144,45 @@
     @apply grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3;
   }
   /* Variant: the WIDE-track stat grid — same canonical card system, a wider auto-fit min
-     so a unit-bearing / high-magnitude value+unit stays on one line (DESIGN.md §4: stats
-     must NEVER clip or wrap mid-number). The default 9.5rem track is right for plain money
-     figures, but two grids carry realistic large values WITH a trailing unit that wrap
-     mid-number at 9.5rem: Ohm's Law (`998,001,000 W` breaks to `998,00 / 1,000`) and Simple
-     Interest (`$1,000,000.00` breaks at the cents). 13rem holds those worst-case figures on
-     one line — matching the deliberate wider tracks these two pages used before #143
-     consolidated the component. One sanctioned modifier (the `--solved`/`--surface` pattern),
-     NOT per-page inline widths — the whole point of the shared component (issue #143). */
+     so a HIGH-MAGNITUDE value stays on one line (DESIGN.md §4: single-line is preferred for
+     a big figure; the never-clip safety net on `.stat-card dd` is the wrapping floor below
+     that). `--wide` is for high-magnitude values whether they carry a UNIT, are MONEY, or
+     are PLAIN large unit-less numbers — the default 9.5rem track is right for ordinary
+     money figures, but several grids carry realistic large values that wrap mid-number at
+     9.5rem:
+       • Ohm's Law      — `998,001,000 W` breaks to `998,00 / 1,000` (unit-bearing).
+       • Simple Interest — `$1,000,000.00` breaks at the cents (money).
+       • Mean/Median/Range — `6,419,754` 7-digit statistic (plain unit-less number); a sum
+         is larger still, so the card-less supporting row gets `--wide` too. Statistical
+         values are unbounded, so MMR's large unit-less figures qualify as high-magnitude.
+     13rem holds those worst-case figures on one line. One sanctioned modifier (the
+     `--solved`/`--surface` pattern), NOT per-page inline widths — the whole point of the
+     shared component (issue #143). */
   .stat-grid--wide {
     @apply grid-cols-[repeat(auto-fit,minmax(13rem,1fr))];
   }
   /* One stat card inside the grid — the canonical card shell: a faint cream-tinted card
      (bg-bg/60) holding a label (<dt>) over a tabular-nums value (<dd>). min-w-0 +
-     overflow-hidden let the card shrink within its track and keep a long figure contained;
-     break-words on the value (in the view) keeps a big number whole (DESIGN.md §4: never
-     clip). The SHELL is fixed here (radius, border, bg, padding); the value's SIZE and
-     COLOUR stay page-content choices set with utilities on the inner <dd> (e.g. a
-     derived/positive figure → accent, DESIGN.md §1), so one component covers every page
-     without forking the shell. */
+     overflow-hidden let the card shrink within its track and keep a long figure contained.
+     The SHELL is fixed here (radius, border, bg, padding); the value's SIZE and COLOUR stay
+     page-content choices set with utilities on the inner <dd> (e.g. a derived/positive
+     figure → accent, DESIGN.md §1), so one component covers every page without forking the
+     shell.
+
+     NEVER-CLIP SAFETY NET (DESIGN.md §4 "stats must NEVER clip", issue #143). The shell
+     pairs `overflow-hidden` (to keep a long figure from spilling out of its track) with a
+     hard guarantee that a value which *still* exceeds even the `--wide` track WRAPS rather
+     than clips: `overflow-wrap: anywhere` is forced on EVERY value `<dd>` inside the card,
+     at the component, so it can't be forgotten per-page (a missing break-words on the value
+     `<dd>` is exactly how MMR's 7-digit mean/median/range silently clipped). Single-line is
+     preferred — that's what `--wide` buys for high-magnitude values — wrapping is the
+     acceptable FLOOR, clipping (data loss) is never allowed. `overflow-wrap` is not an
+     inherited property, so it's set on the `<dd>` directly here rather than on the card. */
   .stat-card {
     @apply min-w-0 overflow-hidden rounded-[13px] border border-border bg-bg/60 p-4;
+  }
+  .stat-card dd {
+    overflow-wrap: anywhere;
   }
   /* Variant: the state-carrying stat card (Ohm's Law's solved-vs-given cards), where the
      card surface itself signals state. The base .stat-card is the given/neutral card;
