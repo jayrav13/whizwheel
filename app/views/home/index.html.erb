@@ -27,3 +27,19 @@
     </div>
   </section>
 <% end %>
+
+<%# The catalog teaser — the calculators built so far link out from here. As the
+    library grows this becomes the index; today it surfaces the first one. %>
+<section class="mt-8">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Calculators</p>
+  <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <%= link_to "/calculators/percentage",
+          class: "group rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" do %>
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Math</p>
+      <h2 class="mt-2 text-lg font-extrabold tracking-[-0.02em] text-ink group-hover:text-primary">Percentage</h2>
+      <p class="mt-1.5 text-[15px] leading-relaxed text-muted">
+        Five percentage operations — % of a number, what percent, percent of what, difference, and increase/decrease.
+      </p>
+    <% end %>
+  </div>
+</section>

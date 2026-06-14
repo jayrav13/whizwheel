@@ -31,3 +31,44 @@
   --color-rule:         #efe4d8;
   --font-sans:          "Inter", "Helvetica Neue", system-ui, sans-serif;
 }
+
+/* Component classes — extracted where a utility cluster repeats ≥3× across the
+   calculator forms (DESIGN.md §5 guardrail). They compose tokens only; no raw hex. */
+@layer components {
+  /* Labeled numeric input (DESIGN.md §4 "Input"): border-input, focus ring → accent,
+     tabular-nums so figures align. Repeated for v1/v2/percent on the Percentage page. */
+  .field-input {
+    @apply block w-full rounded-[11px] border border-border-input bg-surface px-3.5 py-2.5 text-ink tabular-nums placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40;
+  }
+  .field-label {
+    @apply block text-xs font-bold text-label;
+  }
+
+  /* Tab pill (DESIGN.md §4 "Tab pills"): pill row, active filled accent (green),
+     inactive faint on a tint. Driven by the peer radio's :checked state so the
+     active mode is correct even before Stimulus connects (progressive enhancement).
+     The .is-active class is the JS hook for the same look after a Stimulus toggle. */
+  .mode-pill {
+    @apply cursor-pointer rounded-full border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-faint transition-colors;
+  }
+  .peer:checked + .mode-pill,
+  .mode-pill.is-active {
+    @apply border-accent bg-accent text-surface;
+  }
+  .peer:focus-visible + .mode-pill {
+    @apply ring-2 ring-accent ring-offset-2 ring-offset-bg;
+  }
+
+  /* Direction toggle (increase / decrease) for `change` mode — segmented control,
+     the chosen half lifted to surface white on the bg-tinted track. */
+  .direction-pill {
+    @apply flex-1 cursor-pointer rounded-[9px] px-4 py-2 text-center text-sm font-semibold text-muted transition-colors;
+  }
+  .peer:checked + .direction-pill,
+  .direction-pill.is-active {
+    @apply bg-surface text-ink shadow-sm;
+  }
+  .peer:focus-visible + .direction-pill {
+    @apply ring-2 ring-accent;
+  }
+}

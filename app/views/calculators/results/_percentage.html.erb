@@ -1,0 +1,20 @@
+<%# Percentage answer fragment (issue #31) — the hero-result card: surface, a 5px
+    coral left rule, a big tabular-nums number (DESIGN.md §4 "Hero-result"). The
+    result Hash carries exactly the selected mode's output key (value | percent |
+    base); a "%" suffix is shown when the answer itself is a percentage.
+
+    Locals: calc (a Calculators::Percentage). %>
+<% key, value = calc.result.first %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="border-l-[5px] border-primary p-8">
+    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
+      <%= percentage_result_caption(calc.mode) %>
+    </p>
+    <p class="mt-3 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+      <%= percentage_display(value) %><%= "%" if key.to_s == "percent" %>
+    </p>
+    <p class="mt-4 text-[15px] leading-relaxed text-muted">
+      <%= percentage_result_detail(calc) %>
+    </p>
+  </div>
+</div>
