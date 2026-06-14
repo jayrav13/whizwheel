@@ -1,9 +1,22 @@
 require "test_helper"
 
-# Unit tests for CalculatorsHelper — the display-only formatting + per-mode copy
-# for the Percentage page. Ruby helpers are coverage-counted (ARCHITECTURE.md §11),
-# so every branch here is exercised.
+# Unit tests for CalculatorsHelper (the shared formatters + the convention-based
+# dispatch/label resolvers) and the per-calculator helper modules (Calculators::*Helper)
+# its discovery resolves — issue #107. Ruby helpers are coverage-counted (ARCHITECTURE.md
+# §11), so every branch here is exercised. ActionView::TestCase auto-includes the helper
+# named for this class (CalculatorsHelper); the per-calculator modules — which views get
+# via Rails' app/helpers auto-inclusion — are included explicitly here so the test view
+# context exercises their methods too.
 class CalculatorsHelperTest < ActionView::TestCase
+  helper Calculators::PercentageHelper
+  helper Calculators::OhmsLawHelper
+  helper Calculators::BmiHelper
+  helper Calculators::TipHelper
+  helper Calculators::MeanMedianModeRangeHelper
+  helper Calculators::AmortizationHelper
+  helper Calculators::AgeHelper
+  helper Calculators::SimpleInterestHelper
+
   # ── percentage_display ──────────────────────────────────────────────────
 
   test "trims trailing zeros after the decimal point" do
@@ -134,6 +147,41 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_empty field_labels_for(other)
   end
 
+  # ── Convention-based dispatch + label resolution (issue #107) ───────────
+
+  # A calculator whose slug resolves to NO per-calculator helper module — the
+  # safe_constantize-returns-nil path: field_labels_for must yield {}.
+  class NoHelperCalc < Calculators::Base
+    def self.slug = "no_helper_calc"
+  end
+
+  # A calculator whose helper module EXISTS but defines no FIELD_LABELS — the
+  # const_defined?-false path: field_labels_for must yield {}.
+  class BareHelperCalc < Calculators::Base
+    def self.slug = "bare_helper_calc"
+  end
+
+  module Calculators::BareHelperCalcHelper; end
+
+  test "calculator_result_partial uses the per-slug partial when it exists" do
+    # Percentage has app/views/calculators/results/_percentage.html.erb.
+    assert_equal "calculators/results/percentage",
+      calculator_result_partial(Calculators::Percentage.new)
+  end
+
+  test "calculator_result_partial falls back to the generic partial when none exists" do
+    assert_equal "calculators/results/generic",
+      calculator_result_partial(NoHelperCalc.new)
+  end
+
+  test "field_labels_for is empty when the slug resolves to no helper module" do
+    assert_empty field_labels_for(NoHelperCalc.new)
+  end
+
+  test "field_labels_for is empty when the helper module defines no FIELD_LABELS" do
+    assert_empty field_labels_for(BareHelperCalc.new)
+  end
+
   # ── Ohm's Law (issue #55) ───────────────────────────────────────────────
 
   test "decimal_display is the shared formatter percentage_display aliases" do
@@ -160,11 +208,11 @@ class CalculatorsHelperTest < ActionView::TestCase
   test "ohms_law_quantities lists V/I/R/P in order with units and symbols" do
     assert_equal %i[voltage current resistance power], ohms_law_quantities.map { |q| q[:key] }
     assert_equal %w[V A Ω W], ohms_law_quantities.map { |q| q[:unit] }
-    assert_equal CalculatorsHelper::OHMS_LAW_QUANTITIES, ohms_law_quantities
+    assert_equal Calculators::OhmsLawHelper::QUANTITIES, ohms_law_quantities
   end
 
   test "field_labels_for maps the Ohm's Law inputs to their visible labels" do
-    assert_equal CalculatorsHelper::OHMS_LAW_FIELD_LABELS, field_labels_for(ohms(mode: "vi"))
+    assert_equal Calculators::OhmsLawHelper::FIELD_LABELS, field_labels_for(ohms(mode: "vi"))
   end
 
   test "phrases Ohm's Law blank errors against the field's visible label" do
@@ -512,7 +560,7 @@ class CalculatorsHelperTest < ActionView::TestCase
 
   test "field_labels_for returns the Simple Interest label map for a SimpleInterest instance" do
     labels = field_labels_for(simple_interest({}))
-    assert_equal CalculatorsHelper::SIMPLE_INTEREST_FIELD_LABELS, labels
+    assert_equal Calculators::SimpleInterestHelper::FIELD_LABELS, labels
     assert_equal "Principal", labels["principal"]
     assert_equal "Annual rate", labels["rate"]
     assert_equal "Time", labels["time"]
