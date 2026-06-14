@@ -95,10 +95,11 @@ module CalculatorsHelper
   }.freeze
 
   # The WHO adult classification scale (issue #53): the band segments the page draws as a
-  # thin stacked bar (DESIGN.md §4 "Charts — thin stacked bar"). The backend owns the
-  # math (Calculators::Bmi::BANDS); this is display-only metadata — a visible BMI range, a
-  # human label, and the band's [lower, upper) bounds within the plotted 15–40 window so
-  # the segments size proportionally without a runaway open-ended slice.
+  # thin stacked bar (the WHO scale + marker, DESIGN.md §4) AND lists as a responsive
+  # auto-fit stat grid (DESIGN.md §4 "Stat grid"). The backend owns the math
+  # (Calculators::Bmi::BANDS); this is display-only metadata — a visible BMI range, a human
+  # label, and the band's [lower, upper) bounds within the plotted 15–40 window so the
+  # segments size proportionally without a runaway open-ended slice.
   #
   # The finer WHO bands (Severe/Moderate/Mild Thinness, Obese Class I–III) collapse into
   # these four broad bins for the bar; the precise band text comes from `category`.
