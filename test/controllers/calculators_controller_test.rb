@@ -6,7 +6,7 @@ require_relative "../support/calculators"
 # test-only Calculators::TestDouble so the first real calculator stays the agent's job.
 class CalculatorsControllerTest < ActionDispatch::IntegrationTest
   test "valid input returns the ok envelope" do
-    post "/calculators/test_double", params: { inputs: { x: 3 } }
+    post "/calculators/test_double", params: { inputs: { x: 3 } }, as: :json
 
     assert_response :success
     body = JSON.parse(@response.body)
@@ -18,7 +18,7 @@ class CalculatorsControllerTest < ActionDispatch::IntegrationTest
 
   test "invalid input returns the error envelope with 422 and records nothing" do
     assert_no_difference "Calculation.count" do
-      post "/calculators/test_double", params: { inputs: { x: "" } }
+      post "/calculators/test_double", params: { inputs: { x: "" } }, as: :json
     end
 
     assert_response :unprocessable_entity
@@ -29,7 +29,7 @@ class CalculatorsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "unknown input keys are dropped, not 500s" do
-    post "/calculators/test_double", params: { inputs: { x: 3, sneaky: "haxor" } }
+    post "/calculators/test_double", params: { inputs: { x: 3, sneaky: "haxor" } }, as: :json
 
     assert_response :success
     body = JSON.parse(@response.body)
@@ -44,7 +44,7 @@ class CalculatorsControllerTest < ActionDispatch::IntegrationTest
 
   test "an anonymous calculation is recorded with no user" do
     assert_difference "Calculation.count", 1 do
-      post "/calculators/test_double", params: { inputs: { x: 3 } }
+      post "/calculators/test_double", params: { inputs: { x: 3 } }, as: :json
     end
 
     record = Calculation.last
@@ -55,8 +55,20 @@ class CalculatorsControllerTest < ActionDispatch::IntegrationTest
   test "a signed-in calculation is attributed to the user" do
     post session_path, params: { username: "alice", password: "password" }
 
-    post "/calculators/test_double", params: { inputs: { x: 5 } }
+    post "/calculators/test_double", params: { inputs: { x: 5 } }, as: :json
     assert_response :success
     assert_equal users(:alice), Calculation.last.user
+  end
+
+  test "a turbo_stream submit records the Calculation exactly like JSON" do
+    assert_difference "Calculation.count", 1 do
+      post "/calculators/test_double",
+        params: { inputs: { x: 3 } },
+        as: :turbo_stream
+    end
+
+    record = Calculation.last
+    assert_equal "test_double", record.calculator
+    assert_nil record.user
   end
 end
