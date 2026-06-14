@@ -74,6 +74,18 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_equal "500 decreased by 10%", percentage_result_detail(calc(mode: "change", v1: "500", percent: "10", direction: "decrease"))
   end
 
+  test "detail returns nil for an unknown mode" do
+    # The case has no else — an unrecognized mode yields nil (never rendered, since the
+    # detail only shows on a valid result whose mode is one of the five).
+    assert_nil percentage_result_detail(calc(mode: "nonsense", v1: "1"))
+  end
+
+  test "detail tolerates absent inputs (the value guards fall through)" do
+    # Exercises the `... if calc.vN` false branches — a calc with no numbers still
+    # produces a (degenerate) sentence rather than raising on a nil format.
+    assert_equal "% of ", percentage_result_detail(calc(mode: "percent_of"))
+  end
+
   # ── calculator_error_messages (label-based phrasing, DESIGN.md §4) ───────
 
   test "phrases blank errors against the field's visible label, not the raw key" do

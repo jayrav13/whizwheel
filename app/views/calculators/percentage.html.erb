@@ -1,108 +1,117 @@
 <% content_for :title, "Percentage Calculator — whizwheel" %>
 
-<%# Percentage calculator (issue #31) — a multi-mode page (DESIGN.md complexity 3).
-    The form POSTs over Turbo to /calculators/percentage; the response replaces the
-    #result target in place (create.turbo_stream.erb). Every mode's fields are present
-    in the DOM and the server validates only the selected mode's required inputs, so
-    the page works with JS off; the percentage Stimulus controller is polish that
-    hides the irrelevant fields for the chosen mode. %>
+<%#
+  Percentage calculator page (spec issue #31, DESIGN.md BLEND). A multi-mode
+  calculator: a wrapping pill row picks the operation; only that mode's inputs show.
+  The form posts over Turbo and re-renders the #result region in place; it works
+  without JS (server validates the selected mode). Layout per DESIGN.md §3 — an input
+  column + a results panel (≈380px 1fr), collapsing to one column on mobile.
+
+  Spacing scale (DESIGN.md §3, "targets not minimums"):
+    • mode pills → Grouped-wrapping tier (gap-x-3 gap-y-4)
+    • stacked fields → space-y-5
+    • major blocks within the card (mode → fields → submit) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
 
 <header class="max-w-2xl">
   <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Math</p>
   <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Percentage Calculator</h1>
   <p class="mt-3 text-[15px] leading-relaxed text-muted">
-    Five related percentage operations in one place. Pick a mode, enter your numbers,
-    and get an exact, server-computed answer.
+    Five percentage operations in one place — what is P% of a number, what percent one
+    number is of another, percent-of-what, the difference between two numbers, and an
+    increase or decrease. Every answer is computed server-side.
   </p>
 </header>
 
-<%# scope: :inputs nests every field under inputs[...] — the §4 request shape the
-    controller permits (params.permit(inputs: klass.attribute_names)). %>
-<%= form_with url: "/calculators/percentage", method: :post, scope: :inputs,
-      data: { controller: "percentage", action: "change->percentage#update" },
-      class: "mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]" do |f| %>
-
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
   <%# ── Input column ─────────────────────────────────────────────────────── %>
-  <div class="rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/percentage", scope: :inputs, method: :post,
+          data: { controller: "percentage" } do |f| %>
 
-    <%# Mode selector — accessible radio group styled as tab pills (DESIGN.md §4). %>
-    <fieldset>
-      <legend class="text-xs font-bold text-label">Mode</legend>
-      <%# Pill group: wrapping flex row, comfortable gap on BOTH axes so the pills
-          breathe even when they wrap to a second row (DESIGN.md §3/§4 — gap-2.5 min). %>
-      <div class="mt-2.5 flex flex-wrap gap-2.5">
-        <% [
-             ["percent_of",      "% of a number"],
-             ["what_percent",    "What percent"],
-             ["percent_of_what", "Percent of what"],
-             ["difference",      "Difference"],
-             ["change",          "Increase / decrease"]
-           ].each_with_index do |(value, label), i| %>
-          <div>
-            <%= f.radio_button :mode, value,
-                  checked: i.zero?,
-                  class: "peer sr-only",
-                  id: "mode_#{value}",
-                  data: { percentage_target: "mode" } %>
-            <label for="mode_<%= value %>" class="mode-pill"
-                   data-percentage-target="modeLabel" data-mode="<%= value %>">
-              <%= label %>
-            </label>
-          </div>
-        <% end %>
-      </div>
-    </fieldset>
-
-    <div class="mt-7 space-y-5">
-      <%# v1 — present in every mode; its label/help shifts by mode via the small notes. %>
-      <div data-percentage-target="field" data-percentage-field="percent_of,what_percent,percent_of_what,difference,change">
-        <%= f.label :v1, "Value (V1)", class: "field-label" %>
-        <%= f.number_field :v1, step: "any", inputmode: "decimal",
-              placeholder: "e.g. 50", class: "field-input mt-1.5" %>
-      </div>
-
-      <%# v2 — only what_percent and difference. %>
-      <div data-percentage-target="field" data-percentage-field="what_percent,difference">
-        <%= f.label :v2, "Value (V2)", class: "field-label" %>
-        <%= f.number_field :v2, step: "any", inputmode: "decimal",
-              placeholder: "e.g. 200", class: "field-input mt-1.5" %>
-      </div>
-
-      <%# percent — percent_of, percent_of_what, change. With a % affix. %>
-      <div data-percentage-target="field" data-percentage-field="percent_of,percent_of_what,change">
-        <%= f.label :percent, "Percent (P)", class: "field-label" %>
-        <div class="relative mt-1.5">
-          <%= f.number_field :percent, step: "any", inputmode: "decimal",
-                placeholder: "e.g. 20", class: "field-input pr-9" %>
-          <span class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm font-semibold text-faint" aria-hidden="true">%</span>
-        </div>
-      </div>
-
-      <%# direction — change mode only: an increase / decrease segmented toggle. %>
-      <div data-percentage-target="field" data-percentage-field="change">
-        <span class="field-label">Direction</span>
-        <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
-          <% [["increase", "Increase"], ["decrease", "Decrease"]].each_with_index do |(value, label), i| %>
-            <div class="flex flex-1">
-              <%= f.radio_button :direction, value,
+      <%# Mode pills — Grouped-wrapping tier: gap-x-3 gap-y-4 so wrapped rows read as a
+          grid of distinct, separately-hittable chips, never a clump (DESIGN.md §3, §4). %>
+      <fieldset>
+        <legend class="text-xs font-bold text-label">Mode</legend>
+        <div class="mt-3 flex flex-wrap gap-x-3 gap-y-4">
+          <% [
+               ["percent_of",      "% of a number"],
+               ["what_percent",    "What percent"],
+               ["percent_of_what", "Percent of what"],
+               ["difference",      "Difference"],
+               ["change",          "Increase / decrease"]
+             ].each_with_index do |(value, text), i| %>
+            <div>
+              <%= f.radio_button :mode, value,
                     checked: i.zero?,
                     class: "peer sr-only",
-                    id: "direction_#{value}",
-                    data: { percentage_target: "direction", action: "percentage#syncDirection" } %>
-              <label for="direction_<%= value %>" class="direction-pill"
-                     data-percentage-target="directionLabel" data-direction="<%= value %>">
-                <%= label %>
-              </label>
+                    data: { percentage_target: "modeInput", action: "percentage#select" } %>
+              <%= f.label :mode, text, value: value,
+                    class: "mode-pill",
+                    data: { percentage_target: "pill", mode: value } %>
             </div>
           <% end %>
         </div>
+      </fieldset>
+
+      <%# Per-mode fields. Each block declares the modes it serves; Stimulus shows only
+          the active mode's blocks and disables the rest so they aren't submitted.
+          Stacked tier: space-y-5 down the column (DESIGN.md §3). %>
+      <div class="mt-8 space-y-5">
+        <%# V1 — every mode %>
+        <div data-percentage-target="field"
+             data-percentage-modes="percent_of what_percent percent_of_what difference change">
+          <%= f.label :v1, "Value (V1)", class: "field-label", for: "inputs_v1" %>
+          <%= f.number_field :v1, id: "inputs_v1", step: "any", inputmode: "decimal",
+                placeholder: "0", class: "field-input mt-1.5" %>
+        </div>
+
+        <%# V2 — what_percent, difference %>
+        <div data-percentage-target="field"
+             data-percentage-modes="what_percent difference">
+          <%= f.label :v2, "Value (V2)", class: "field-label", for: "inputs_v2" %>
+          <%= f.number_field :v2, id: "inputs_v2", step: "any", inputmode: "decimal",
+                placeholder: "0", class: "field-input mt-1.5" %>
+        </div>
+
+        <%# Percent — percent_of, percent_of_what, change. % affix on the Affix tier. %>
+        <div data-percentage-target="field"
+             data-percentage-modes="percent_of percent_of_what change">
+          <%= f.label :percent, "Percent (P)", class: "field-label", for: "inputs_percent" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :percent, id: "inputs_percent", step: "any", inputmode: "decimal",
+                  placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Direction toggle — change only (the increase/decrease segmented control). %>
+        <div data-percentage-target="field" data-percentage-field="change"
+             data-percentage-modes="change">
+          <span class="field-label">Direction</span>
+          <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
+            <% [["increase", "Increase"], ["decrease", "Decrease"]].each_with_index do |(value, text), i| %>
+              <%= f.radio_button :direction, value,
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { action: "percentage#selectDirection" } %>
+              <%= f.label :direction, text, value: value,
+                    class: "direction-pill",
+                    data: { percentage_target: "directionPill" } %>
+            <% end %>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <%= f.submit "Calculate",
-          class: "mt-7 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
-  </div>
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
 
-  <%# ── Result column ───────────────────────────────────────────────────── %>
-  <%= render "calculators/result", calc: nil %>
-<% end %>
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
