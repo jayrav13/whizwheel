@@ -81,17 +81,34 @@ class SimpleInterestPageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /months/
   end
 
-  test "the result renders the principal + interest = total breakdown" do
+  test "the result renders the principal + interest = total breakdown as a stat grid" do
     post "/calculators/simple_interest",
       params: { inputs: { principal: "5000", rate: "3.5", time: "2", unit: "years" } }, headers: TURBO
     assert_response :success
     within = "section#result"
-    assert_select within, text: /Principal/
-    assert_select within, text: /Interest/
-    assert_select within, text: /Total/
+    # The breakdown is the responsive auto-fit stat grid (DESIGN.md §4 "Stat grid"):
+    # three label-over-value cards, sized to a min width and left to flow.
+    assert_select "#{within} dl.grid"
+    assert_select "#{within} dl dt", text: "Principal"
+    assert_select "#{within} dl dt", text: "Interest"
+    assert_select "#{within} dl dt", text: "Total"
     assert_select within, text: /5,000\.00/  # principal
     assert_select within, text: /350\.00/    # interest
     assert_select within, text: /5,350\.00/  # total
+  end
+
+  # Worst-case render (frontend agent rule): a 6+ digit money figure must lay out in the
+  # auto-fit stat grid without clipping. A 1,000,000 principal over 10 years at 8% ⇒
+  # 800,000.00 interest and a 1,800,000.00 ending balance — every figure carries thousands
+  # delimiters and cents and must appear in full.
+  test "a six-plus-digit result renders in full without clipping" do
+    post "/calculators/simple_interest",
+      params: { inputs: { principal: "1000000", rate: "8", time: "10", unit: "years" } }, headers: TURBO
+    assert_response :success
+    within = "section#result"
+    assert_select within, text: /1,000,000\.00/  # principal
+    assert_select within, text: /800,000\.00/    # interest
+    assert_select within, text: /1,800,000\.00/  # total (also the hero ending balance)
   end
 
   # ── POST /calculators/simple_interest — Turbo Stream 422 (invalid) ──────
