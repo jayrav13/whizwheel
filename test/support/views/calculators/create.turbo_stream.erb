@@ -1,0 +1,5 @@
+<%# Test-only stub for the create Turbo Stream result fragment. The real fragment
+    lives in app/views/calculators/create.turbo_stream.erb and is the frontend's
+    (issue #31); this stub exists only so the backend's turbo_stream render branch
+    (success + 422) can be exercised in functional tests without crossing the seam. %>
+<turbo-stream action="replace" target="result"><template>ok</template></turbo-stream>
