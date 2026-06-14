@@ -18,7 +18,7 @@ A reimagining of [calculator.net](https://www.calculator.net): a broad library o
 
 ## Feature areas
 
-1. **Calculators** — reproductions of calculator.net's catalog (**191 catalogued** in `docs/inventory.md`), each a clean page: typed inputs → computed result. Built one at a time, increasing in complexity.
+1. **Calculators** — reproductions of calculator.net's catalog (**191 catalogued** in `docs/INVENTORY.md`), each a clean page: typed inputs → computed result. Built one at a time, increasing in complexity.
 2. **Accounts** — `username` + password login. **No email, no self-signup, no password-reset-by-email.** Users are provisioned via CLI (`bin/rails "users:create[...]"`).
 3. **Personal history & stats** — per-user calculation history and usage statistics; user-controlled soft-deletion (item or all).
 4. **Admin & site-wide stats** — an ADMIN-gated dashboard of overall usage. Site-wide totals count *all* invocations (a user hiding their own history doesn't erode them).
@@ -47,7 +47,7 @@ Foundation-of-the-foundation is in place: project tracking (PM agent), the calcu
 | Need | Look in |
 |---|---|
 | How we build (conventions) | `docs/ARCHITECTURE.md` |
-| Calculator catalog | `docs/inventory.md` |
+| Calculator catalog | `docs/INVENTORY.md` |
 | The experiment & tracking | `docs/superpowers/specs/` + the PM agent |
 | Open work | GitHub Issues (`engineering` / `agents`) |
 | Per-feature designs | `docs/superpowers/specs/` |

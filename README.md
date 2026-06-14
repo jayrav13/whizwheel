@@ -6,7 +6,7 @@ A reimagining of [calculator.net](https://www.calculator.net) — a broad librar
 
 - **[Product vision](docs/PRODUCT.md)** — what whizwheel is.
 - **[Architecture & conventions](docs/ARCHITECTURE.md)** — how it's built.
-- **[Calculator inventory](docs/inventory.md)** — the catalog (191 calculators).
+- **[Calculator inventory](docs/INVENTORY.md)** — the catalog (191 calculators).
 - **[CLAUDE.md](CLAUDE.md)** — orientation for AI agents working in this repo.
 
 ## Stack

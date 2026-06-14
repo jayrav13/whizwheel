@@ -48,7 +48,7 @@ them would unfairly deflate parity):
   tip map and "typical tips by service" table; downloadable CDC growth-chart PDFs;
   static formula-wheel diagrams.
 - **Cross-links** to other calculators in the catalog (we catalog those separately in
-  `inventory.md`; they are not features *of this* calculator).
+  `INVENTORY.md`; they are not features *of this* calculator).
 
 These exclusions are listed per-calculator under "Excluded / non-functional" so the
 denominator is auditable.

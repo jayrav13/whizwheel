@@ -15,7 +15,7 @@ This file is the shared contract for **all** work in this repo — the main sess
 - **`docs/PRODUCT.md`** — what we're building, for whom (the vision).
 - **`docs/ARCHITECTURE.md`** — how we build it (conventions). **Required reading before writing any app code.**
 - **`docs/DESIGN.md`** — the **BLEND** design system (tokens, type, components). **Required reading before any UI work.**
-- **`docs/inventory.md`** — the calculator catalog (191 calculators; complexity + tags).
+- **`docs/INVENTORY.md`** — the calculator catalog (191 calculators; complexity + tags).
 - **`docs/INDEX.md`** — the `docs/` layout and the iteration/log concept.
 
 ## The experiment (why this repo is unusual)
@@ -52,7 +52,7 @@ An **iteration** (`iteration-NNNN`) is the unit of delivery. Every iteration run
 3. **Evaluate** — Review what was delivered against intent: UI against `DESIGN.md`/BLEND (operator + the visual review), output correctness, and parity. This phase produces the feedback.
 4. **Harvest** — Apply the agent / process / design changes the evaluation surfaced: edit `.claude/agents/*`, `DESIGN.md`, `CLAUDE.md`, and specs; file issues for the larger items. This is the experiment's core loop — **fix the agent, not the code** — and it is an explicit phase **before close**, not an afterthought. The harvest lands on `main` and becomes the agent set the next iteration pins at.
 5. **Journal** — The historian journals the iteration, **including its harvest**.
-6. **Close** — The PM updates `docs/inventory.md` and closes the iteration log (which now records the harvest).
+6. **Close** — The PM updates `docs/INVENTORY.md` and closes the iteration log (which now records the harvest).
 
 The **next iteration** opens pinned at the post-harvest agents; its regen sweep is what **propagates** the previous harvest across the catalog. Its new-build set is the operator's call and **may be empty — a regen-only iteration** — when the prior harvest is substantial enough to warrant a round on its own (or for any reason the operator chooses).
 
