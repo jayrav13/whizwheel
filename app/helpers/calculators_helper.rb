@@ -137,6 +137,47 @@ module CalculatorsHelper
     format("%.1f", value)
   end
 
+  # The visible label for each Age input (issue #82) — same single-source-of-truth role
+  # as the other maps: the page renders these AND the error phrasing maps an attribute
+  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  AGE_FIELD_LABELS = {
+    "birth_date" => "Date of birth",
+    "end_date"   => "Age at the date of"
+  }.freeze
+
+  # The four total-unit conversions the Age result reports beneath the Y/M/D breakdown,
+  # in coarse-to-fine order, each with its result key and a human label. Drives the
+  # Age result stat grid (DESIGN.md §4 "Stat grid") so the same interval reads four ways.
+  AGE_TOTAL_UNITS = [
+    { key: :total_months, label: "Months" },
+    { key: :total_weeks,  label: "Weeks" },
+    { key: :total_days,   label: "Days" },
+    { key: :total_hours,  label: "Hours" }
+  ].freeze
+
+  # The four Age total-unit conversions, coarse-to-fine, for the result render — a helper
+  # so the view reaches the constant without qualifying it (templates see the module's
+  # methods, not its constants).
+  def age_total_units = AGE_TOTAL_UNITS
+
+  # A whole-integer count for display (the Age outputs are all integers — ARCHITECTURE.md
+  # §10, no rounding) with thousands delimiters so large spans (12,418 days) stay readable
+  # and align under tabular-nums.
+  def integer_display(value)
+    number_with_delimiter(value.to_i)
+  end
+
+  # The "33 years · 11 months · 30 days" breakdown phrase from an Age result, dropping any
+  # leading zero units so a 24y-0m-0d age reads "24 years", not "24 years 0 months 0 days"
+  # — but never empty: a same-day age (all zeros) still reads "0 days". Each unit is
+  # singular/plural correct ("1 year", "2 years").
+  def age_breakdown_phrase(result)
+    parts = [ [ :years, result[:years] ], [ :months, result[:months] ], [ :days, result[:days] ] ]
+      .reject { |_unit, count| count.zero? }
+      .map { |unit, count| "#{count} #{count == 1 ? unit.to_s.singularize : unit}" }
+    parts.empty? ? "0 days" : parts.join(" · ")
+  end
+
   # The visible label for each Simple Interest input (issue #78) — same single-source-of-
   # truth role as the other maps: the page renders these AND the error phrasing maps a key
   # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
@@ -155,13 +196,15 @@ module CalculatorsHelper
     number_with_delimiter(format("%.2f", rounded))
   end
 
-  # The label map for a calculator instance — Percentage and BMI have bespoke maps;
-  # anything else gets none (error phrasing then falls back to a humanized attribute).
+  # The label map for a calculator instance — Percentage, Ohm's Law, BMI, Age and Simple
+  # Interest have bespoke maps; anything else gets none (error phrasing then falls back to
+  # a humanized attribute).
   def field_labels_for(calc)
     case calc
     when Calculators::Percentage     then PERCENTAGE_FIELD_LABELS
     when Calculators::OhmsLaw        then OHMS_LAW_FIELD_LABELS
     when Calculators::Bmi            then BMI_FIELD_LABELS
+    when Calculators::Age            then AGE_FIELD_LABELS
     when Calculators::SimpleInterest then SIMPLE_INTEREST_FIELD_LABELS
     else {}
     end
