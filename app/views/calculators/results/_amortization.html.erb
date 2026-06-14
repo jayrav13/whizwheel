@@ -42,23 +42,27 @@
     </div>
   </div>
 
-  <%# ── Stat grid: totals (DESIGN.md §4 "Stat grid") ─────────────────────────
-      Responsive auto-fit: size each card to a min width and let the grid flow, so a
-      6+ digit total never clips (DESIGN.md §4 — the arbitrary value is justified per §5,
-      the standard scale can't express auto-fit). minmax(10rem,1fr) ≈ 3-up on a wide
-      results panel, collapsing to 2-up / 1-up as the panel narrows. %>
-  <dl class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3">
-    <div class="rounded-[13px] border border-border bg-surface p-4">
+  <%# ── Stat grid: totals (DESIGN.md §4 "Stat grid", issue #143) ──────────────
+      The shared responsive stat grid: `.stat-grid` sizes each card to the canonical min
+      width and lets the grid flow (≈3-up on a wide panel, collapsing as it narrows). These
+      are ordinary money totals, so the default track is right (DESIGN.md §4 — `--wide` is for
+      high-magnitude figures); the `.stat-card` never-clip safety net (overflow-wrap on the
+      value `<dd>`, reinforced by break-words here) guarantees a large 7+ digit total wraps
+      rather than clips. This grid sits directly on the page background (a top-level block,
+      not nested in the hero card), so the cards use the `.stat-card--surface` variant (solid
+      surface white) to stand off the cream. Total interest reads in coral (the cost figure). %>
+  <dl class="stat-grid">
+    <div class="stat-card stat-card--surface">
       <dt class="text-xs font-bold text-label">Total of payments</dt>
-      <dd class="mt-1.5 text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:total_paid]) %></dd>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:total_paid]) %></dd>
     </div>
-    <div class="rounded-[13px] border border-border bg-surface p-4">
+    <div class="stat-card stat-card--surface">
       <dt class="text-xs font-bold text-label">Total interest</dt>
-      <dd class="mt-1.5 text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></dd>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></dd>
     </div>
-    <div class="rounded-[13px] border border-border bg-surface p-4">
+    <div class="stat-card stat-card--surface">
       <dt class="text-xs font-bold text-label">Number of payments</dt>
-      <dd class="mt-1.5 text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= number_with_delimiter(r[:number_of_payments]) %></dd>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= number_with_delimiter(r[:number_of_payments]) %></dd>
     </div>
   </dl>
 

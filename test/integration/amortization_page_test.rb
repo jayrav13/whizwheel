@@ -122,8 +122,11 @@ class AmortizationPageTest < ActionDispatch::IntegrationTest
     # Total of payments is comfortably 7-figure ($4,550,xxx.xx) — the comma-grouped whole
     # part proves the big number reached the card intact.
     assert_select "section#result dl dd", text: /\A\$4,5\d{2},\d{3}\.\d{2}\z/
-    # The grid is the auto-fit grid (DESIGN.md §4 "Stat grid"), not a fixed column count.
-    assert_select "section#result dl[class*='auto-fit']"
+    # The grid is the shared responsive stat grid (DESIGN.md §4 "Stat grid", issue #143): a
+    # `.stat-grid` of three `.stat-card`s. This grid sits on the page bg, so the cards use
+    # the `.stat-card--surface` variant (solid white).
+    assert_select "section#result dl.stat-grid", count: 1
+    assert_select "section#result dl.stat-grid .stat-card.stat-card--surface", count: 3
   end
 
   test "the zero-rate loan computes without interest" do

@@ -94,12 +94,21 @@ class OhmsLawPageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /Solved/i
   end
 
-  test "solved-values grid is a responsive auto-fit grid, not a pinned column count" do
-    # DESIGN.md §4 "Stat grid": size each card to a min width and let the grid flow,
-    # rather than pin a fixed column count — so the grid uses the auto-fit minmax track.
+  test "solved-values grid is the shared responsive stat grid, not a pinned column count" do
+    # DESIGN.md §4 "Stat grid" (issue #143): the shared `.stat-grid` / `.stat-card`
+    # component sizes each card to the canonical min width and lets the grid flow, rather
+    # than pin a fixed column count. The two SOLVED quantities carry the `.stat-card--solved`
+    # modifier (accent surface), the two GIVEN are plain `.stat-card`s.
     post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "2" } }, headers: TURBO
     assert_response :success
-    assert_select "section#result dl[class*='grid-cols-[repeat(auto-fit']"
+    assert_select "section#result dl.stat-grid", count: 1
+    # Unit-bearing high-magnitude figures (e.g. "998,001,000 W") need the wide-track
+    # modifier so the value+unit holds on one line rather than wrapping mid-number
+    # (DESIGN.md §4 "Stat grid" --wide variant).
+    assert_select "section#result dl.stat-grid.stat-grid--wide", count: 1
+    assert_select "section#result dl.stat-grid .stat-card", count: 4
+    # V/I given, R/P solved → exactly two solved cards.
+    assert_select "section#result dl.stat-grid .stat-card.stat-card--solved", count: 2
   end
 
   test "large 6+ digit solved values render in full without truncation" do

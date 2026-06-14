@@ -54,6 +54,17 @@ class MeanMedianModeRangePageTest < ActionDispatch::IntegrationTest
     assert_select within, text: /Mode/      # the mode label
     assert_select within, text: /36/        # range
     assert_select within, text: /155/       # sum
+    # The figures render in the shared responsive stat grid (DESIGN.md §4 "Stat grid",
+    # issue #143): two `.stat-grid`s — the headline cards (mean/median/range as
+    # `.stat-card`s) and the quieter card-less supporting row (sum/count/smallest/largest).
+    # Statistical values are unbounded/high-magnitude, so BOTH grids use the `.stat-grid--wide`
+    # track (a 7-digit mean and a larger sum hold on one line rather than wrapping or — under
+    # the default track — clipping; the #176 regression fix).
+    assert_select "#{within} dl.stat-grid", count: 2
+    assert_select "#{within} dl.stat-grid.stat-grid--wide", count: 2
+    assert_select "#{within} dl.stat-grid .stat-card", count: 3   # mean / median / range
+    # The primary value <dd>s carry break-words (the never-clip floor, DESIGN.md §4).
+    assert_select "#{within} dl.stat-grid .stat-card dd.break-words", count: 3
   end
 
   test "a bimodal set renders both modes joined with 'and'" do
