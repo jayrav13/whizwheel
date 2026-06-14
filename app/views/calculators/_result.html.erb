@@ -42,6 +42,9 @@
 <% elsif calc.is_a?(Calculators::Amortization) %>
   <%= render "calculators/results/amortization", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::MeanMedianModeRange) %>
+  <%= render "calculators/results/mean_median_mode_range", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>

@@ -1,0 +1,59 @@
+<% content_for :title, "Mean, Median, Mode, Range Calculator — whizwheel" %>
+
+<%#
+  Mean, Median, Mode, Range calculator page (spec issue #80, DESIGN.md BLEND). The
+  project's first VARIABLE-LENGTH LIST input: a single `numbers` field the user types a
+  comma/space/newline-separated list into. There is NO mode picker — one input, one
+  submit — so this page has no Stimulus controller; it posts over Turbo and re-renders
+  the #result region in place, and works identically without JS (the server parses the
+  list and validates). Layout per DESIGN.md §3 — an input column + a results panel
+  (≈380px 1fr), collapsing to one column on mobile.
+
+  The list input is a <textarea> rather than a one-line field: a long list of numbers is
+  the headline interaction here, so it needs room to wrap and stay readable (DESIGN.md §3
+  "let pages breathe"). It carries the same .field-input vocabulary (border-input, focus
+  ring → accent, tabular-nums) the numeric fields use, so the figures align as typed.
+
+  Spacing scale (DESIGN.md §3, "targets not minimums"):
+    • label → field → submit, the major blocks within the card → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Math</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Mean, Median, Mode, Range Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Enter a list of numbers and get the full set of descriptive statistics —
+    <span class="font-semibold text-ink">mean</span>, <span class="font-semibold text-ink">median</span>,
+    <span class="font-semibold text-ink">mode</span>, and <span class="font-semibold text-ink">range</span>,
+    plus the sum, count, smallest, and largest. Separate values with commas, spaces, or
+    new lines. Every answer is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/mean_median_mode_range", scope: :inputs, method: :post do |f| %>
+      <div>
+        <%= f.label :numbers, "Numbers", class: "field-label", for: "inputs_numbers" %>
+        <p id="numbers_hint" class="mt-1 text-xs leading-relaxed text-muted">
+          Separated by commas, spaces, or new lines — e.g. <span class="font-semibold text-ink">10, 2, 38, 23</span>
+        </p>
+        <%= f.text_area :numbers, id: "inputs_numbers", rows: 5,
+              placeholder: "10, 2, 38, 23, 38, 23, 21",
+              "aria-describedby": "numbers_hint",
+              class: "field-input mt-2 resize-y leading-relaxed" %>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

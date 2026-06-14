@@ -1,0 +1,54 @@
+<%# Mean/Median/Mode/Range result (spec issue #80, DESIGN.md §4 Hero-result + Stat grid).
+    A surface card with a 5px coral left rule holding the eight descriptive statistics. The
+    four headline answers lead — mean, median, range as big tabular-nums figures in a stat
+    grid, and `mode` on its own full-width row because its value is an ARRAY (the deliberate
+    non-scalar output): it renders "23 and 38" (multimodal), a single value, or "No mode"
+    (all values unique), never an arbitrary number. A thin rule then separates the four
+    supporting figures (sum / count / smallest / largest) as a quieter stat row. `calc:` is
+    a valid Calculators::MeanMedianModeRange; result keys are the eight in ARCHITECTURE.md §4. %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="flex gap-5 p-7">
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Descriptive statistics</p>
+
+      <%# Mode — its own headline row. The array is phrased by the helper ("23 and 38" /
+          a single value / "No mode"). A non-numeric "No mode" reads in faint so the eye
+          knows it is a sentinel, not a figure; a real mode reads in ink tabular-nums. %>
+      <% mode = calc.result[:mode] %>
+      <div class="mt-3">
+        <p class="text-xs font-bold text-label">Mode</p>
+        <p class="mt-1 text-3xl font-extrabold tracking-[-0.03em] tabular-nums <%= mode.empty? ? "text-faint" : "text-ink" %>">
+          <%= mmr_mode_display(mode) %>
+        </p>
+      </div>
+
+      <%# Mean / Median / Range — the central-tendency + spread headline figures, a stat
+          grid on the Grouped tier (gap-3, DESIGN.md §3). %>
+      <dl class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <% mmr_primary_stats.each do |stat| %>
+          <div class="rounded-[13px] border border-border bg-bg/60 p-4">
+            <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>
+            <dd class="mt-1.5 text-3xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
+              <%= mmr_stat_display(calc.result[stat[:key]]) %>
+            </dd>
+            <p class="mt-1 text-[11px] leading-snug text-faint"><%= stat[:caption] %></p>
+          </div>
+        <% end %>
+      </dl>
+
+      <%# Supporting figures — sum / count / smallest / largest, a quieter stat row under a
+          thin rule (DESIGN.md §4 Data table rules). Label over value, tabular-nums. %>
+      <dl class="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-rule pt-5 sm:grid-cols-4">
+        <% mmr_supporting_stats.each do |stat| %>
+          <div>
+            <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>
+            <dd class="mt-1 text-lg font-bold tracking-[-0.01em] tabular-nums text-ink">
+              <%= mmr_stat_display(calc.result[stat[:key]]) %>
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+</div>
