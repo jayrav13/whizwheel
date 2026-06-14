@@ -250,4 +250,72 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes messages, "Weight can't be blank"
     assert_includes messages, "Height can't be blank"
   end
+
+  # ── Mean / Median / Mode / Range (issue #80) ────────────────────────────
+
+  def mmr(attrs)
+    Calculators::MeanMedianModeRange.new(attrs)
+  end
+
+  # mmr_stat_display — Integer count delimits directly; BigDecimal figures route through
+  # decimal_display (whole-number-aware, trailing-zero-trimmed, thousands-delimited).
+  test "mmr_stat_display delimits an Integer count" do
+    assert_equal "1,000", mmr_stat_display(1000)
+  end
+
+  test "mmr_stat_display renders a whole-valued BigDecimal without a decimal" do
+    assert_equal "155", mmr_stat_display(BigDecimal("155"))
+  end
+
+  test "mmr_stat_display keeps a fractional BigDecimal mean" do
+    assert_equal "22.143", mmr_stat_display(BigDecimal("22.143"))
+  end
+
+  # mmr_mode_display — the array-to-phrase render: empty / single / multimodal.
+  test "mmr_mode_display reads 'No mode' for an empty array (all values unique)" do
+    assert_equal "No mode", mmr_mode_display([])
+  end
+
+  test "mmr_mode_display reads the single value for a unimodal set" do
+    assert_equal "4", mmr_mode_display([ BigDecimal("4") ])
+  end
+
+  test "mmr_mode_display joins a bimodal set with 'and'" do
+    assert_equal "23 and 38", mmr_mode_display([ BigDecimal("23"), BigDecimal("38") ])
+  end
+
+  test "mmr_mode_display oxford-joins three or more modes" do
+    assert_equal "2, 4 and 6", mmr_mode_display([ BigDecimal("2"), BigDecimal("4"), BigDecimal("6") ])
+  end
+
+  test "mmr_mode_display formats fractional modes via decimal_display" do
+    assert_equal "2.5 and 7", mmr_mode_display([ BigDecimal("2.5"), BigDecimal("7.0") ])
+  end
+
+  # The stat-order constants the result grid renders from.
+  test "mmr_primary_stats lists mean, median, range in order" do
+    assert_equal %i[mean median range], mmr_primary_stats.map { |s| s[:key] }
+  end
+
+  test "mmr_supporting_stats lists sum, count, smallest, largest in order" do
+    assert_equal %i[sum count smallest largest], mmr_supporting_stats.map { |s| s[:key] }
+  end
+
+  # field_labels_for / calculator_error_messages — the bespoke `numbers` label map.
+  test "field_labels_for maps the numbers input to its visible label" do
+    assert_equal "Numbers", field_labels_for(mmr({}))["numbers"]
+  end
+
+  test "a non-numeric token error is phrased against the Numbers label" do
+    c = mmr(numbers: "1, 2, x")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Numbers contains a value that is not a number: x"
+  end
+
+  test "a blank list error is phrased against the Numbers label" do
+    c = mmr(numbers: "")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Numbers can't be blank"
+  end
 end

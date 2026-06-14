@@ -137,13 +137,64 @@ module CalculatorsHelper
     format("%.1f", value)
   end
 
-  # The label map for a calculator instance — Percentage and BMI have bespoke maps;
+  # The visible label for the Mean/Median/Mode/Range input (issue #80) — same single-
+  # source-of-truth role as the other maps: the page renders this label AND the error
+  # phrasing maps the `numbers` key back to it (DESIGN.md §4 — phrase against the visible
+  # label, never the raw key, so a bad list reads "Numbers contains a value that is not a
+  # number", not "numbers …").
+  MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS = {
+    "numbers" => "Numbers"
+  }.freeze
+
+  # The three "central + spread" headline statistics, in display order, each with its
+  # result key and a one-line caption — drives the primary stat grid on the result
+  # (DESIGN.md §4 Stat grid). `mode` is rendered on its own hero row (its value is an
+  # array — the deliberate non-scalar output, spec issue #80), so it is not listed here.
+  MMR_PRIMARY_STATS = [
+    { key: :mean,   label: "Mean",   caption: "Average of all values" },
+    { key: :median, label: "Median", caption: "Middle value" },
+    { key: :range,  label: "Range",  caption: "Largest − smallest" }
+  ].freeze
+
+  # The four supporting figures, in display order — the secondary stat row beneath the
+  # headline statistics (sum / count / smallest / largest).
+  MMR_SUPPORTING_STATS = [
+    { key: :sum,      label: "Sum" },
+    { key: :count,    label: "Count" },
+    { key: :smallest, label: "Smallest" },
+    { key: :largest,  label: "Largest" }
+  ].freeze
+
+  def mmr_primary_stats    = MMR_PRIMARY_STATS
+  def mmr_supporting_stats = MMR_SUPPORTING_STATS
+
+  # Format one statistic for display. `count` is a plain Integer; every other figure is a
+  # BigDecimal the backend already display-rounded (§10). Integers delimit thousands
+  # directly; decimals route through decimal_display (whole-number-aware + delimited).
+  def mmr_stat_display(value)
+    value.is_a?(Integer) ? number_with_delimiter(value) : decimal_display(value)
+  end
+
+  # The mode array rendered as a human phrase (DESIGN.md §4 — the interesting render
+  # question on this calculator). Empty → "No mode"; one value → that value; several →
+  # "a, b and c" so a multimodal set reads naturally ("23 and 38").
+  def mmr_mode_display(modes)
+    return "No mode" if modes.empty?
+
+    formatted = modes.map { |m| decimal_display(m) }
+    return formatted.first if formatted.one?
+
+    "#{formatted[0..-2].join(', ')} and #{formatted.last}"
+  end
+
+  # The label map for a calculator instance — each bespoke calculator has its own map;
   # anything else gets none (error phrasing then falls back to a humanized attribute).
   def field_labels_for(calc)
     case calc
-    when Calculators::Percentage then PERCENTAGE_FIELD_LABELS
-    when Calculators::OhmsLaw    then OHMS_LAW_FIELD_LABELS
-    when Calculators::Bmi        then BMI_FIELD_LABELS
+    when Calculators::Percentage          then PERCENTAGE_FIELD_LABELS
+    when Calculators::OhmsLaw             then OHMS_LAW_FIELD_LABELS
+    when Calculators::Bmi                 then BMI_FIELD_LABELS
+    when Calculators::MeanMedianModeRange then MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS
     else {}
     end
   end
