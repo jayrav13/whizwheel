@@ -37,6 +37,8 @@ The aesthetic is named **BLEND** — *warm, sharpened, with a touch of green.* I
 
 **Contrast:** verify coral and green meet **WCAG AA** for their text/background pairings (e.g. white text on coral, green text on cream). Never rely on color alone to convey meaning.
 
+**Candidate token (watch, don't mint yet):** the selected-row tint on the Mode picker's active option (§4) currently uses the opacity utility `bg-accent/8`. If that subtle accent wash recurs across components, promote it to a named `--color-accent-tint` token (and a row here); until it does, leave it as the `bg-accent/8` utility — don't invent the token's value prematurely.
+
 ---
 
 ## 2. Typography
@@ -81,7 +83,8 @@ The login/home pages are the first **reference implementation**; new pages copy 
 - **Input** — labeled; optional `$` / `%` / unit affix; `border-input` border, focus ring → `accent`; `tabular-nums` for numeric inputs.
 - **Validation errors** — when the envelope returns `errors` (`ARCHITECTURE.md §4`), surface them in a coral-tinted card (eyebrow e.g. *"Check your input"*). **Phrase each message against the field's visible label, never the raw attribute key** — "Value can't be blank", not "v1 can't be blank". The UI knows the labels it rendered; map the error key → that label.
 - **Primary button** — `primary` (coral), white text, `13px` radius, subtle coral shadow.
-- **Tab pills** — a wrapping pill row on the **Grouped-wrapping** spacing tier (§3 — `gap-x-3 gap-y-4`); active pill filled `accent` (green), inactive `faint` on a tint. Pills must read as distinct, breathing, separately-hittable chips — never crowded, even when the row wraps.
+- **Tab pills** — a **horizontal, page-level tab set** (switching *views* of a page, not a calculator's input mode — for the mode/variant picker use **Mode picker** below): a wrapping pill row on the **Grouped-wrapping** spacing tier (§3 — `gap-x-3 gap-y-4`); active pill filled `accent` (green), inactive `faint` on a tint. Pills must read as distinct, breathing, separately-hittable chips — never crowded, even when the row wraps.
+- **Mode picker** — for a calculator whose inputs depend on a chosen mode, present the modes as a **selectable option list** (`.mode-option`), not a wrapping pill row, when N ≥ 4 or any label is multi-word: a single `border-input` container with `divide-rule` rows, each a full-width `<label>` over a visually-hidden `peer` radio posting `inputs[mode]` — a leading radio glyph (hollow ring → filled accent ring when active, the non-colour cue per §6), a bold `ink` label, and a one-line `muted` helper naming what that mode solves. Active row: accent inset left rule + subtle accent tint (`bg-accent/8` — see §1 candidate-token note); focus-visible: inset ring on the visible row. For **N ≤ 3 with short labels** (≈≤12 chars), use the **segmented control** instead (the connected horizontal track used by Percentage's Increase|Decrease toggle, and BMI's US|Metric). The picker is **always a native radio `<fieldset>`/`<legend>`** posting a single-select `inputs[mode]`; the no-JS baseline (`.peer:checked` paints; server validates) is retained in both presentations. Reserve a native `<select>` for genuinely long menus (N > ~8) only — never as the primary picker.
 - **Card** — the base container (§3).
 - **Hero-result** — a `surface` card with a **5px coral left rule** and a big `tabular-nums` number; the page's headline answer.
 - **Stat grid** — a 3-up row of small stat cards (label + value); positive values may use `accent`.
