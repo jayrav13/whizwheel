@@ -67,11 +67,12 @@ Worktrees give each effort an isolated checkout so concurrent sessions — and t
 There are **two lanes**, by who is doing the work:
 
 - **Interactive / main-thread sessions** use the **`EnterWorktree`** tool (creates `.claude/worktrees/<name>/` + the branch) and **`ExitWorktree`** with `action: "remove"` at cleanup.
-- **Dispatched build agents create their own worktree** as the first step of any task, via the **git CLI** (`EnterWorktree`'s session-cwd semantics are unproven inside a subagent; `git worktree add` is deterministic and always works):
+- **Every dispatched agent that *writes* creates its own worktree as its first action** — the build agents, the **PM**, the **historian**, and any future writing agent. **This is the standing default: you do not need to be told per-task — reading this file (your Step 0) IS the instruction.** Use the **git CLI** (`EnterWorktree`'s session-cwd semantics are unproven inside a subagent; `git worktree add` is deterministic and always works):
   ```bash
-  git worktree add .claude/worktrees/<slug> -b fix/<issue#>-<desc> main
+  git worktree add .claude/worktrees/<slug> -b <branch> main   # build: fix/<issue#>-<desc>;  docs: docs/<topic>
   ```
-  The agent then works inside that path (absolute paths), commits, pushes, and opens the PR **from the worktree** — it never merges. We do **not** use the `Agent` tool's dispatch-time `isolation: "worktree"`; the agent owns its own isolation lifecycle.
+  The agent then works inside that path (absolute paths), commits, **pushes, and opens its PR from the worktree — it never merges and never pushes to `main`**. We do **not** use the `Agent` tool's dispatch-time `isolation: "worktree"`; the agent owns its own isolation lifecycle.
+- **Report-only agents** (`ci-monitor`, `dependabot-agent`) never write, so they **do not** create a worktree.
 - **Removal happens at the standard post-merge cleanup** (main-thread / human, after the human merges the PR): `git worktree remove .claude/worktrees/<slug>` (or `ExitWorktree action: "remove"`), then `git pull` on `main`. An agent that only opened a PR leaves its worktree in place for that cleanup.
 
 ## Running things

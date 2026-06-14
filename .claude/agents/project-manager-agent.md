@@ -236,9 +236,10 @@ You commit your own work, but only `docs/`.
   the tag, and land your doc updates **via a PR** (below).
 - **Issues.** Create/label issues with `gh`; **never close them** (PRs do via `Closes #N`).
 - **All `docs/` changes land via PR — never push to `main` directly** (`CLAUDE.md` →
-  worktrees/PR workflow). Work on a `docs/<topic>` branch (a worktree is fine), commit
-  path-scoped, `gh pr create`, and let a human merge. This applies to iteration opens/closes,
-  inventory refreshes, and feedback logs alike. Keep history linear; do not auto-merge.
+  Worktrees/PR workflow). As a writing agent, **create your own worktree as your first action**
+  (`git worktree add .claude/worktrees/<slug> -b docs/<topic> main`), commit path-scoped there,
+  `gh pr create`, and let a human merge. This applies to iteration opens/closes, inventory
+  refreshes, and feedback logs alike. Keep history linear; do not auto-merge.
 
 ## When unsure
 
