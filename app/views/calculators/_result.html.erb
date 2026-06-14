@@ -1,0 +1,37 @@
+<%# The result region — the Turbo-replaced target shared by every calculator
+    (issue #31). It owns the #result wrapper that create.turbo_stream.erb replaces
+    in place, plus the empty + error states (the same for all calculators); the
+    answer state is per-calculator, dispatched to calculators/results/<slug>, with a
+    generic envelope fallback for calculators whose bespoke result view isn't built
+    yet (and for the test double). It reads only the §4 envelope via the calculator
+    object (calc.result / calc.errors).
+
+    Locals: calc (a Calculators::* instance, or nil on first paint). %>
+<section id="result" class="lg:sticky lg:top-10" aria-live="polite">
+  <% if calc.nil? %>
+    <%# Empty state — page loaded, nothing calculated yet. %>
+    <div class="flex h-full min-h-[200px] flex-col justify-center rounded-[18px] border border-dashed border-border-input bg-surface/60 p-8 text-center">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Result</p>
+      <p class="mt-3 text-[15px] leading-relaxed text-muted">
+        Enter your numbers and your answer appears here — computed server-side.
+      </p>
+    </div>
+  <% elsif calc.errors.any? %>
+    <%# Error state — surfaces the validation failures from the envelope. %>
+    <div role="alert" class="rounded-[18px] border border-primary/40 bg-primary/10 p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Check your input</p>
+      <ul class="mt-3 space-y-1.5 text-sm font-semibold text-primary">
+        <%# Messages phrased against each field's visible label (DESIGN.md §4),
+            not the raw attribute key — via calculator_error_messages. %>
+        <% calculator_error_messages(calc).each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% else %>
+    <%# Answer state — per-calculator if a bespoke partial exists, else generic. %>
+    <% partial = "calculators/results/#{calc.class.slug}" %>
+    <% partial = "calculators/results/generic" unless lookup_context.template_exists?(partial, [], true) %>
+    <%= render partial, calc: calc %>
+  <% end %>
+</section>

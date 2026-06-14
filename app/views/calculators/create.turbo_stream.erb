@@ -1,0 +1,11 @@
+<%# Turbo Stream response for POST /calculators/:slug (issue #31). The controller
+    renders this for BOTH branches with @calc set:
+      • success → default render of this template (calc.valid?)
+      • invalid → render "calculators/create", status: :unprocessable_entity
+    so this one template covers both states by handing @calc to _result, which
+    decides answer-vs-errors. It replaces the #result target in place, leaving the
+    input form (and the visitor's entries) untouched — the progressive-enhancement
+    payoff over a full-page reload. %>
+<%= turbo_stream.replace "result" do %>
+  <%= render "calculators/result", calc: @calc %>
+<% end %>
