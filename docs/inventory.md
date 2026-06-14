@@ -44,12 +44,16 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 
 | Calculator | Category | Complexity | Tags | Source | Built (PRs) |
 |---|---|---|---|---|---|
-| Percentage Calculator | Math | 3 | multi-mode, multi-input | [percent-calculator](https://www.calculator.net/percent-calculator.html) | BE [#32](https://github.com/jayrav13/whizwheel/pull/32) · FE [#41](https://github.com/jayrav13/whizwheel/pull/41) |
-| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) | BE [#57](https://github.com/jayrav13/whizwheel/pull/57) · FE [#60](https://github.com/jayrav13/whizwheel/pull/60) |
-| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) | BE [#58](https://github.com/jayrav13/whizwheel/pull/58) · FE [#62](https://github.com/jayrav13/whizwheel/pull/62) |
+| Simple Interest Calculator | Financial | 2 | multi-input | [simple-interest-calculator](https://www.calculator.net/simple-interest-calculator.html) | BE [#89](https://github.com/jayrav13/whizwheel/pull/89) · FE [#103](https://github.com/jayrav13/whizwheel/pull/103) |
+| Mean, Median, Mode, Range Calculator | Math | 3 | statistical, text-output | [mean-median-mode-range-calculator](https://www.calculator.net/mean-median-mode-range-calculator.html) | BE [#90](https://github.com/jayrav13/whizwheel/pull/90) · FE [#102](https://github.com/jayrav13/whizwheel/pull/102) |
+| Tip Calculator | Other | 2 | multi-input | [tip-calculator](https://www.calculator.net/tip-calculator.html) | BE [#91](https://github.com/jayrav13/whizwheel/pull/91) · FE [#106](https://github.com/jayrav13/whizwheel/pull/106) |
+| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) | BE [#92](https://github.com/jayrav13/whizwheel/pull/92) · FE [#101](https://github.com/jayrav13/whizwheel/pull/101) |
+| Percentage Calculator | Math | 3 | multi-mode, multi-input | [percent-calculator](https://www.calculator.net/percent-calculator.html) | BE [#94](https://github.com/jayrav13/whizwheel/pull/94) · FE [#99](https://github.com/jayrav13/whizwheel/pull/99) |
+| Age Calculator | Other | 3 | date-math, multi-mode | [age-calculator](https://www.calculator.net/age-calculator.html) | BE [#95](https://github.com/jayrav13/whizwheel/pull/95) · FE [#104](https://github.com/jayrav13/whizwheel/pull/104) |
+| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) | BE [#96](https://github.com/jayrav13/whizwheel/pull/96) · FE [#100](https://github.com/jayrav13/whizwheel/pull/100) |
+| Amortization Calculator | Financial | 4 | multi-input, tabular-output, charts | [amortization-calculator](https://www.calculator.net/amortization-calculator.html) | BE [#97](https://github.com/jayrav13/whizwheel/pull/97) · FE [#105](https://github.com/jayrav13/whizwheel/pull/105) |
 | 401K Calculator | Financial | 4 | multi-input, iterative-solve, tabular-output, charts | [401k-calculator](https://www.calculator.net/401k-calculator.html) |  |
 | APR Calculator | Financial | 3 | multi-input | [apr-calculator](https://www.calculator.net/apr-calculator.html) |  |
-| Amortization Calculator | Financial | 4 | multi-input, tabular-output, charts | [amortization-calculator](https://www.calculator.net/amortization-calculator.html) |  |
 | Annuity Calculator | Financial | 4 | multi-input, iterative-solve, tabular-output | [annuity-calculator](https://www.calculator.net/annuity-calculator.html) |  |
 | Annuity Payout Calculator | Financial | 4 | multi-input, tabular-output | [annuity-payout-calculator](https://www.calculator.net/annuity-payout-calculator.html) |  |
 | Auto Lease Calculator | Financial | 3 | multi-input | [auto-lease-calculator](https://www.calculator.net/auto-lease-calculator.html) |  |
@@ -112,7 +116,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Salary Calculator | Financial | 3 | multi-input, multi-mode | [salary-calculator](https://www.calculator.net/salary-calculator.html) |  |
 | Sales Tax Calculator | Financial | 2 | multi-input | [sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html) |  |
 | Savings Calculator | Financial | 4 | multi-input, tabular-output, charts | [savings-calculator](https://www.calculator.net/savings-calculator.html) |  |
-| Simple Interest Calculator | Financial | 2 | multi-input | [simple-interest-calculator](https://www.calculator.net/simple-interest-calculator.html) |  |
 | Social Security Calculator | Financial | 4 | multi-input, multi-mode | [social-security-calculator](https://www.calculator.net/social-security-calculator.html) |  |
 | Student Loan Calculator | Financial | 4 | multi-input, tabular-output | [student-loan-calculator](https://www.calculator.net/student-loan-calculator.html) |  |
 | Take-Home-Paycheck Calculator | Financial | 4 | multi-input, multi-mode | [take-home-pay-calculator](https://www.calculator.net/take-home-pay-calculator.html) |  |
@@ -160,7 +163,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Least Common Multiple Calculator | Math | 2 | text-output | [lcm-calculator](https://www.calculator.net/lcm-calculator.html) |  |
 | Log Calculator | Math | 2 | text-output | [log-calculator](https://www.calculator.net/log-calculator.html) |  |
 | Matrix Calculator | Math | 4 | multi-mode, multi-input, text-output | [matrix-calculator](https://www.calculator.net/matrix-calculator.html) |  |
-| Mean, Median, Mode, Range Calculator | Math | 3 | statistical, text-output | [mean-median-mode-range-calculator](https://www.calculator.net/mean-median-mode-range-calculator.html) |  |
 | Number Sequence Calculator | Math | 3 | multi-mode, text-output | [number-sequence-calculator](https://www.calculator.net/number-sequence-calculator.html) |  |
 | Percent Error Calculator | Math | 2 | text-output | [percent-error-calculator](https://www.calculator.net/percent-error-calculator.html) |  |
 | Permutation and Combination Calculator | Math | 3 | statistical, text-output | [permutation-and-combination-calculator](https://www.calculator.net/permutation-and-combination-calculator.html) |  |
@@ -182,7 +184,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Triangle Calculator | Math | 4 | multi-mode, geometry, charts | [triangle-calculator](https://www.calculator.net/triangle-calculator.html) |  |
 | Volume Calculator | Math | 4 | multi-mode, geometry | [volume-calculator](https://www.calculator.net/volume-calculator.html) |  |
 | Z-score Calculator | Math | 3 | statistical, text-output | [z-score-calculator](https://www.calculator.net/z-score-calculator.html) |  |
-| Age Calculator | Other | 3 | date-math, multi-mode | [age-calculator](https://www.calculator.net/age-calculator.html) |  |
 | BTU Calculator | Other | 3 | multi-input, physics, unit-conversion | [btu-calculator](https://www.calculator.net/btu-calculator.html) |  |
 | Bandwidth Calculator | Other | 3 | multi-input, multi-mode, unit-conversion | [bandwidth-calculator](https://www.calculator.net/bandwidth-calculator.html) |  |
 | Base64 Encode / Decode | Other | 2 | encoding, text-output | [base64-encode-decode](https://www.calculator.net/base64-encode-decode.html) |  |
@@ -229,7 +230,6 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Time Card Calculator | Other | 3 | time-math, multi-input, tabular-output | [time-card-calculator](https://www.calculator.net/time-card-calculator.html) |  |
 | Time Duration Calculator | Other | 2 | time-math, date-math | [time-duration-calculator](https://www.calculator.net/time-duration-calculator.html) |  |
 | Time Zone Calculator | Other | 3 | time-math, date-math, multi-mode | [time-zone-calculator](https://www.calculator.net/time-zone-calculator.html) |  |
-| Tip Calculator | Other | 2 | multi-input | [tip-calculator](https://www.calculator.net/tip-calculator.html) |  |
 | Tire Size Calculator | Other | 3 | multi-input, multi-mode, unit-conversion | [tire-size-calculator](https://www.calculator.net/tire-size-calculator.html) |  |
 | URL Encode / Decode | Other | 2 | encoding, text-output | [url-encode-decode](https://www.calculator.net/url-encode-decode.html) |  |
 | Voltage Drop Calculator | Other | 3 | multi-input, physics | [voltage-drop-calculator](https://www.calculator.net/voltage-drop-calculator.html) |  |

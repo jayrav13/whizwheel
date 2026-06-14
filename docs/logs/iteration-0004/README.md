@@ -1,8 +1,8 @@
 # Iteration 0004
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-14
-**Closed:** —
+**Closed:** 2026-06-14
 **Pinned agent SHA:** `3f2ac29` (`main` HEAD at open — merge of PR #73)
 **Tag:** `iteration-0004`
 **Calculators:** Tip (#75 BE / #76 FE), Simple Interest (#77 BE / #78 FE), Mean·Median·Mode·Range
@@ -10,7 +10,18 @@
 plus the **regeneration sweep** of every prior calculator (Percentage, BMI, Ohms Law),
 shipped as **its own separate PR(s)**, kept distinct from the new-build PRs.
 
-**Headline outcome:** _— (filled at close)_
+**Headline outcome:** **Mode-picker rule validated — 3/3 correct on regen, with discrimination, plus
+correct on a fresh build.** Regenerating from spec alone under the pinned set, the agents independently
+chose: Percentage → option list (5 multi-word) + segmented (Increase|Decrease); Ohms Law → option list
+(6 multi-word); BMI → segmented (US|Metric, N=2) — and Simple Interest's brand-new `years`/`months`
+selector came out segmented on the first build. The N≥4/multi-word→option-list, N≤3/short→segmented
+rule is **durable and self-applying**; Tip and Age (no input mode) confirm it isn't over-applied.
+**Firsts shipped:** tabular-output + charts (Amortization — schedule table, conic-gradient donut, SVG
+balance curve), variable-length list input (MMR), date-math (Age). **Process cost:** the frontend's
+de-facto central registration (shared `_result.html.erb` / `calculators_helper.rb` /
+`home/index.html.erb` + `application.css`) forced a **serial merge pipeline** for the new-build FE PRs
+(#107/#108), and MMR shipped without a home card (#108). Findings filed for the next agent edit:
+**#86, #87, #93, #98, #107, #108, #109, #110, #111, #112, #113.**
 
 ---
 
@@ -166,9 +177,81 @@ land. These files are disjoint (fan-out-safe).
 
 ---
 
-## Outcome (filled at close)
+## Outcome (closed 2026-06-14)
 
-_— pending. At close: set the `INDEX.md` row to `closed`, fill the closed date + headline, write
-the per-calculator deltas (especially the picker A/B verdict for the three regen calcs and the
-Simple-Interest first-build picker), and **regenerate `docs/inventory.md`** (recompute
-`Built (PRs)` from live GitHub state; float the five new calculators into the completed block)._
+All 8 calculators are **built and merged to `main`** (HEAD `d2f9255`, CI green) and live/smoke-tested
+(HTTP 200; 8 home cards). Build PRs, verified against GitHub:
+
+| Calculator | Kind | Backend PR | Frontend PR |
+|---|---|---|---|
+| Simple Interest | new build | [#89](https://github.com/jayrav13/whizwheel/pull/89) (`Closes #77`) | [#103](https://github.com/jayrav13/whizwheel/pull/103) (`Closes #78`) |
+| Mean·Median·Mode·Range | new build | [#90](https://github.com/jayrav13/whizwheel/pull/90) (`Closes #79`) | [#102](https://github.com/jayrav13/whizwheel/pull/102) (`Closes #80`) |
+| Tip | new build | [#91](https://github.com/jayrav13/whizwheel/pull/91) (`Closes #75`) | [#106](https://github.com/jayrav13/whizwheel/pull/106) (`Closes #76`) |
+| Age | new build | [#95](https://github.com/jayrav13/whizwheel/pull/95) (`Closes #81`) | [#104](https://github.com/jayrav13/whizwheel/pull/104) (`Closes #82`) |
+| Amortization | new build | [#97](https://github.com/jayrav13/whizwheel/pull/97) (`Closes #83`) | [#105](https://github.com/jayrav13/whizwheel/pull/105) (`Closes #84`) |
+| Percentage | regen (no `Closes`) | [#94](https://github.com/jayrav13/whizwheel/pull/94) | [#99](https://github.com/jayrav13/whizwheel/pull/99) |
+| BMI | regen (no `Closes`) | [#92](https://github.com/jayrav13/whizwheel/pull/92) | [#101](https://github.com/jayrav13/whizwheel/pull/101) |
+| Ohms Law | regen (no `Closes`) | [#96](https://github.com/jayrav13/whizwheel/pull/96) | [#100](https://github.com/jayrav13/whizwheel/pull/100) |
+
+### The experimental question — answered: PASS (3/3 on regen, with discrimination)
+
+The clean A/B deferred from iteration 0003 resolved in favor of the rule. Regenerating each prior
+calculator **from spec alone** under the pinned `3f2ac29` set, the FE agent **independently reached
+for the correct picker, unprompted**, in every case — and *discriminated* correctly between the two
+presentations:
+
+- **Percentage (#99)** — main mode (5 multi-word) → **option list**; Increase|Decrease (N=2, short) →
+  **segmented**.
+- **Ohms Law (#100)** — 6 multi-word modes → **option list** (the prototype that *became* the rule).
+- **BMI (#101)** — US|Metric (N=2, short) → **segmented**; the scrunched-pill miss that originally
+  surfaced the element-choice axis **does not recur**.
+
+And on a **fresh, never-seen** calculator — **Simple Interest (#103)** — the `years`/`months`
+selector came out a **segmented control on the first build**, the strongest evidence the rule
+**generalizes** rather than merely fitting the three it was retrofitted onto. All three regen pages
+were **rendered-equivalent** to their iteration-0003 versions.
+
+**Control cases held:** Tip (#106) and Age (#104) have no input mode and the agent **did not invent a
+picker** — the rule is not over-applied.
+
+### Firsts shipped (all PASS)
+
+- **tabular-output + charts** — Amortization (#97/#105): a month-by-month `schedule` array with
+  final-payment rounding reconciliation (`Σ` checks, final balance `0.00`, `r=0` edge), rendered as a
+  `tabular-nums` data table + a **CSS conic-gradient donut** + an **SVG balance curve**, all numbers
+  owned by the backend (seam clean).
+- **variable-length list input** — MMR (#90): a `:string` attribute parsed to a `BigDecimal` list with
+  label-based rejection of non-numeric tokens, and a **non-scalar `mode`** output (empty/one/many).
+- **date-math** — Age (#95): `:date` attributes, leap-aware borrowing (the `2020-02-29 → 2024-02-28`
+  guard), date validation, and a stubbed-clock default-to-today path.
+
+### Process learning — the frontend has de-facto central registration
+
+The headline non-build outcome: the frontend layer turns out to **violate the no-central-registration
+spirit** that keeps the backend fan-out conflict-free. New calculator pages all touch the same shared
+files — `app/views/calculators/_result.html.erb`, `app/helpers/calculators_helper.rb`,
+`app/views/home/index.html.erb`, and `app/assets/.../application.css` — so the five new-build FE PRs
+could **not** merge in parallel; they were forced into a **serial merge pipeline** (visible in the
+git history as repeated `Merge remote-tracking branch 'origin/main' into …` commits). **MMR (#102)
+even shipped without a home catalog card**, patched in afterward (`d9ee471`). This is the iteration's
+clearest agent/architecture signal — see **#107** (the structural issue) and **#108** (the
+agent-definition fix: guarantee the per-calculator registration steps).
+
+### Findings filed as issues (for the next agent edit)
+
+| # | Label | What |
+|---|---|---|
+| [#86](https://github.com/jayrav13/whizwheel/issues/86) | engineering | `gh pr merge --delete-branch` fails when the branch is held by a worktree (then skips the remote delete) — worktree/cleanup ordering. |
+| [#87](https://github.com/jayrav13/whizwheel/issues/87) | engineering | Screenshot capture is non-deterministic → false-positive CHANGED on non-UI PRs (visual gate). |
+| [#93](https://github.com/jayrav13/whizwheel/issues/93) | engineering | Proposed **visual-qa-agent** — vision-capable screenshot review for the visual gate. |
+| [#98](https://github.com/jayrav13/whizwheel/issues/98) | agents | Frontend build agent wrote to the **main checkout** instead of its worktree (worktree-isolation leak). |
+| [#107](https://github.com/jayrav13/whizwheel/issues/107) | engineering | Frontend de-facto **central registration** (3 shared files) → parallel-build merge conflicts. |
+| [#108](https://github.com/jayrav13/whizwheel/issues/108) | agents | Frontend agent must **guarantee per-calculator registration** (home card, dispatch, label map) — MMR shipped without a home card. |
+| [#109](https://github.com/jayrav13/whizwheel/issues/109) | agents | `:integer` coercion **defeats `only_integer`** (Tip `people`, Amortization `years`) — fractional input silently truncated. |
+| [#110](https://github.com/jayrav13/whizwheel/issues/110) | agents | Non-numeric input **silently coerced to 0** by `:decimal`/`:integer` cast — numericality not enforced + redundant blank+not-a-number message. |
+| [#111](https://github.com/jayrav13/whizwheel/issues/111) | engineering | SimpleCov **parallel-fork coverage undercount** locally — every build agent works around it. |
+| [#112](https://github.com/jayrav13/whizwheel/issues/112) | engineering | DESIGN.md: settle **financial semantic color** (interest green-in-donut vs coral-in-table) + card eyebrow color. |
+| [#113](https://github.com/jayrav13/whizwheel/issues/113) | engineering | Headless app standup: `bin/dev` tears down when Tailwind watch exits in a non-TTY shell — document build-once + server fallback. |
+
+The next agent edit (encoding these findings — most centrally **#107/#108** on FE registration and
+**#109/#110** on coercion-vs-validation) will open iteration 0005.

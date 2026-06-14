@@ -15,15 +15,22 @@ under `3f2ac29`, does the FE agent **independently** land the **option list** fo
 main mode and the **segmented control** for the 2-short Increase|Decrease toggle — with no human
 prompt? That is the clean A/B the 0003 logs deferred.
 
-**Build status:** _pending regen (separate PR)._
+**Build status:** ✅ regenerated & merged — **BE [#94](https://github.com/jayrav13/whizwheel/pull/94)** (no `Closes`) · **FE [#99](https://github.com/jayrav13/whizwheel/pull/99)** (no `Closes`).
 
 ---
 
-## Backend regen (#30)
-_— pending. Math unchanged at this SHA; expected near-no-op (multi-mode dispatch + §10 precision)._
+## Backend regen (#94)
+Regenerated from spec #30 under `3f2ac29`. Math unchanged at this SHA — a near-no-op as expected
+(multi-mode dispatch + §10 precision preserved). Reference-value table and the 100% gate held.
 
-## Frontend regen (#31)
-_— pending. **The A/B watch:** correct pickers reproduced unprompted (option list + segmented)?_
+## Frontend regen (#99) — **A/B verdict: PASS**
+From spec #31 alone, the FE agent **independently reached for the correct pickers, unprompted:**
+the **5-multi-word main mode → `.mode-option` option list**, and the **2-short Increase|Decrease
+toggle → segmented control**. This reproduces exactly what the iteration-0003 *post-hoc* sweep
+(PR #66) had to be hand-driven to produce. The mode-picker rule, now pinned in the agent set,
+is **self-applying** — no human flagged a scrunched control this time.
 
 ## Delta vs. iteration-0003 version
-_— pending (diff vs. PR #66 page)._
+**Rendered-equivalent.** The page came out matching the PR #66 result (correct picker elements,
+DESIGN §4 spacing) with no hand-tweak — the diff is the clean A/B evidence that the rule survives
+regeneration from spec alone.
