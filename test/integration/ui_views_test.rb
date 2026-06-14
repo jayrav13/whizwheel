@@ -7,6 +7,16 @@ class UiViewsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_session_path, text: "Sign in"
   end
 
+  test "catalog card category eyebrows render in the accent green per DESIGN.md §2" do
+    get root_path
+    assert_response :success
+    # Each catalog card links to /calculators/<slug> and leads with a green (text-accent)
+    # category eyebrow — DESIGN.md §2 specifies the eyebrow is green, not text-faint.
+    assert_select "a[href^='/calculators/'] p.text-accent.uppercase", minimum: 8
+    # And no card eyebrow is left in the old text-faint treatment.
+    assert_select "a[href^='/calculators/'] p.text-faint", false
+  end
+
   test "signed-in home renders the username and a sign-out control" do
     post session_path, params: { username: "alice", password: "password" }
     follow_redirect!
