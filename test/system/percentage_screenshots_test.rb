@@ -9,6 +9,11 @@ class PercentageScreenshotsTest < ApplicationSystemTestCase
   test "default mode with empty result" do
     visit "/calculators/percentage"
     assert_selector "h1", text: "Percentage Calculator"
+    # The main mode picker is the selectable option list: five full-width rows, each
+    # with a bold mode label + a one-line helper naming what it computes.
+    assert_selector "label.mode-option", count: 5
+    assert_selector "label.mode-option", text: "Percent of a number"
+    assert_selector "label.mode-option", text: "What is P% of a number"
     # percent_of is the default mode: V1 + Percent visible, V2 hidden by Stimulus.
     assert_field "Value (V1)"
     assert_field "Percent (P)"

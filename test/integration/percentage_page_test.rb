@@ -23,6 +23,23 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # The main mode picker is the "selectable option list" (.mode-option), per the
+  # picker rule (5 multi-word modes → option list, not a wrapping pill row). It is a
+  # native radio <fieldset>; each row is a styled <label> with a bold mode label + a
+  # one-line helper naming what that mode computes.
+  test "main mode picker renders as the selectable option list" do
+    get "/calculators/percentage"
+    assert_select "fieldset legend", text: "Mode"
+    # One bordered, divided container of full-width rows (not N wrapping chips).
+    assert_select "div.divide-y label.mode-option", count: 5
+    # No wrapping-pill mode chips remain.
+    assert_select "label.mode-pill", count: 0
+    # Each row carries its bold label + a one-line helper.
+    assert_select "label.mode-option[data-mode=percent_of]", text: /Percent of a number/
+    assert_select "label.mode-option[data-mode=percent_of]", text: /What is P% of a number/
+    assert_select "label.mode-option[data-mode=change]", text: /Apply a P% increase or decrease/
+  end
+
   test "page renders every per-mode input with a label" do
     get "/calculators/percentage"
     assert_select "label[for=inputs_v1]", text: /Value \(V1\)/
