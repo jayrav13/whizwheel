@@ -31,28 +31,37 @@
     <%= form_with url: "/calculators/ohms_law", scope: :inputs, method: :post,
           data: { controller: "ohms-law" } do |f| %>
 
-      <%# Mode pills — Grouped-wrapping tier: gap-x-3 gap-y-4 so wrapped rows read as a
-          grid of distinct, separately-hittable chips, never a clump (DESIGN.md §3, §4).
-          Each pill names the PAIR of quantities the user will supply. %>
+      <%# Mode picker — PROTOTYPE: a "selectable option list" replacing the wrapping pill
+          row, to validate before codifying into DESIGN.md + sweeping all calculators.
+          The accessible control is unchanged: a radio <fieldset>/<legend> posting
+          inputs[mode], each radio visually-hidden (peer sr-only) and paired to a styled
+          <label for>. The styling now makes it read as ONE selector — full-width rows in
+          one bordered container, divided by rules (divide-y) — not N independent chips.
+          Each row names the PAIR the user supplies (label) and, on a helper line, the two
+          quantities that mode solves. A real radio glyph (.mode-option::before) is the
+          non-colour active cue (DESIGN.md §6). %>
       <fieldset>
         <legend class="text-xs font-bold text-label">I know…</legend>
-        <div class="mt-3 flex flex-wrap gap-x-3 gap-y-4">
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
           <% [
-               ["vi", "Voltage & Current"],
-               ["vr", "Voltage & Resistance"],
-               ["vp", "Voltage & Power"],
-               ["ir", "Current & Resistance"],
-               ["ip", "Current & Power"],
-               ["rp", "Resistance & Power"]
-             ].each_with_index do |(value, text), i| %>
+               ["vi", "Voltage & Current",    "Solve for resistance & power"],
+               ["vr", "Voltage & Resistance", "Solve for current & power"],
+               ["vp", "Voltage & Power",      "Solve for current & resistance"],
+               ["ir", "Current & Resistance", "Solve for voltage & power"],
+               ["ip", "Current & Power",      "Solve for voltage & resistance"],
+               ["rp", "Resistance & Power",   "Solve for voltage & current"]
+             ].each_with_index do |(value, text, solves), i| %>
             <div>
               <%= f.radio_button :mode, value,
                     checked: i.zero?,
                     class: "peer sr-only",
                     data: { ohms_law_target: "modeInput", action: "ohms-law#select" } %>
-              <%= f.label :mode, text, value: value,
-                    class: "mode-pill",
-                    data: { ohms_law_target: "pill", mode: value } %>
+              <%= f.label :mode, value: value,
+                    class: "mode-option",
+                    data: { ohms_law_target: "pill", mode: value } do %>
+                <span class="text-sm font-semibold text-ink"><%= text %></span>
+                <span class="text-xs text-muted"><%= solves %></span>
+              <% end %>
             </div>
           <% end %>
         </div>

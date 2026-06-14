@@ -62,6 +62,46 @@
     @apply ring-2 ring-accent ring-offset-2 ring-offset-bg;
   }
 
+  /* Mode option row — PROTOTYPE (Ohm's Law only, validating before codifying into
+     DESIGN.md §4 "Mode picker" + sweeping all calculators). Replaces the wrapping
+     pill row with a "selectable option list": full-width, left-aligned rows inside ONE
+     bordered container with divided rows, so it reads as one selector, not N chips.
+
+     Each row is a styled <label> peered to a visually-hidden native radio (the no-JS,
+     a11y baseline from DESIGN.md §4/§6 is preserved). The non-color cue (DESIGN.md §6
+     "never rely on colour alone") is a real radio glyph drawn with ::before — a ring
+     that fills accent + gains an inner dot when checked, mirroring a native radio.
+
+     Active = filled accent dot + accent inset left rule + a subtle accent tint.
+     The tint (bg-accent/8) is a recurring low-opacity-accent "selected row" surface —
+     a CANDIDATE named token (e.g. --color-accent-tint) to lift into @theme + DESIGN.md
+     §1 when this is codified; left as an opacity utility for the prototype. */
+  .mode-option {
+    @apply relative flex cursor-pointer flex-col gap-0.5 px-4 py-3.5 pl-11 text-left transition-colors hover:bg-accent/5;
+  }
+  /* The radio glyph: a bordered ring pinned to the row's leading edge, aligned to the
+     label's cap height. content-[''] makes the ::before a paintable box. */
+  .mode-option::before {
+    @apply absolute left-4 top-4 block size-[18px] rounded-full border-2 border-border-input bg-surface transition-colors content-[''];
+  }
+  /* Active row — peer:checked (no-JS baseline) and .is-active (Stimulus hook) agree:
+     accent inset left rule + subtle accent tint. */
+  .peer:checked + .mode-option,
+  .mode-option.is-active {
+    @apply bg-accent/8 shadow-[inset_3px_0_0_0_theme(--color-accent)];
+  }
+  /* Active glyph — accent ring filled accent, with an inner surface dot via inset
+     box-shadow (a filled radio: ring + dot, mirroring the native control). */
+  .peer:checked + .mode-option::before,
+  .mode-option.is-active::before {
+    @apply border-accent bg-accent shadow-[inset_0_0_0_3px_theme(--color-surface)];
+  }
+  /* Focus-visible lands the ring on the VISIBLE row (DESIGN.md focus → accent), inset
+     so it reads inside the one bordered container rather than spilling past its edge. */
+  .peer:focus-visible + .mode-option {
+    @apply outline-none ring-2 ring-inset ring-accent;
+  }
+
   /* Direction toggle (increase / decrease) for `change` mode — segmented control,
      the chosen half lifted to surface white on the bg-tinted track (Affix tier: the
      two halves sit tight, gap-1, as parts of one control — DESIGN.md §3). */
