@@ -161,6 +161,7 @@ A calculator has **two** GitHub issues — a **`backend`** and a **`frontend`** 
 **Source:** https://www.calculator.net/percent-calculator.html
 **Complexity:** 2
 **Tags:** arithmetic, single-mode
+**Card description:** A percentage of a base amount at a given rate.
 
 ## Intent
 Given a base amount and a rate (percent), compute `base × rate / 100`.
@@ -191,6 +192,7 @@ _From the Source above — these pin correctness; the backend agent must reprodu
 
 **Section contract** (what each part means to the build):
 - **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `INVENTORY.md` echo.
+- **Card description** — a one-line blurb describing what the calculator does, for the catalog card / registry. Authored here once at definition time; the PM transcribes it verbatim into `docs/INVENTORY.md`'s `Description` column at the iteration **Close** phase (see #153 → "Backfill workflow"). It feeds the derived calculator registry's card text (the `Description` column is **not** derivable from the calculator.net scrape).
 - **Intent** — the prose definition of the math; the single source of "what it must do."
 - **Inputs** — one row per attribute: `name` → a `Calculators::Base` `attribute`; `type` → the ActiveModel type (`:decimal` for money/quantities, per §10); `rules` → the validations.
 - **Outputs** — one row per key in the `#compute` result Hash; these keys are the JSON envelope's `result` shape (§4) the frontend renders.
