@@ -250,4 +250,63 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes messages, "Weight can't be blank"
     assert_includes messages, "Height can't be blank"
   end
+
+  # ── Age helpers (issue #82) ─────────────────────────────────────────────
+
+  def age(attrs)
+    Calculators::Age.new(attrs)
+  end
+
+  # integer_display — whole-integer counts with thousands delimiters.
+  test "integer_display delimits a large whole count" do
+    assert_equal "12,418", integer_display(12_418)
+  end
+
+  test "integer_display renders a plain zero" do
+    assert_equal "0", integer_display(0)
+  end
+
+  # age_total_units — the four coarse-to-fine conversions, in order.
+  test "age_total_units lists the four totals coarse-to-fine" do
+    assert_equal %i[total_months total_weeks total_days total_hours], age_total_units.map { |u| u[:key] }
+    assert_equal %w[Months Weeks Days Hours], age_total_units.map { |u| u[:label] }
+  end
+
+  # age_breakdown_phrase — drops zero units, pluralizes, never empty.
+  test "age_breakdown_phrase joins the non-zero units" do
+    phrase = age_breakdown_phrase(years: 33, months: 11, days: 30)
+    assert_equal "33 years · 11 months · 30 days", phrase
+  end
+
+  test "age_breakdown_phrase drops zero-valued units" do
+    # An exact-year anniversary (24y 0m 0d) reads as just the years.
+    assert_equal "24 years", age_breakdown_phrase(years: 24, months: 0, days: 0)
+  end
+
+  test "age_breakdown_phrase singularizes a unit of one" do
+    assert_equal "1 year · 1 month · 1 day", age_breakdown_phrase(years: 1, months: 1, days: 1)
+  end
+
+  test "age_breakdown_phrase falls back to '0 days' when every unit is zero" do
+    # A same-day age — all zeros — still reads as a real span, never empty.
+    assert_equal "0 days", age_breakdown_phrase(years: 0, months: 0, days: 0)
+  end
+
+  # field_labels_for / calculator_error_messages — Age's bespoke label map.
+  test "field_labels_for returns the Age label map for an Age instance" do
+    assert_equal "Date of birth", field_labels_for(age({}))["birth_date"]
+    assert_equal "Age at the date of", field_labels_for(age({}))["end_date"]
+  end
+
+  test "Age errors are phrased against the visible labels, not the raw keys" do
+    c = age(birth_date: "", end_date: "")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Date of birth can't be blank"
+  end
+
+  test "an out-of-order Age error reads against the visible birth-date label" do
+    c = age(birth_date: "2024-06-15", end_date: "2024-06-14")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Date of birth must be on or before the end date"
+  end
 end
