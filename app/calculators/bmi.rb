@@ -1,23 +1,31 @@
 module Calculators
-  # calculator.net's BMI page, as a single multi-mode calculator (spec issue #52).
-  # Body Mass Index from weight + height in one of two unit systems, plus the WHO
-  # adult classification band as a separate text output.
+  # calculator.net's BMI page, as a multi-mode (two unit systems) calculator
+  # (spec issue #52). Computes Body Mass Index from a person's weight and height
+  # and classifies it into the WHO adult band.
   #
-  # `unit_system` selects the formula family — both modes resolve to the same kg/m²
-  # BMI scale, so the classification bands apply uniformly:
-  #   us     → BMI = 703 × weight_lb / height_in²
-  #   metric → BMI = weight_kg / (height_cm / 100)²   (kg over height-in-meters²)
+  # `unit_system` selects the formula; both modes resolve to the same kg/m² BMI
+  # scale, so the classification bands apply uniformly regardless of input units:
   #
-  # `bmi` is kept at full BigDecimal precision and rounded to 1 dp for display;
-  # `category` is the WHO band derived from the RAW (unrounded) BMI (§10).
+  #   us     → BMI = 703 × weight_lb / height_in²   (height is total inches)
+  #   metric → BMI = weight_kg / (height_cm / 100)²  (height in metres, squared)
+  #
+  # `bmi` is computed at full BigDecimal precision and rounded to 1 decimal place
+  # for display (half-up); `category` is the WHO adult band, derived from the RAW
+  # (unrounded) BMI (§10).
   class Bmi < Base
     UNIT_SYSTEMS = %w[us metric].freeze
 
-    SEVEN_OH_THREE = BigDecimal(703)
-    HUNDRED = BigDecimal(100)
+    # US imperial constant: BMI = 703 × lb / in².
+    US_FACTOR = BigDecimal(703)
+    # Centimetres per metre — metric height is collected in cm, the formula needs m.
+    CM_PER_M = BigDecimal(100)
+    # Display precision for the reported BMI.
+    DISPLAY_DP = 1
 
-    # WHO adult classification, lower bound inclusive / upper bound exclusive
-    # (bands are [lower, upper)). Ordered ascending; the first matching band wins.
+    # WHO adult classification bands, [lower, upper) — lower inclusive, upper
+    # exclusive — matching calculator.net. Ordered low→high by their (exclusive)
+    # upper bound; the first band the BMI falls under wins, and the final
+    # open-ended band (nil upper) catches everything from 40 up.
     BANDS = [
       [ BigDecimal("16"),   "Severe Thinness" ],
       [ BigDecimal("17"),   "Moderate Thinness" ],
@@ -25,9 +33,9 @@ module Calculators
       [ BigDecimal("25"),   "Normal" ],
       [ BigDecimal("30"),   "Overweight" ],
       [ BigDecimal("35"),   "Obese Class I" ],
-      [ BigDecimal("40"),   "Obese Class II" ]
+      [ BigDecimal("40"),   "Obese Class II" ],
+      [ nil,                "Obese Class III" ]
     ].freeze
-    OBESE_CLASS_III = "Obese Class III" # the open-ended ≥ 40 band
 
     attribute :unit_system, :string
     attribute :weight, :decimal
@@ -41,23 +49,27 @@ module Calculators
 
     def compute
       raw = raw_bmi
-      { bmi: raw.round(1), category: classify(raw) }
+      { bmi: raw.round(DISPLAY_DP), category: classify(raw) }
     end
 
-    # `unit_system` is validated into UNIT_SYSTEMS before #compute runs (it only
-    # runs when valid?), so this two-way branch has no unreachable fallback.
+    # The unit-system-specific BMI formula. `unit_system` is validated into
+    # UNIT_SYSTEMS before #compute runs (it only runs when valid?), so the two
+    # branches are exhaustive — a two-way `if`/`else` keeps both reachable (no
+    # unreachable implicit-`else` the way a `case` without `else` would have).
     def raw_bmi
       if unit_system == "us"
-        SEVEN_OH_THREE * weight / (height * height)
+        US_FACTOR * weight / (height * height)
       else
-        meters = height / HUNDRED
-        weight / (meters * meters)
+        metres = height / CM_PER_M
+        weight / (metres * metres)
       end
     end
 
+    # The WHO adult band for a raw BMI: the first band whose (exclusive) upper
+    # bound the BMI is below; the open-ended final band catches the rest.
     def classify(bmi)
-      band = BANDS.find { |upper, _label| bmi < upper }
-      band ? band.last : OBESE_CLASS_III
+      _, category = BANDS.find { |upper, _| upper.nil? || bmi < upper }
+      category
     end
   end
 end
