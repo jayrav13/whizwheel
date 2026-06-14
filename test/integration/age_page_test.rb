@@ -34,6 +34,30 @@ class AgePageTest < ActionDispatch::IntegrationTest
     assert_select "p", text: /defaults to today/i
   end
 
+  test "the optional end-date field carries a 'Today' quick-fill button (DESIGN §4)" do
+    get "/calculators/age"
+    # A real <button> beside the end-date input, wired to the age controller's #today
+    # action — pure progressive enhancement (DESIGN.md §4 "Date field with Today quick-fill").
+    assert_select "button[type=button][data-action='age#today']", text: "Today"
+    # It targets the OPTIONAL end date — the field is tagged for the controller to fill.
+    assert_select "input#inputs_end_date[data-age-target=endDate]"
+  end
+
+  test "the REQUIRED date of birth has no quick-fill and no auto-default" do
+    get "/calculators/age"
+    # No "Today" button anywhere near the birth date; the field is never pre-filled
+    # (DESIGN.md §4 — a primary date carries no "today" meaning).
+    assert_select "input#inputs_birth_date:not([data-age-target])"
+    assert_select "input#inputs_birth_date[value]", count: 0
+    # Exactly one Today button on the page — the end-date's, not the birth-date's.
+    assert_select "button[data-action='age#today']", count: 1
+  end
+
+  test "the form is wired to the age Stimulus controller" do
+    get "/calculators/age"
+    assert_select "form[data-controller=age]"
+  end
+
   test "page has no mode picker (Age has no input mode)" do
     get "/calculators/age"
     # The spec's multi-mode tag is about output representations, not an input selector,
@@ -64,6 +88,26 @@ class AgePageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /Total months/i
     assert_select "section#result", text: /12,418/
     assert_select "section#result", text: /298,032/
+  end
+
+  test "a 6+ digit total renders in full in the responsive stat grid (clipping guard)" do
+    # DESIGN.md §4 "Stat grid": the responsive auto-fit grid must never clip a value, even
+    # a large 6-digit one (the observed Total-hours crowding/cutoff this regen fixes). A
+    # 35-year exact-anniversary span gives total_hours = 306,792 (six digits) — assert it
+    # appears delimited and in full, alongside the other totals. The auto-fit grid markup
+    # (repeat(auto-fit, minmax(...))) is what lets cards size to a min width and wrap.
+    post "/calculators/age",
+      params: { inputs: { birth_date: "1989-01-01", end_date: "2024-01-01" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result", text: /Total hours/i
+    assert_select "section#result", text: /306,792/      # six digits, delimited, in full
+    assert_select "section#result", text: /12,783/       # total days
+    assert_select "section#result", text: /1,826/        # total weeks
+    assert_select "section#result", text: /420/          # total months
+    # The grid is the responsive auto-fit grid (DESIGN.md §4), not a fixed column count,
+    # and each value is whitespace-nowrap tabular-nums so a long number never wraps mid-figure.
+    assert_select "section#result dl[class*='auto-fit']"
+    assert_select "section#result dl[class*='auto-fit'] dd.whitespace-nowrap.tabular-nums", count: 4
   end
 
   test "an omitted end date defaults to today" do

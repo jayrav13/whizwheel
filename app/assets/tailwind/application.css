@@ -103,6 +103,18 @@
     @apply outline-none ring-2 ring-inset ring-accent;
   }
 
+  /* "Today" quick-fill button (DESIGN.md §4 "Date field with Today quick-fill") — a
+     small SECONDARY affordance beside an optional as-of/end date that fills the current
+     date on tap (wired by a Stimulus controller; the field stays directly editable and
+     the server defaults a blank end date to today, so this is pure enhancement). It is a
+     real <button>, deliberately quieter than the coral primary action: an outlined chip
+     on the cream surface that warms toward accent on hover/focus, never competing with
+     the page's primary "Calculate" button. Sized to match .field-input's vertical rhythm
+     so it sits flush beside the date input on the Affix tier (DESIGN.md §3, gap-2). */
+  .today-button {
+    @apply shrink-0 cursor-pointer rounded-[11px] border border-border-input bg-surface px-4 py-2.5 text-sm font-semibold text-muted transition-colors hover:border-accent/50 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
   /* Tip-percentage quick-pick chip (Tip page, issue #76) — a small, breathing,
      separately-hittable button chip (DESIGN.md §3 rule 2: chips need air) that writes a
      common rate into the percent field. It is convenience over an already-editable field
