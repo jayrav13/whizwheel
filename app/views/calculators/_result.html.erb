@@ -4,9 +4,10 @@
     nil for the pristine empty state.
 
     The success state dispatches by calculator: Percentage gets its bespoke hero
-    (mode caption + detail sentence); any other calculator falls back to a generic
-    key/value render so this partial stays honest for the dynamic controller (which
-    renders it for every slug). The empty + error states are calculator-agnostic. %>
+    (mode caption + detail sentence); BMI gets a hero number + category badge + the WHO
+    classification scale; any other calculator falls back to a generic key/value render
+    so this partial stays honest for the dynamic controller (which renders it for every
+    slug). The empty + error states are calculator-agnostic. %>
 <% if calc.nil? %>
   <div class="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-border-input bg-surface/60 px-6 py-12 text-center">
     <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Result</p>
@@ -28,6 +29,9 @@
 
 <% elsif calc.is_a?(Calculators::OhmsLaw) %>
   <%= render "calculators/results/ohms_law", calc: calc %>
+
+<% elsif calc.is_a?(Calculators::Bmi) %>
+  <%= render "calculators/results/bmi", calc: calc %>
 
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
