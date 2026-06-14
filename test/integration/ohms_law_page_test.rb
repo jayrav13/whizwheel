@@ -94,6 +94,27 @@ class OhmsLawPageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /Solved/i
   end
 
+  test "solved-values grid is a responsive auto-fit grid, not a pinned column count" do
+    # DESIGN.md §4 "Stat grid": size each card to a min width and let the grid flow,
+    # rather than pin a fixed column count — so the grid uses the auto-fit minmax track.
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "2" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result dl[class*='grid-cols-[repeat(auto-fit']"
+  end
+
+  test "large 6+ digit solved values render in full without truncation" do
+    # Worst-case clip check (frontend agent: "test the worst case"): a high-power
+    # circuit drives R and P into 6+ digit figures — they must render in full.
+    # mode=vi, V=999000, I=999  → R = 1000, P = 998,001,000.
+    post "/calculators/ohms_law",
+      params: { inputs: { mode: "vi", voltage: "999000", current: "999" } }, headers: TURBO
+    assert_response :success
+    # Solved power = 998,001,000 (a 9-digit figure) renders delimited, never clipped.
+    assert_select "section#result", text: /998,001,000/
+    # Given voltage echoes back at full width too.
+    assert_select "section#result", text: /999,000/
+  end
+
   # ── POST /calculators/ohms_law — Turbo Stream 422 (invalid) ─────────────
 
   test "missing required input renders the error fragment with 422" do
