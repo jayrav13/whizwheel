@@ -1,0 +1,13 @@
+## Chapter 48 — The frontend agent gets measured: the real Percentage page, and an agent that caught its own bug (2026-06-13)
+
+With both routes live, the assistant dispatched the **frontend agent** to build the real Percentage page from #31 — *"the first time the **FE agent gets measured.**"* Before it ran, the user asked the flow question (*"Do we invoke the PM once this is complete?"* — *"Don't do it yet, just asking the flow"*), and the assistant laid out the clean division of labor it would follow: **PM = records** (logs the iteration feedback, opens/closes iterations, all via PRs); **main thread + you = judgment** (evaluate the agents, edit the agent defs — *"the PM never edits agent defs"*). The user said *"Keep holding."*
+
+The FE agent returned **PR #35** (`Closes #31`): the multi-mode page — tab-pill mode selector, per-mode inputs, the increase/decrease segmented toggle for `change`, a bespoke Percentage hero-result card, a Stimulus controller for mode-switching, BLEND `@layer` component classes (`field-input`, `mode-pill`, `direction-pill`) — **100% coverage**, system tests passing, rubocop clean. Two things the assistant called out as encouraging signs *about the agent itself*:
+- **It did its mandatory screenshot self-review and caught its own bug:** its conditional field groups were missing `data-percentage-target="field"`, so Stimulus wasn't hiding inactive inputs — *"the screenshot review surfaced it (everything was visible); fixed and re-verified."* That self-correction loop is exactly what the design doc + agent definition are supposed to produce.
+- **A tasteful seam decision in-lane:** the shared `create.turbo_stream.erb` dispatches to a **per-slug result partial with a generic fallback** — so future calculators get bespoke result rendering with no backend change. Stayed entirely within the FE boundary.
+
+The user then asked to **"Fire up the app"** and live-tested it. The assistant ran it from the FE *worktree* (since `main` would 500 until #35 merges), confirmed the page renders (200) and the Turbo path works, and correctly diagnosed a `curl` 500 as just **CSRF** (`InvalidAuthenticityToken` — a token-less curl, expected; a real browser includes the token, and the 9/9 passing system tests exercise the full submit→result flow). CI on #35 came back green.
+
+**Agent-driven? ✅** The frontend agent's first real measured output is a complete, styled, multi-mode, Turbo-powered page — and the agent's *own self-review caught and fixed a real interaction bug before handing off*, which is a stronger signal about the agent than the page itself. The full stack now runs end-to-end (browser → Turbo → controller → calculator → persisted `Calculation`).
+
+---

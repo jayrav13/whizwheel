@@ -155,12 +155,15 @@ any runtime/app gem, or red CI).
 - Until `dependabot-agent` is a registered type, dispatch a generic subagent pointed at
   `.claude/agents/dependabot-agent.md` + this file.
 
-## JOURNEY.md — the experiment log
+## The journey log — `docs/journey/`
 
-`JOURNEY.md` (repo root) is the detailed, running record of this experiment — answering "does this work?".
+The journey log is the detailed, running record of this experiment — answering "does this work?". It lives under **`docs/journey/`** (the repo-root `JOURNEY.md` is just a pointer to it):
 
-- **Main thread only.** At the start of a fresh session, read `JOURNEY.md` while responding to the first prompt, unless it is already in context. **Subagents do NOT read it** — they don't need the saga and it would waste their context.
-- **You (the main thread) keep it current.** At each meaningful decision or pivot, fire the **`historian`** agent **in the background** (`run_in_background: true`) to journal it. Emit one short visible line when you do — a marker such as `📝 journaling that in the background` — then continue immediately; never block on it, and handle its completion quietly (surface only errors). The historian reads the session transcript + `JOURNEY.md`'s coverage anchor and writes the gap itself — you do **not** push it context.
+- **`docs/journey/INDEX.md`** — the entry point: the **coverage anchor**, the **volume/chapter table of contents**, and the living **"Running assessment"** + **"Artifact ledger"**.
+- **`docs/journey/volumes/volume-NN/chapter-NNN.md`** — every chapter as its **own file**, grouped into **volumes of 25 chapters**.
+
+- **Main thread only.** At the start of a fresh session, read **`docs/journey/INDEX.md`** while responding to the first prompt, unless it is already in context (the anchor note + TOC + assessment orient you; drill into specific `volumes/…/chapter-NNN.md` files as needed). **Subagents do NOT read the journey** — they don't need the saga and it would waste their context.
+- **You (the main thread) keep it current.** At each meaningful decision or pivot, fire the **`historian`** agent **in the background** (`run_in_background: true`) to journal it. Emit one short visible line when you do — a marker such as `📝 journaling that in the background` — then continue immediately; never block on it, and handle its completion quietly (surface only errors). The historian reads the session transcript + the coverage anchor in `docs/journey/INDEX.md`, appends new chapters as **individual files in the current volume** (rolling to a new volume at 25), and updates `INDEX.md` — you do **not** push it context.
 - Until `historian` is a registered type, fire a generic background subagent pointed at `.claude/agents/historian.md` + this file.
 
 ## End of session
