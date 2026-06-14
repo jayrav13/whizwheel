@@ -116,6 +116,24 @@
     @apply border-accent bg-accent text-surface hover:border-accent hover:text-surface;
   }
 
+  /* Responsive auto-fit stat grid (DESIGN.md §4 "Stat grid"): a grid of small stat
+     cards that sizes each card to a MIN WIDTH and lets the row wrap/flow — roughly 4
+     across on a wide results panel, collapsing to 2×2 when narrow — rather than pinning a
+     fixed column count. The auto-fit/minmax track is an arbitrary value justified per
+     DESIGN.md §5: the standard scale can't express `repeat(auto-fit, …)`. The 9.5rem min
+     plus the card padding (.stat-card) keeps even a large 6+ digit, tabular-nums value
+     fitting without truncation or overflow (DESIGN.md §4: stats must NEVER clip). Grouped
+     tier gap (DESIGN.md §3). Recurs across result panels, so it is a component class. */
+  .stat-grid {
+    @apply grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3;
+  }
+  /* One stat card inside the grid: a faint cream-tinted card holding a label over a
+     tabular-nums value. min-w-0 lets the card shrink within its track without forcing
+     overflow; overflow-hidden + the value's own wrapping keep a long figure contained. */
+  .stat-card {
+    @apply min-w-0 rounded-[13px] border border-border bg-bg/60 p-4;
+  }
+
   /* Direction toggle (increase / decrease) for `change` mode — segmented control,
      the chosen half lifted to surface white on the bg-tinted track (Affix tier: the
      two halves sit tight, gap-1, as parts of one control — DESIGN.md §3). */
