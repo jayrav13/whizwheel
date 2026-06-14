@@ -3,8 +3,9 @@ require "application_system_test_case"
 # Drives the real browser through the Age page's key states and saves a full-page
 # screenshot of each (issue #82). Doubles as a Turbo regression check (the form posts
 # over Turbo and the #result fragment updates in place) and a visual artifact reviewed
-# against docs/DESIGN.md (CI uploads the PNGs). Age has no Stimulus controller — the two
-# native date fields and the server's default-to-today are the whole interaction.
+# against docs/DESIGN.md (CI uploads the PNGs). The age_controller wires the optional
+# end-date's "Today" quick-fill button (DESIGN.md §4) as pure enhancement; the two native
+# date fields and the server's default-to-today are the rest of the interaction.
 class AgeScreenshotsTest < ApplicationSystemTestCase
   test "empty state before any submission" do
     visit "/calculators/age"
@@ -27,6 +28,32 @@ class AgeScreenshotsTest < ApplicationSystemTestCase
       assert_text "12,418"
     end
     screenshot_full_page("31-age-result")
+  end
+
+  test "the Today button fills the optional end date (progressive enhancement)" do
+    visit "/calculators/age"
+    # The end date starts blank — DESIGN.md §4: never auto-prefilled.
+    assert_field "Age at the date of", with: ""
+    # Tapping "Today" fills the current date into the optional end-date field.
+    click_button "Today"
+    today = Date.current.strftime("%Y-%m-%d")
+    assert_field "Age at the date of", with: today
+    screenshot_full_page("33-age-today-filled")
+  end
+
+  test "a large multi-decade span renders 6-digit totals without clipping" do
+    visit "/calculators/age"
+    # A 35-year exact-anniversary span → total_hours = 306,792 (six digits). The
+    # responsive auto-fit stat grid (DESIGN.md §4) must show it in full; this shot is the
+    # visual guard against the Total-hours crowding/cutoff this regen fixes.
+    fill_in "Date of birth", with: "01/01/1989"
+    fill_in "Age at the date of", with: "01/01/2024"
+    click_button "Calculate age"
+    within "#result" do
+      assert_text "35"
+      assert_text "306,792"
+    end
+    screenshot_full_page("34-age-large-totals")
   end
 
   test "invalid input shows the error fragment" do

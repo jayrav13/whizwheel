@@ -13,8 +13,16 @@
   ethos (DESIGN.md §0 progressive enhancement). Layout per DESIGN.md §3 — an input column
   + a results panel (≈380px 1fr), collapsing to one column on mobile.
 
+  The optional end date ("Age at the date of") carries a "Today" quick-fill button
+  (DESIGN.md §4 "Date field with Today quick-fill"), wired by the age_controller as pure
+  enhancement: tapping it fills the current date. The field is NEVER auto-prefilled —
+  blank stays blank, and the server defaults a blank end date to today, so the "today"
+  default is visible and chosen, not hidden. The REQUIRED date of birth gets no quick-fill
+  and is never auto-defaulted (DESIGN.md §4 — a primary date carries no "today" meaning).
+
   Spacing scale (DESIGN.md §3, "targets not minimums"):
     • stacked fields → space-y-5
+    • the date field ↔ its "Today" affordance → Affix tier (gap-2)
     • the field block → submit (major blocks) → mt-8 (Section tier)
     • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
 %>
@@ -32,21 +40,32 @@
 <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
   <%# ── Input column ─────────────────────────────────────────────────────── %>
   <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
-    <%= form_with url: "/calculators/age", scope: :inputs, method: :post do |f| %>
+    <%= form_with url: "/calculators/age", scope: :inputs, method: :post,
+          data: { controller: "age" } do |f| %>
 
       <%# Two native date fields, stacked (DESIGN.md §3 Stacked tier: space-y-5). Each has
           a real <label> (DESIGN.md §6). type="date" gives the browser's own picker; the
           .field-input vocabulary keeps them visually identical to the numeric inputs on
           the other pages so the system stays coherent. %>
       <div class="space-y-5">
+        <%# Date of birth — REQUIRED, no quick-fill: a birth date carries no "today"
+            meaning and must be entered (DESIGN.md §4). Never auto-defaulted. %>
         <div>
           <%= f.label :birth_date, "Date of birth", class: "field-label", for: "inputs_birth_date" %>
           <%= f.date_field :birth_date, id: "inputs_birth_date", class: "field-input mt-1.5" %>
         </div>
 
+        <%# Age at the date of — OPTIONAL: blank means "today". The date input sits beside
+            an explicit "Today" quick-fill button on the Affix tier (gap-2, DESIGN.md §3) —
+            tapping it fills today (age_controller). Never auto-prefilled; the server fills
+            today when this stays blank (DESIGN.md §4 "Date field with Today quick-fill"). %>
         <div>
           <%= f.label :end_date, "Age at the date of", class: "field-label", for: "inputs_end_date" %>
-          <%= f.date_field :end_date, id: "inputs_end_date", class: "field-input mt-1.5" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.date_field :end_date, id: "inputs_end_date", class: "field-input",
+                  data: { age_target: "endDate" } %>
+            <button type="button" class="today-button" data-action="age#today">Today</button>
+          </div>
           <%# The optional-field cue: end_date defaults to today server-side when omitted.
               States the default in words so it never relies on placeholder behaviour. %>
           <p class="mt-1.5 text-xs text-muted">Optional — defaults to today.</p>

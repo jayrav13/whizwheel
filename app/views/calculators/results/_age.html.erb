@@ -28,14 +28,19 @@
           reads as a sentence, not only as three figures. %>
       <p class="mt-3 text-[15px] leading-relaxed text-muted"><%= age_breakdown_phrase(result) %> old</p>
 
-      <%# Total-unit conversions — the same interval four other ways (DESIGN.md §4 Stat
-          grid). A 2×2 grid on the Grouped tier; each card a faint label over a
-          tabular-nums figure. %>
-      <dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <%# Total-unit conversions — the same interval four other ways (DESIGN.md §4 "Stat
+          grid"): a RESPONSIVE AUTO-FIT grid, not a fixed column count. Each card sizes to
+          a min width and the grid wraps/flows — ≈4 across on a wide results panel,
+          collapsing to 2×2 when narrow. The min width (9rem ≈ 144px) is set so even a
+          large 6+ digit Total hours (e.g. 307,104) renders in full without clipping or
+          overflow; the value is whitespace-nowrap tabular-nums so it never wraps mid-number.
+          (auto-fit is an arbitrary grid-cols value — DESIGN.md §5 expressly justifies it
+          since the standard scale can't express repeat(auto-fit,…).) Grouped tier: gap-3. %>
+      <dl class="mt-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
         <% age_total_units.each do |unit| %>
           <div class="rounded-[13px] border border-border bg-bg/60 p-4">
             <dt class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Total <%= unit[:label].downcase %></dt>
-            <dd class="mt-1.5 text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= integer_display(result[unit[:key]]) %></dd>
+            <dd class="mt-1.5 whitespace-nowrap text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= integer_display(result[unit[:key]]) %></dd>
           </div>
         <% end %>
       </dl>
