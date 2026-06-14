@@ -55,7 +55,18 @@ The aesthetic is named **BLEND** — *warm, sharpened, with a touch of green.* I
 - **Radii:** cards `18px`, inputs `11–13px`, buttons `13px`, pills/tabs `999px`.
 - **Card:** `surface` background, `1px` `border` outline, shadow `0 10px 34px rgba(150,110,80,.12)`.
 - **Whitespace:** generous. Let pages breathe; density is achieved with rules and alignment, not crowding.
-- **Pill / tab / chip groups:** a **wrapping** flex row (`flex flex-wrap`) with a comfortable gap on **both** axes — use **`gap-2.5`** (≈`10px`) minimum, never less than `gap-2`. Pills must never touch or look bunched; a group that wraps to multiple lines needs the row-gap as much as the column-gap (`gap` sets both — don't use `gap-x` alone). This is part of "let pages breathe," applied to inline groups.
+- **Spacing scale (the rhythm).** Spacing encodes **relationship — closer = more related**; pick the tier by *what the gap separates*, not by habit. These are **targets, not minimums** — when unsure, go one step *more* open (a too-tight layout is the failure mode, not a too-airy one).
+
+  | Tier | Token | Separates |
+  |---|---|---|
+  | **Affix** | `gap-2` (8px) | parts of one control (a `%`/unit ↔ its field); a segmented toggle's halves may go tighter (`gap-1`) |
+  | **Grouped** | `gap-3` (12px) | sibling controls in a set — pills in a row, stat-grid cards |
+  | **Grouped, wrapping** | `gap-x-3 gap-y-4` (12 / 16px) | a control group that **wraps** — row-gap **one step larger** than column-gap |
+  | **Stacked** | `space-y-5` (20px) | stacked fields down a column |
+  | **Section** | `mt-7`–`mt-8` (28–32px) | major blocks within a card (mode → fields → submit) |
+  | **Layout** | `gap-8` (32px), `p-6`–`p-8` | column gutters, card padding |
+
+  Two rules travel with the scale: **(1)** a **wrapping** control group gets a **larger row-gap than column-gap** (`gap-y` > `gap-x`) so wrapped rows read as a grid, never a clump; **(2)** tappable **chips/pills need air** to read as distinct, separately-hittable targets — never keypad-dense.
 - **Layout grid:** desktop = an input column + a results panel (roughly `380px 1fr`); collapses to a single stacked column on mobile (**mobile-first**).
 
 ---
@@ -70,7 +81,7 @@ The login/home pages are the first **reference implementation**; new pages copy 
 - **Input** — labeled; optional `$` / `%` / unit affix; `border-input` border, focus ring → `accent`; `tabular-nums` for numeric inputs.
 - **Validation errors** — when the envelope returns `errors` (`ARCHITECTURE.md §4`), surface them in a coral-tinted card (eyebrow e.g. *"Check your input"*). **Phrase each message against the field's visible label, never the raw attribute key** — "Value can't be blank", not "v1 can't be blank". The UI knows the labels it rendered; map the error key → that label.
 - **Primary button** — `primary` (coral), white text, `13px` radius, subtle coral shadow.
-- **Tab pills** — a **wrapping pill row with a comfortable gap on both axes** (§3, `gap-2.5`); active pill filled `accent` (green), inactive `faint` on a tint. Pills should breathe — never crowded, even when the row wraps.
+- **Tab pills** — a wrapping pill row on the **Grouped-wrapping** spacing tier (§3 — `gap-x-3 gap-y-4`); active pill filled `accent` (green), inactive `faint` on a tint. Pills must read as distinct, breathing, separately-hittable chips — never crowded, even when the row wraps.
 - **Card** — the base container (§3).
 - **Hero-result** — a `surface` card with a **5px coral left rule** and a big `tabular-nums` number; the page's headline answer.
 - **Stat grid** — a 3-up row of small stat cards (label + value); positive values may use `accent`.
