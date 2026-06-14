@@ -10,16 +10,18 @@
     <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
     <div class="min-w-0 flex-1">
       <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Solved</p>
-      <%# Responsive auto-fit stat grid (DESIGN.md §4 "Stat grid"): each card sizes to a
-          min width and the grid flows — ~2 across on a wide panel, collapsing to 1-up when
-          narrow — rather than a pinned column count. The min width (13rem, an arbitrary
-          value justified per §5: the standard scale can't express an auto-fit minmax track)
-          is set so even a large 6+ digit tabular-nums figure plus its unit never clips.
-          Fixed V/I/R/P order; Stat-grid tier gap-3. %>
-      <dl class="mt-3 grid grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] gap-3">
+      <%# Shared responsive stat grid (DESIGN.md §4 "Stat grid", issue #143): `.stat-grid`
+          sizes each card to the canonical min width and lets the grid flow (~2 across on a
+          wide panel, collapsing to 1-up when narrow). Each card is a `.stat-card`; a SOLVED
+          quantity adds the `.stat-card--solved` modifier so the card surface itself signals
+          the derived figure (accent tint + border), reinforcing the accent value text — never
+          colour alone (DESIGN.md §6): each card also carries a visible Given/Solved tag. The
+          value uses break-all so a large 6+ digit figure plus its unit never clips. Fixed
+          V/I/R/P order. %>
+      <dl class="mt-3 stat-grid">
         <% ohms_law_quantities.each do |q| %>
           <% solved = !given.include?(q[:key]) %>
-          <div class="rounded-[13px] border <%= solved ? "border-accent/30 bg-accent/5" : "border-border bg-bg/60" %> p-4">
+          <div class="stat-card<%= " stat-card--solved" if solved %>">
             <dt class="flex items-center justify-between gap-2 text-xs font-bold text-label">
               <span><%= q[:label] %> <span class="font-semibold text-faint">(<%= q[:symbol] %>)</span></span>
               <% if given.include?(q[:key]) %>

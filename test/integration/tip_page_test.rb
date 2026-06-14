@@ -104,10 +104,13 @@ class TipPageTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "section#result", text: /\$2,400,000\.00/
     assert_select "section#result", text: /Split 2 ways/i
-    # The full per-person figure is present (the auto-fit min-width + break-words keep it
-    # whole) — not a clipped/rounded form.
+    # The full per-person figure is present (the shared stat grid's card shell + break-words
+    # keep it whole) — not a clipped/rounded form.
     assert_select "section#result", text: /\$1,200,000\.00/
-    assert_select "section#result dl.grid", count: 1
+    # The split block is the shared responsive stat grid (DESIGN.md §4, issue #143): a
+    # `.stat-grid` of two `.stat-card`s (each person pays / tip each).
+    assert_select "section#result dl.stat-grid", count: 1
+    assert_select "section#result dl.stat-grid .stat-card", count: 2
   end
 
   # ── POST /calculators/tip — Turbo Stream 422 (invalid) ──────────────────

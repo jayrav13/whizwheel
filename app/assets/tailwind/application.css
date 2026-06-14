@@ -128,22 +128,49 @@
     @apply border-accent bg-accent text-surface hover:border-accent hover:text-surface;
   }
 
-  /* Responsive auto-fit stat grid (DESIGN.md §4 "Stat grid"): a grid of small stat
-     cards that sizes each card to a MIN WIDTH and lets the row wrap/flow — roughly 4
-     across on a wide results panel, collapsing to 2×2 when narrow — rather than pinning a
-     fixed column count. The auto-fit/minmax track is an arbitrary value justified per
-     DESIGN.md §5: the standard scale can't express `repeat(auto-fit, …)`. The 9.5rem min
-     plus the card padding (.stat-card) keeps even a large 6+ digit, tabular-nums value
-     fitting without truncation or overflow (DESIGN.md §4: stats must NEVER clip). Grouped
-     tier gap (DESIGN.md §3). Recurs across result panels, so it is a component class. */
+  /* Responsive auto-fit stat grid (DESIGN.md §4 "Stat grid") — the ONE canonical stat grid
+     for the whole catalog (issue #143). The 0005 regens had inlined this six different ways
+     at four different min-widths (8/9/9.5/11/13rem) directly in their views; this is now the
+     single sanctioned expression. EVERY result panel that shows a stat grid uses
+     `.stat-grid` / `.stat-card`, never an inline `grid-cols-[repeat(auto-fit,…)]`.
+
+     It sizes each card to a MIN WIDTH and lets the row wrap/flow — roughly 4 across on a
+     wide results panel, collapsing to 2×2 when narrow — rather than pinning a fixed column
+     count. The auto-fit/minmax track is an arbitrary value justified per DESIGN.md §5: the
+     standard scale can't express `repeat(auto-fit, …)`. The 9.5rem min plus the card padding
+     (.stat-card) keeps even a large 6+ digit, tabular-nums value fitting without truncation
+     or overflow (DESIGN.md §4: stats must NEVER clip). Grouped tier gap (DESIGN.md §3). */
   .stat-grid {
     @apply grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3;
   }
-  /* One stat card inside the grid: a faint cream-tinted card holding a label over a
-     tabular-nums value. min-w-0 lets the card shrink within its track without forcing
-     overflow; overflow-hidden + the value's own wrapping keep a long figure contained. */
+  /* One stat card inside the grid — the canonical card shell: a faint cream-tinted card
+     (bg-bg/60) holding a label (<dt>) over a tabular-nums value (<dd>). min-w-0 +
+     overflow-hidden let the card shrink within its track and keep a long figure contained;
+     break-words on the value (in the view) keeps a big number whole (DESIGN.md §4: never
+     clip). The SHELL is fixed here (radius, border, bg, padding); the value's SIZE and
+     COLOUR stay page-content choices set with utilities on the inner <dd> (e.g. a
+     derived/positive figure → accent, DESIGN.md §1), so one component covers every page
+     without forking the shell. */
   .stat-card {
-    @apply min-w-0 rounded-[13px] border border-border bg-bg/60 p-4;
+    @apply min-w-0 overflow-hidden rounded-[13px] border border-border bg-bg/60 p-4;
+  }
+  /* Variant: the state-carrying stat card (Ohm's Law's solved-vs-given cards), where the
+     card surface itself signals state. The base .stat-card is the given/neutral card;
+     .stat-card--solved lifts a derived figure with an accent-tinted surface + border,
+     reinforcing the accent value text — never colour alone (DESIGN.md §6): the card also
+     carries a visible "Solved" tag. A modifier of .stat-card, so the grid stays one
+     component rather than a bespoke fork. */
+  .stat-card--solved {
+    @apply border-accent/30 bg-accent/5;
+  }
+  /* Variant: the standalone stat card, for a `.stat-grid` that sits directly on the PAGE
+     background (cream) rather than nested inside a surface-white hero card. The base
+     .stat-card's faint bg-bg/60 tint reads as an inset *inside* a white card, but would
+     nearly vanish on the cream page; .stat-card--surface flips the card to solid surface
+     white so the cards stand off the page (used by Amortization, whose totals grid is a
+     top-level block, not nested in the hero card). Same grid, one component family. */
+  .stat-card--surface {
+    @apply bg-surface;
   }
 
   /* Direction toggle (increase / decrease) for `change` mode — segmented control,

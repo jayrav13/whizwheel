@@ -104,10 +104,12 @@ class AgePageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /12,783/       # total days
     assert_select "section#result", text: /1,826/        # total weeks
     assert_select "section#result", text: /420/          # total months
-    # The grid is the responsive auto-fit grid (DESIGN.md §4), not a fixed column count,
-    # and each value is whitespace-nowrap tabular-nums so a long number never wraps mid-figure.
-    assert_select "section#result dl[class*='auto-fit']"
-    assert_select "section#result dl[class*='auto-fit'] dd.whitespace-nowrap.tabular-nums", count: 4
+    # The grid is the shared responsive stat grid (DESIGN.md §4, issue #143): a `.stat-grid`
+    # of four `.stat-card`s, not a fixed column count, and each value is whitespace-nowrap
+    # tabular-nums so a long number never wraps mid-figure.
+    assert_select "section#result dl.stat-grid", count: 1
+    assert_select "section#result dl.stat-grid .stat-card", count: 4
+    assert_select "section#result dl.stat-grid .stat-card dd.whitespace-nowrap.tabular-nums", count: 4
   end
 
   test "an omitted end date defaults to today" do
