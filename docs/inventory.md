@@ -12,8 +12,10 @@ Built (PRs)`. **Source** renders as a markdown link whose display text is the pa
 calculator it lists the most recent **merged** PR per layer that closed its `backend` /
 `frontend` issue (`BE #N · FE #M`), or is blank when no build PR has merged yet, so the
 column doubles as the build-coverage view. **Sort order is completed-first:** every row
-with a non-blank Built (PRs) cell floats to the top, then the pending (blank) rows below;
-within each group the order is alphabetical by Category, then Calculator.
+with a non-blank Built (PRs) cell floats to the top, then the pending (blank) rows below.
+The **completed block** is ordered by **backend completion PR # ascending** (earliest-built
+first — a chronological ship history); the **pending block** stays alphabetical by Category,
+then Calculator.
 
 ## Complexity scale (1–5)
 
@@ -42,9 +44,9 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 
 | Calculator | Category | Complexity | Tags | Source | Built (PRs) |
 |---|---|---|---|---|---|
-| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) | BE [#58](https://github.com/jayrav13/whizwheel/pull/58) · FE [#62](https://github.com/jayrav13/whizwheel/pull/62) |
-| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) | BE [#57](https://github.com/jayrav13/whizwheel/pull/57) · FE [#60](https://github.com/jayrav13/whizwheel/pull/60) |
 | Percentage Calculator | Math | 3 | multi-mode, multi-input | [percent-calculator](https://www.calculator.net/percent-calculator.html) | BE [#32](https://github.com/jayrav13/whizwheel/pull/32) · FE [#41](https://github.com/jayrav13/whizwheel/pull/41) |
+| Ohms Law Calculator | Other | 2 | multi-input, multi-mode, physics | [ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html) | BE [#57](https://github.com/jayrav13/whizwheel/pull/57) · FE [#60](https://github.com/jayrav13/whizwheel/pull/60) |
+| BMI Calculator | Fitness & Health | 2 | multi-input, health, unit-conversion | [bmi-calculator](https://www.calculator.net/bmi-calculator.html) | BE [#58](https://github.com/jayrav13/whizwheel/pull/58) · FE [#62](https://github.com/jayrav13/whizwheel/pull/62) |
 | 401K Calculator | Financial | 4 | multi-input, iterative-solve, tabular-output, charts | [401k-calculator](https://www.calculator.net/401k-calculator.html) |  |
 | APR Calculator | Financial | 3 | multi-input | [apr-calculator](https://www.calculator.net/apr-calculator.html) |  |
 | Amortization Calculator | Financial | 4 | multi-input, tabular-output, charts | [amortization-calculator](https://www.calculator.net/amortization-calculator.html) |  |

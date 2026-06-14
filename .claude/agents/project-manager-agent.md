@@ -108,11 +108,14 @@ Maintain the full catalog of calculator.net calculators, idempotently.
 - **Mark** calculators no longer found as `removed` in the Tags column (keep the row).
 
 **Sort order:** group **completed first** — every row with a non-blank Built (PRs) cell goes
-at the **top** of the table, then all **pending** (blank Built (PRs)) rows below. **Within
-each group**, keep the existing alphabetical order — **by Category, then Calculator** (the
-ordering the catalog uses today). So the primary key is built-vs-pending, the secondary is
-Category, the tertiary is Calculator. This floats migrated calculators to the top as a
-running coverage view while leaving the untouched backlog in its familiar order.
+at the **top** of the table, then all **pending** (blank Built (PRs)) rows below. **Within the
+completed block**, order by **backend completion PR # ascending** — the `BE #N` in each row's
+Built (PRs) cell, smallest first — so the migrated calculators read in build/ship order
+(earliest-built at the top), a chronological coverage history. **Within the pending block**,
+keep the existing alphabetical order — **by Category, then Calculator** (the ordering the
+catalog uses today). **Tiebreak:** a completed row with no derivable BE PR # falls back to
+alphabetical and sorts **last** within the completed block. This floats migrated calculators to
+the top in ship order while leaving the untouched backlog in its familiar order.
 
 Report the delta in your commit message (e.g. `+3 / −1`), and note any newly-populated Built
 (PRs) cells (calculators that floated up to the completed block this refresh).
