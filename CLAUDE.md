@@ -94,7 +94,7 @@ There is no sign-up. To log in, create a user via the CLI first: `bin/rails "use
 
 ## CI/CD monitoring
 
-After **any** push or PR, the CI run must be watched to completion — never assume green. **This verification is always delegated to `ci-monitor`; the main thread does not check CI itself.**
+After **any** push or PR, the CI run must be watched to completion — never assume green. **This verification is always delegated to `ci-monitor`; the main thread does not check CI itself.** This applies to **every** PR, **including one opened by a dispatched agent** (e.g. the historian's `JOURNEY.md` PR, or a build agent's) — the agent that opens a PR does not monitor its own CI, so the **orchestrator** must dispatch `ci-monitor` the moment such a PR exists. Do not let an agent-opened PR slip past unwatched.
 
 - **Always dispatch the `ci-monitor` subagent** to watch it — for *every* CI check, status glance included (this keeps CI mechanics and log/diagnosis tokens out of the main context). Give it a branch, a commit SHA, or `--pr <n>`. It reports pass/fail and, on failure, the root cause. **The main thread MUST NOT run `bin/ci-watch` itself** — there is no "quick single-shot glance" exception; a single dispatch is the cheaper, cleaner default, and a judgment-call carve-out just re-opens the loophole. (`ci-monitor` is a registered agent type — dispatch it by name.)
 - Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run) — that script is **`ci-monitor`'s tool, not the main thread's**; the agent wraps it with diagnosis.
