@@ -95,6 +95,8 @@ The login/home pages are the first **reference implementation**; new pages copy 
   - **Data source:** charts read from the **§4 JSON envelope** — all math stays server-side (§0.5); the chart only renders values the backend already computed.
   - **No-JS fallback (always retained):** the underlying data is always reachable without JS — a **data table or text legend** — so a chart enhances the numbers, never gates access to them.
   - **Not colour alone (§6):** slices/series must be distinguishable beyond hue (a label, the hover tooltip, the fallback table) — never lean on colour to convey which slice is which.
+  - **Packaging (importmap, no build step):** the library must be a **self-contained single-file ESM bundle**, or **vendored under `vendor/javascript`** — a split-chunk dist build (entry imports sub-chunks) 404s at runtime under importmap. Known-good: `lightweight-charts` (vendored) and `chart.js` pinned to the self-contained `chart.js/auto` bundle (vendored). (Operationalized in `.claude/agents/frontend.md`.)
+  - **Proven to paint (mandatory test):** every chart ships a **pixel-level system-test assertion** — sample the canvas and require a minimum count of non-transparent pixels — so a blank canvas is a **hard CI failure**, not just a visual-gate catch (markup assertions can't see a blank canvas). (Operationalized in `.claude/agents/frontend.md`.)
 - **Data table** — thin `rule` borders, right-aligned `tabular-nums`, a hard total row (top border `ink`).
 
 ---
