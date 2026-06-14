@@ -94,6 +94,12 @@ When asked to **spin up / run / start the app**:
 
 There is no sign-up. To log in, create a user via the CLI first: `bin/rails "users:create[name,password]"` (and `bin/rails "admins:grant[name]"` for admin).
 
+### Starting the app headlessly
+
+`bin/dev` is for **interactive** development; it **fails in a non-interactive / backgrounded shell** (an agent or CI-like session). `bin/dev` runs foreman over `Procfile.dev`, and in a non-TTY shell `tailwindcss:watch` exits 0 right after start — foreman's "if any process exits, stop all" then SIGTERMs Puma, so the whole app comes down ~1s after boot even though Puma was healthy.
+
+For headless standups (screenshotting, smoke-testing a page, letting a remote user view the app) use **`bin/serve-headless`** instead. It skips foreman: `db:prepare` → `tailwindcss:build` (compile CSS **once** — no watcher) → `exec bin/rails server` (just Puma, so nothing tears it down). Serves on http://localhost:3000 (override with `PORT`). Then poll `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` until `200`. Trade-off: no CSS hot-reload — re-run `bin/rails tailwindcss:build` after a style change.
+
 ## CI/CD monitoring
 
 After **any** push or PR, the CI run must be watched to completion — never assume green. **This verification is always delegated to `ci-monitor`; the main thread does not check CI itself.** This applies to **every** PR, **including one opened by a dispatched agent** (e.g. the historian's `JOURNEY.md` PR, or a build agent's) — the agent that opens a PR does not monitor its own CI, so the **orchestrator** must dispatch `ci-monitor` the moment such a PR exists. Do not let an agent-opened PR slip past unwatched.

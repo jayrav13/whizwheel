@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+# Headless / non-TTY app standup — the agent-friendly alternative to bin/dev.
+#
+# bin/dev runs foreman over Procfile.dev (web = Puma, css = tailwindcss:watch).
+# In a non-interactive shell the Tailwind watch process exits 0 right after start,
+# and foreman's "if any process exits, stop all" then SIGTERMs Puma — so the whole
+# app comes down ~1s after boot even though Puma was healthy and listening.
+#
+# This script avoids foreman entirely: it migrates, compiles CSS once (no watcher;
+# app/assets/builds/tailwind.css is gitignored, so the build is required), then execs
+# just Puma. Nothing tears the server down. Trade-off: no CSS hot-reload — re-run
+# `bin/rails tailwindcss:build` after a style change.
+#
+# Use bin/dev for interactive development; use this for agent/headless sessions
+# (screenshotting, smoke-testing a page, letting a remote user view the app).
+
+set -e
+
+# Default to port 3000 if not specified
+export PORT="${PORT:-3000}"
+
+# Idempotent: creates the DB if absent, applies pending migrations, runs seeds.
+bin/rails db:prepare
+
+# Compile Tailwind once (no watcher).
+bin/rails tailwindcss:build
+
+exec bin/rails server -p "$PORT"
