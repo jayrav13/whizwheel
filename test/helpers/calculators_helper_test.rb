@@ -133,4 +133,51 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_equal [ "Widget count can't be blank" ], calculator_error_messages(other)
     assert_empty field_labels_for(other)
   end
+
+  # ── Ohm's Law (issue #55) ───────────────────────────────────────────────
+
+  test "decimal_display is the shared formatter percentage_display aliases" do
+    # Same formatting contract under the calculator-agnostic name (it formats the
+    # Ohm's Law quantities just as percentage_display formats percentages).
+    assert_equal "12",    decimal_display(BigDecimal("12.0"))
+    assert_equal "0.5",   decimal_display(BigDecimal("0.5"))
+    assert_equal "1,234", decimal_display(BigDecimal("1234"))
+  end
+
+  def ohms(attrs)
+    Calculators::OhmsLaw.new(attrs)
+  end
+
+  test "ohms_law_given_keys is the pair the mode supplies" do
+    assert_equal Set[:voltage, :current], ohms_law_given_keys(ohms(mode: "vi"))
+    assert_equal Set[:resistance, :power], ohms_law_given_keys(ohms(mode: "rp"))
+  end
+
+  test "ohms_law_given_keys is empty for an unset/unknown mode" do
+    assert_empty ohms_law_given_keys(ohms(mode: nil))
+  end
+
+  test "ohms_law_quantities lists V/I/R/P in order with units and symbols" do
+    assert_equal %i[voltage current resistance power], ohms_law_quantities.map { |q| q[:key] }
+    assert_equal %w[V A Ω W], ohms_law_quantities.map { |q| q[:unit] }
+    assert_equal CalculatorsHelper::OHMS_LAW_QUANTITIES, ohms_law_quantities
+  end
+
+  test "field_labels_for maps the Ohm's Law inputs to their visible labels" do
+    assert_equal CalculatorsHelper::OHMS_LAW_FIELD_LABELS, field_labels_for(ohms(mode: "vi"))
+  end
+
+  test "phrases Ohm's Law blank errors against the field's visible label" do
+    c = ohms(mode: "vi", voltage: "", current: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Voltage (V) can't be blank"
+    assert_includes messages, "Current (I) can't be blank"
+  end
+
+  test "phrases an Ohm's Law division-by-zero error against its label" do
+    c = ohms(mode: "vi", voltage: "12", current: "0")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Current (I) must be other than 0"
+  end
 end

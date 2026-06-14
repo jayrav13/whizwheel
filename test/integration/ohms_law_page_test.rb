@@ -1,0 +1,102 @@
+require "test_helper"
+
+# Integration tests for the Ohm's Law calculator page (issue #55): the GET page
+# renders its six input-pair modes and the four quantity fields, and the POST Turbo
+# Stream response renders the right result fragment for each state (the solved V/I/R/P
+# set + 422 errors). These assert the markup the system test then verifies visually;
+# together they are the §11 frontend gate. (JSON-envelope behaviour lives in
+# ohms_law_envelope_test.rb.)
+class OhmsLawPageTest < ActionDispatch::IntegrationTest
+  TURBO = { "Accept" => "text/vnd.turbo-stream.html" }.freeze
+
+  # ── GET /calculators/ohms_law ───────────────────────────────────────────
+
+  test "page renders the title, lede and submit" do
+    get "/calculators/ohms_law"
+    assert_response :success
+    assert_select "h1", text: "Ohm's Law Calculator"
+    assert_select "input[type=submit][value=Calculate]"
+  end
+
+  test "page renders all six input-pair mode options" do
+    get "/calculators/ohms_law"
+    %w[vi vr vp ir ip rp].each do |mode|
+      assert_select "input[type=radio][name='inputs[mode]'][value=?]", mode
+    end
+  end
+
+  test "page renders every quantity input with a labelled, unit-affixed field" do
+    get "/calculators/ohms_law"
+    assert_select "label[for=inputs_voltage]", text: /Voltage \(V\)/
+    assert_select "label[for=inputs_current]", text: /Current \(I\)/
+    assert_select "label[for=inputs_resistance]", text: /Resistance \(R\)/
+    assert_select "label[for=inputs_power]", text: /Power \(P\)/
+    assert_select "input[name='inputs[voltage]']"
+    assert_select "input[name='inputs[current]']"
+    assert_select "input[name='inputs[resistance]']"
+    assert_select "input[name='inputs[power]']"
+  end
+
+  test "page wires the Stimulus ohms-law controller" do
+    get "/calculators/ohms_law"
+    assert_select "form[data-controller=ohms-law]"
+  end
+
+  test "page shows the empty result state before any submission" do
+    get "/calculators/ohms_law"
+    assert_select "section#result", text: /your answer appears here/i
+  end
+
+  # ── POST /calculators/ohms_law — Turbo Stream success ───────────────────
+
+  test "vi mode solves resistance and power and renders all four quantities" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "2" } }, headers: TURBO
+    assert_response :success
+    assert_match "turbo-stream", @response.body
+    assert_select "turbo-stream[target=result]"
+    # All four quantities render: V=12, I=2 (given) and R=6, P=24 (solved).
+    assert_select "section#result", text: /\b12\b/
+    assert_select "section#result", text: /\b6\b/
+    assert_select "section#result", text: /\b24\b/
+  end
+
+  test "rp mode (the square-root branch) renders the solved voltage and current" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "rp", resistance: "4", power: "36" } }, headers: TURBO
+    assert_response :success
+    # I = √(36/4) = 3, V = 3 × 4 = 12.
+    assert_select "section#result", text: /\b12\b/
+    assert_select "section#result", text: /\b3\b/
+  end
+
+  test "result tags the two given quantities and the two solved ones" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "2" } }, headers: TURBO
+    assert_response :success
+    # The render distinguishes given (echoed) from solved, not by colour alone:
+    # each quantity carries a visible "Given" or "Solved" tag.
+    assert_select "section#result", text: /Given/i
+    assert_select "section#result", text: /Solved/i
+  end
+
+  # ── POST /calculators/ohms_law — Turbo Stream 422 (invalid) ─────────────
+
+  test "missing required input renders the error fragment with 422" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "", current: "" } }, headers: TURBO
+    assert_response :unprocessable_entity
+    assert_select "section#result [role=alert]"
+    assert_select "section#result", text: /Check your input/i
+  end
+
+  test "errors are phrased against the field's visible label, not the raw key" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "", current: "" } }, headers: TURBO
+    assert_response :unprocessable_entity
+    assert_select "section#result [role=alert] li", text: "Voltage (V) can't be blank"
+    assert_select "section#result [role=alert] li", text: "Current (I) can't be blank"
+    assert_select "section#result [role=alert] li", text: /\AVoltage can't/, count: 0
+  end
+
+  test "division-by-zero input surfaces as a validation error, not a 500" do
+    post "/calculators/ohms_law", params: { inputs: { mode: "vi", voltage: "12", current: "0" } }, headers: TURBO
+    assert_response :unprocessable_entity
+    assert_select "section#result [role=alert]"
+  end
+end

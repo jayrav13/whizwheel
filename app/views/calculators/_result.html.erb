@@ -26,6 +26,9 @@
 <% elsif calc.is_a?(Calculators::Percentage) %>
   <%= render "calculators/results/percentage", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::OhmsLaw) %>
+  <%= render "calculators/results/ohms_law", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>
