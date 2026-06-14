@@ -1,9 +1,19 @@
-# View helpers for the calculator pages. Display-only formatting + per-mode copy
-# for the Percentage page (issue #31): the math lives in Calculators::Percentage;
-# here we only render its computed result and label it for the chosen mode.
+# Display-only formatting + per-mode copy for calculator pages, and the label-based
+# validation-error phrasing required by DESIGN.md §4. Ruby helpers are coverage-counted
+# (ARCHITECTURE.md §11), so every branch here is exercised by a test.
 module CalculatorsHelper
-  # Human label above the hero number, by mode (DESIGN.md eyebrow / §4 Hero-result).
-  PERCENTAGE_CAPTIONS = {
+  # The visible label for each Percentage input — the single source the page renders
+  # AND the source the error phrasing maps an attribute key back to (DESIGN.md §4:
+  # "phrase each message against the field's visible label, never the raw key").
+  PERCENTAGE_FIELD_LABELS = {
+    "v1"        => "Value (V1)",
+    "v2"        => "Value (V2)",
+    "percent"   => "Percent (P)",
+    "direction" => "Direction"
+  }.freeze
+
+  # Per-mode caption above the hero result number.
+  PERCENTAGE_RESULT_CAPTIONS = {
     "percent_of"      => "Result",
     "what_percent"    => "Percentage",
     "percent_of_what" => "The whole",
@@ -11,74 +21,59 @@ module CalculatorsHelper
     "change"          => "New value"
   }.freeze
 
-  def percentage_result_caption(mode)
-    PERCENTAGE_CAPTIONS.fetch(mode, "Result")
-  end
-
-  # Format a computed BigDecimal/number for display: trim trailing zeros so exact
-  # results read cleanly (10.0 → "10", 12.5 → "12.5"), but keep full precision for
-  # non-terminating values. Compute stays at full precision (ARCHITECTURE.md §10);
-  # this is display-only.
+  # Format a BigDecimal for display (ARCHITECTURE.md §10 — round only for display):
+  # round to 6dp, trim trailing zeros, and delimit thousands. Keeps the figure exact
+  # for the reference values (all terminate well within 6dp) while staying readable.
   def percentage_display(value)
-    # BigDecimal#to_s("F") always emits a decimal point (e.g. "10.0", "0.0"), so the
-    # trailing-zero trim is unconditional — no integer-without-point case to guard.
-    formatted = BigDecimal(value.to_s).round(6).to_s("F").sub(/\.?0+\z/, "")
-    number_with_delimiter(formatted)
+    rounded = value.round(6)
+    whole = rounded.frac.zero?
+    number = whole ? rounded.to_i.to_s : rounded.to_s("F").sub(/0+\z/, "")
+    number_with_delimiter(number)
   end
 
-  # Visible-label map for the Percentage page's fields — the exact labels the form
-  # renders (DESIGN.md §4: phrase validation errors against the field's visible
-  # label, never the raw attribute key). Keyed by the attribute symbol the envelope
-  # returns; presentation-only (no math), so it lives in the FE layer.
-  PERCENTAGE_FIELD_LABELS = {
-    mode:      "Mode",
-    v1:        "Value (V1)",
-    v2:        "Value (V2)",
-    percent:   "Percent (P)",
-    direction: "Direction"
-  }.freeze
+  # The caption above the hero number, by mode (with a safe fallback).
+  def percentage_result_caption(mode)
+    PERCENTAGE_RESULT_CAPTIONS.fetch(mode, "Result")
+  end
 
-  # Render the envelope's validation errors phrased against each field's *visible
-  # label* — "Value (V1) can't be blank", not "V1 can't be blank" (DESIGN.md §4).
-  # We rebuild each message from the raw error (attribute + message) rather than
-  # ActiveModel's full_messages so the human label leads. Falls back to the
-  # humanized attribute for any field without a mapped label, keeping the shared
-  # error partial honest for other calculators.
-  def calculator_error_messages(calc)
-    labels = field_labels_for(calc)
-    calc.errors.map do |error|
-      label = labels.fetch(error.attribute) { error.attribute.to_s.humanize }
-      base_error?(error) ? error.message : "#{label} #{error.message}"
+  # A short human sentence describing what was computed, by mode — shown under the
+  # hero number so the answer reads in context ("20% of 50").
+  def percentage_result_detail(calc)
+    v1 = percentage_display(calc.v1) if calc.v1
+    v2 = percentage_display(calc.v2) if calc.v2
+    p  = percentage_display(calc.percent) if calc.percent
+
+    case calc.mode
+    when "percent_of"      then "#{p}% of #{v1}"
+    when "what_percent"    then "#{v1} is this percent of #{v2}"
+    when "percent_of_what" then "#{v1} is #{p}% of this amount"
+    when "difference"      then "between #{v1} and #{v2}"
+    when "change"          then "#{v1} #{calc.direction == 'increase' ? 'increased' : 'decreased'} by #{p}%"
     end
   end
 
-  # The error :base attribute carries a whole-record message (e.g. a guard like a
-  # division-by-zero check) that already reads as a full sentence — show it as-is,
-  # with no label prefix.
-  def base_error?(error)
-    error.attribute == :base
-  end
-
-  # The label map for a given calculator. Percentage has a bespoke map; anything
-  # else falls back to humanized attribute names (handled in the caller).
+  # The label map for a calculator instance — Percentage has a bespoke map; anything
+  # else gets none (the error phrasing then falls back to a humanized attribute).
   def field_labels_for(calc)
-    calc.is_a?(Calculators::Percentage) ? PERCENTAGE_FIELD_LABELS : {}
+    case calc
+    when Calculators::Percentage then PERCENTAGE_FIELD_LABELS
+    else {}
+    end
   end
 
-  # A plain-language restatement of the answer, by mode, echoing the inputs so the
-  # result is self-explanatory (never relying on the form alone).
-  def percentage_result_detail(calc)
-    case calc.mode
-    when "percent_of"
-      "#{percentage_display(calc.percent)}% of #{percentage_display(calc.v1)}"
-    when "what_percent"
-      "#{percentage_display(calc.v1)} is this percent of #{percentage_display(calc.v2)}"
-    when "percent_of_what"
-      "#{percentage_display(calc.v1)} is #{percentage_display(calc.percent)}% of this amount"
-    when "difference"
-      "between #{percentage_display(calc.v1)} and #{percentage_display(calc.v2)}"
-    else # "change"
-      "#{percentage_display(calc.v1)} #{calc.direction == 'increase' ? 'increased' : 'decreased'} by #{percentage_display(calc.percent)}%"
+  # Turn an ActiveModel errors object into label-led sentences (DESIGN.md §4). A
+  # field error reads "<visible label> <message>"; a whole-record (:base) error is a
+  # full sentence with no label prefix. The label comes from what the page rendered.
+  def calculator_error_messages(calc)
+    labels = field_labels_for(calc)
+    calc.errors.map do |error|
+      attribute = error.attribute.to_s
+      if attribute == "base"
+        error.message
+      else
+        label = labels[attribute] || attribute.humanize
+        "#{label} #{error.message}"
+      end
     end
   end
 end

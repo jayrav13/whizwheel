@@ -1,48 +1,64 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Progressive enhancement for the multi-mode Percentage page (issue #31).
+// Percentage page (spec issue #31): the mode pills select which percentage operation
+// runs, and each mode needs a different subset of inputs. This controller is pure
+// progressive enhancement — the form posts over Turbo and works without JS (the server
+// validates exactly the selected mode's inputs and re-renders the result fragment). The
+// controller only (a) reveals the fields the chosen mode uses, (b) lifts the active mode
+// pill, and (c) lifts the chosen increase/decrease toggle half.
 //
-// The page works without JS: every mode's fields are present in the form and the
-// server validates only the selected mode's required inputs (the backend's
-// per-mode conditional validation). This controller is polish — it switches which
-// fields are visible for the selected mode and drives the increase/decrease
-// toggle, so the form only ever shows the inputs the chosen mode needs.
-//
-// Markup contract:
-//   - the root element carries data-controller="percentage"
-//   - mode <input type="radio" name="inputs[mode]"> elements have data-percentage-target="mode"
-//   - each conditional field group has data-percentage-field="<csv of modes it belongs to>"
-//   - the direction toggle radios have data-percentage-target="direction"
-//   - each direction button label has data-percentage-target="directionLabel" + data-direction
+// Field visibility is data-driven: each per-mode field block declares the modes it
+// belongs to via `data-percentage-modes` (space-separated). The active mode shows only
+// its blocks; inputs in hidden blocks are disabled so they are never submitted.
 export default class extends Controller {
-  static targets = ["mode", "field", "direction", "directionLabel", "modeLabel"]
+  static targets = ["modeInput", "field", "pill", "directionPill"]
 
   connect() {
-    this.update()
+    this.render()
   }
 
-  update() {
-    const mode = this.selectedMode
-    this.fieldTargets.forEach((group) => {
-      const modes = (group.dataset.percentageField || "").split(",")
-      group.hidden = !modes.includes(mode)
-    })
-    this.modeLabelTargets.forEach((label) => {
-      label.classList.toggle("is-active", label.dataset.mode === mode)
-    })
-    this.syncDirection()
+  // A mode radio changed → re-render visibility + active states.
+  select() {
+    this.render()
   }
 
-  syncDirection() {
-    const selected = this.directionTargets.find((r) => r.checked)
-    const value = selected ? selected.value : null
-    this.directionLabelTargets.forEach((label) => {
-      label.classList.toggle("is-active", label.dataset.direction === value)
+  // A direction radio changed → lift the chosen toggle half.
+  selectDirection() {
+    this.paintDirection()
+  }
+
+  render() {
+    const mode = this.currentMode
+    this.fieldTargets.forEach((field) => {
+      const modes = (field.dataset.percentageModes || "").split(/\s+/)
+      const on = modes.includes(mode)
+      field.hidden = !on
+      field.querySelectorAll("input").forEach((input) => {
+        if (!(input.type === "radio" && input.name === "inputs[mode]")) {
+          input.disabled = !on
+        }
+      })
+    })
+    this.paintPills(mode)
+    this.paintDirection()
+  }
+
+  paintPills(mode) {
+    this.pillTargets.forEach((pill) => {
+      pill.classList.toggle("is-active", pill.dataset.mode === mode)
     })
   }
 
-  get selectedMode() {
-    const checked = this.modeTargets.find((r) => r.checked)
-    return checked ? checked.value : null
+  paintDirection() {
+    this.directionPillTargets.forEach((pill) => {
+      const radio = this.element.querySelector(`#${pill.htmlFor}`)
+      pill.classList.toggle("is-active", Boolean(radio && radio.checked))
+    })
+  }
+
+  get currentMode() {
+    const checked = this.modeInputTargets.find((r) => r.checked)
+    if (checked) return checked.value
+    return this.modeInputTargets[0] && this.modeInputTargets[0].value
   }
 }

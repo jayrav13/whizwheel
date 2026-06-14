@@ -1,11 +1,10 @@
-<%# Turbo Stream response for POST /calculators/:slug (issue #31). The controller
-    renders this for BOTH branches with @calc set:
-      • success → default render of this template (calc.valid?)
-      • invalid → render "calculators/create", status: :unprocessable_entity
-    so this one template covers both states by handing @calc to _result, which
-    decides answer-vs-errors. It replaces the #result target in place, leaving the
-    input form (and the visitor's entries) untouched — the progressive-enhancement
-    payoff over a full-page reload. %>
+<%# The create response (CalculatorsController#create, both 200 and 422): replace the
+    #result region in place with the computed hero result or the error card. `@calc` is
+    the calculator instance the controller built and (in)validated; the _result partial
+    branches on whether it has errors or a result (DESIGN.md §4). The replaced node keeps
+    the same id + aria-live so subsequent submits keep targeting it. %>
 <%= turbo_stream.replace "result" do %>
-  <%= render "calculators/result", calc: @calc %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: @calc %>
+  </section>
 <% end %>

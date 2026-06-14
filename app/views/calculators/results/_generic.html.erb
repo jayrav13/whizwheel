@@ -1,17 +1,17 @@
-<%# Generic answer fragment — renders the §4 envelope's `result` Hash for any
-    calculator that has no bespoke result view yet (and for the test double). Each
-    key/value becomes a hero-result row: humanized key as the eyebrow, the value as
-    a big tabular-nums number (DESIGN.md §4). Keeps the seam honest — the page works
-    for a calculator the moment its math + page exist, before custom result copy.
-
-    Locals: calc. %>
+<%# Generic hero result for any calculator without a bespoke result partial — keeps the
+    shared #result fragment honest for the dynamic controller (it renders this for every
+    slug). Same BLEND hero shell (5px coral rule, tabular-nums) as the Percentage hero;
+    one row per result key. `calc:` is any valid Calculators::* instance. %>
 <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
-  <div class="border-l-[5px] border-primary p-8">
-    <% calc.result.each do |key, value| %>
-      <div class="not-first:mt-6 not-first:border-t not-first:border-rule not-first:pt-6">
-        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= key.to_s.humanize %></p>
-        <p class="mt-3 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= percentage_display(value) %></p>
-      </div>
-    <% end %>
+  <div class="flex gap-5 p-7">
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <dl class="min-w-0 space-y-4">
+      <% calc.result.each do |key, value| %>
+        <div>
+          <dt class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= key.to_s.humanize %></dt>
+          <dd class="mt-2 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= value %></dd>
+        </div>
+      <% end %>
+    </dl>
   </div>
 </div>
