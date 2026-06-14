@@ -53,6 +53,21 @@ class OhmsLawScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("22-ohms-law-rp")
   end
 
+  test "large 6+ digit solved values fill the stat grid without clipping" do
+    # The responsive auto-fit stat grid (DESIGN.md §4) must hold large figures without
+    # truncation — drive a high-power circuit so R and P become 6+ digit numbers and
+    # screenshot it for visual review.
+    visit "/calculators/ohms_law"
+    fill_in "Voltage (V)", with: "999000"
+    fill_in "Current (I)", with: "999"
+    click_button "Calculate"
+    within "#result" do
+      assert_text "998,001,000"  # solved power — a 9-digit figure, rendered in full
+      assert_text "999,000"      # given voltage echoes back at full width
+    end
+    screenshot_full_page("24-ohms-law-large-values")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/ohms_law"
     # Submit vi with no numbers → server 422 → error fragment in #result.
