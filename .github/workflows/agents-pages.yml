@@ -1,0 +1,79 @@
+name: Agents Pages
+
+# Publish the "Agents of whizwheel" site to GitHub Pages.
+#
+# The site is GENERATED FROM the agent definitions (.claude/agents/*.md) on
+# every deploy by bin/build-agents-site, so the published pages can never drift
+# from the source of truth — lockstep by construction. Nothing is checked in:
+# _site/ is built fresh in this workflow.
+#
+# This deploy job runs only on push to main (never on PRs / branches) and on
+# manual dispatch. It is independent of ci.yml (different name, paths, and
+# Pages-only permissions), so the two never interfere.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".claude/agents/**"
+      - "bin/build-agents-site"
+      - ".github/workflows/agents-pages.yml"
+  workflow_dispatch:
+
+# Least privilege: only what the Pages deploy needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one in-flight Pages deploy at a time; let a running deploy finish
+# rather than cancelling it mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # The generator is pure stdlib Ruby — no bundle, no Rails, no DB,
+          # no Node. Pin to the repo's Ruby version (.ruby-version).
+          ruby-version-file: .ruby-version
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Generate the agents site
+        run: bin/build-agents-site _site
+
+      - name: Smoke-check the generated site
+        run: |
+          test -f _site/index.html || { echo "missing index.html"; exit 1; }
+          count=$(ls .claude/agents/*.md | wc -l | tr -d ' ')
+          for f in .claude/agents/*.md; do
+            slug=$(basename "$f" .md)
+            test -f "_site/$slug.html" || { echo "missing page for $slug"; exit 1; }
+          done
+          echo "Generated index + $count agent page(s)."
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
