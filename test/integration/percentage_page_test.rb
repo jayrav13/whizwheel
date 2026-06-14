@@ -50,9 +50,11 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     assert_select "input[name='inputs[percent]']"
   end
 
+  # The direction sub-toggle (change mode) is the segmented control — N = 2 short labels
+  # (DESIGN.md §4) — and a native radio <fieldset>/<legend> grouping increase/decrease.
   test "page renders the increase/decrease direction toggle for change mode" do
     get "/calculators/percentage"
-    assert_select "div[data-percentage-field=change]"
+    assert_select "fieldset[data-percentage-field=change] legend", text: "Direction"
     assert_select "input[type=radio][name='inputs[direction]'][value=increase]"
     assert_select "input[type=radio][name='inputs[direction]'][value=decrease]"
   end

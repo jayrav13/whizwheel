@@ -1,23 +1,26 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Percentage page (spec issue #31): the mode pills select which percentage operation
-// runs, and each mode needs a different subset of inputs. This controller is pure
-// progressive enhancement — the form posts over Turbo and works without JS (the server
-// validates exactly the selected mode's inputs and re-renders the result fragment). The
-// controller only (a) reveals the fields the chosen mode uses, (b) lifts the active mode
-// pill, and (c) lifts the chosen increase/decrease toggle half.
+// Percentage page (spec issue #31). A multi-mode calculator: a required `mode` selects
+// one of five percentage operations, and each mode needs a different subset of inputs.
 //
-// Field visibility is data-driven: each per-mode field block declares the modes it
-// belongs to via `data-percentage-modes` (space-separated). The active mode shows only
-// its blocks; inputs in hidden blocks are disabled so they are never submitted.
+// This controller is pure progressive enhancement (DESIGN.md §0.5). The page works with
+// NO JS — the <form> posts inputs[...] over Turbo and the server validates exactly the
+// selected mode and re-renders the #result fragment, and the .mode-option / .direction-pill
+// active states are already painted by their peer:checked CSS before this connects. The
+// controller only sharpens the form: (a) it reveals just the active mode's field blocks
+// and disables the inputs in the others so they aren't submitted, (b) it lifts the active
+// mode-option row, and (c) it lifts the chosen increase/decrease half.
+//
+// Field visibility is data-driven: each per-mode block declares the modes it belongs to
+// via `data-percentage-modes` (space-separated). The active mode shows only its blocks.
 export default class extends Controller {
-  static targets = ["modeInput", "field", "pill", "directionPill"]
+  static targets = ["modeInput", "field", "modeOption", "directionPill"]
 
   connect() {
     this.render()
   }
 
-  // A mode radio changed → re-render visibility + active states.
+  // A mode radio changed → re-render field visibility + active states.
   select() {
     this.render()
   }
@@ -33,19 +36,21 @@ export default class extends Controller {
       const modes = (field.dataset.percentageModes || "").split(/\s+/)
       const on = modes.includes(mode)
       field.hidden = !on
+      // Disable inactive-block inputs so a hidden mode's value is never posted. The mode
+      // radios themselves stay enabled — the picker must always submit the chosen mode.
       field.querySelectorAll("input").forEach((input) => {
         if (!(input.type === "radio" && input.name === "inputs[mode]")) {
           input.disabled = !on
         }
       })
     })
-    this.paintPills(mode)
+    this.paintModeOptions(mode)
     this.paintDirection()
   }
 
-  paintPills(mode) {
-    this.pillTargets.forEach((pill) => {
-      pill.classList.toggle("is-active", pill.dataset.mode === mode)
+  paintModeOptions(mode) {
+    this.modeOptionTargets.forEach((option) => {
+      option.classList.toggle("is-active", option.dataset.mode === mode)
     })
   }
 

@@ -1,0 +1,110 @@
+<% content_for :title, "Simple Interest Calculator — whizwheel" %>
+
+<%#
+  Simple Interest calculator page (spec issue #78, DESIGN.md BLEND). Compute interest
+  charged only on the original principal (never compounded):
+    interest = principal × (rate / 100) × time_in_years
+    total    = principal + interest
+  Time is entered with a unit (Years | Months); months convert to years before the formula.
+
+  The form posts over Turbo and re-renders the #result region in place; it works WITHOUT
+  JS — the server validates the inputs and the checked inputs[unit] radio, and re-renders
+  the result fragment. Unlike Percentage/BMI, no field depends on the chosen unit, so the
+  Stimulus controller is pure polish: it only lifts the active segmented-control half. The
+  no-JS baseline is unchanged — peer:checked paints the active half before JS connects.
+
+  Unit picker — N = 2 short labels (Years | Months) → per DESIGN.md §4 it is a SEGMENTED
+  CONTROL (the connected horizontal track, reusing the .direction-pill vocabulary), NOT a
+  wrapping pill row or the .mode-option list. A native radio <fieldset>/<legend> posts
+  inputs[unit].
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • unit segmented control → halves tight on the Affix tier (gap-1)
+    • stacked fields    → space-y-5
+    • mode → fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Simple Interest Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Interest charged only on the original principal — never compounded. Enter a principal,
+    an annual rate, and a term in years or months, and see the interest accrued and the
+    ending balance. Every answer is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/simple_interest", scope: :inputs, method: :post,
+          data: { controller: "simple-interest" } do |f| %>
+
+      <%# Fields. Principal carries a $ affix, rate a % affix (Affix tier — gap-2, the
+          symbol next to its field, DESIGN.md §3). Stacked tier: space-y-5 down the column. %>
+      <div class="space-y-5">
+        <%# Principal — money, with a leading $ affix. %>
+        <div>
+          <%= f.label :principal, "Principal", class: "field-label", for: "inputs_principal" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :principal, id: "inputs_principal", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual rate — percent, with a trailing % affix. %>
+        <div>
+          <%= f.label :rate, "Annual rate", class: "field-label", for: "inputs_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :rate, id: "inputs_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Time + unit. The amount and its unit are parts of one control (DESIGN.md §3 —
+            the Time field and its Years|Months segmented control read together). %>
+        <div>
+          <%= f.label :time, "Time", class: "field-label", for: "inputs_time" %>
+          <%= f.number_field :time, id: "inputs_time", step: "any", inputmode: "decimal",
+                min: "0", placeholder: "0", class: "field-input mt-1.5" %>
+
+          <%# Unit picker — a mode/variant picker with N=2 short options, so per DESIGN.md
+              §4 it is a SEGMENTED CONTROL: one connected horizontal track, the two options
+              as halves, the active half lifted to surface white. Reuses the segmented-
+              control vocabulary (.direction-pill) on the bg-tinted bordered track, halves
+              tight on the Affix tier (gap-1, parts of one control). Native radio
+              <fieldset>/<legend> with peer sr-only radios posting inputs[unit]; the active
+              half is painted by peer:checked (no-JS baseline) and .is-active (the Stimulus
+              paintUnit hook), so it works without JS. %>
+          <fieldset class="mt-2">
+            <legend class="sr-only">Time unit</legend>
+            <div class="flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
+              <% [["years", "Years"], ["months", "Months"]].each_with_index do |(value, text), i| %>
+                <%= f.radio_button :unit, value,
+                      checked: i.zero?,
+                      class: "peer sr-only",
+                      data: { simple_interest_target: "unitInput", action: "simple-interest#select" } %>
+                <%= f.label :unit, text, value: value,
+                      class: "direction-pill",
+                      data: { simple_interest_target: "pill", unit: value } %>
+              <% end %>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

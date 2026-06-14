@@ -1,0 +1,82 @@
+<% content_for :title, "Amortization Calculator — whizwheel" %>
+
+<%#
+  Amortization calculator page (spec issue #84, DESIGN.md BLEND) — the project's first
+  tabular-output + charts page. A single-mode calculator: three inputs (loan amount,
+  annual rate, term in years) → the level monthly payment, the totals, a donut breakdown
+  (principal vs. interest), a balance-over-time curve, and the full month-by-month
+  amortization schedule.
+
+  No mode picker — the inputs don't depend on a chosen mode, so there is none (DESIGN.md
+  §4 "Mode picker" applies only when inputs vary by mode). The form posts over Turbo and
+  re-renders the #result region in place, and works WITHOUT JS (server validates). With
+  JS, the amortization_controller paginates the long schedule (a 30y loan is 360 rows) —
+  the no-JS baseline shows the whole table, scrollable.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Amortization Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    The level monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest
+    breakdown, and the full month-by-month payment schedule. Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/amortization", scope: :inputs, method: :post do |f| %>
+
+      <%# Fields. Stacked tier: space-y-5 down the column (DESIGN.md §3). Each numeric
+          field carries its $/%/unit affix on the Affix tier (gap-2). The amount and rate
+          are decimals; the term is a whole number of years (integer). %>
+      <div class="space-y-5">
+        <%# Loan amount — $ affix leading the field. %>
+        <div>
+          <%= f.label :principal, "Loan amount", class: "field-label", for: "inputs_principal" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :principal, id: "inputs_principal", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual interest rate — % affix trailing the field. %>
+        <div>
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Loan term — whole years. A "years" unit trails the field. %>
+        <div>
+          <%= f.label :years, "Loan term", class: "field-label", for: "inputs_years" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :years, id: "inputs_years", step: "1", inputmode: "numeric",
+                  min: "1", placeholder: "0", class: "field-input" %>
+            <span class="w-12 text-sm font-bold text-label" aria-hidden="true">years</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

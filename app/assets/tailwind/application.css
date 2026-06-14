@@ -62,10 +62,11 @@
     @apply ring-2 ring-accent ring-offset-2 ring-offset-bg;
   }
 
-  /* Mode option row — PROTOTYPE (Ohm's Law only, validating before codifying into
-     DESIGN.md §4 "Mode picker" + sweeping all calculators). Replaces the wrapping
-     pill row with a "selectable option list": full-width, left-aligned rows inside ONE
-     bordered container with divided rows, so it reads as one selector, not N chips.
+  /* Mode option row — the codified "Mode picker" (DESIGN.md §4): the selectable option
+     list used by any calculator whose modes are N ≥ 4 or carry a multi-word label
+     (Ohm's Law, Percentage). Instead of a wrapping pill row it is a "selectable option
+     list": full-width, left-aligned rows inside ONE bordered container with divided
+     rows, so it reads as a single selector, not N chips.
 
      Each row is a styled <label> peered to a visually-hidden native radio (the no-JS,
      a11y baseline from DESIGN.md §4/§6 is preserved). The non-color cue (DESIGN.md §6
