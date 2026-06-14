@@ -49,6 +49,21 @@ class SimpleInterestScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("42-simple-interest-months")
   end
 
+  test "a six-plus-digit result lays out in the stat grid without clipping" do
+    visit "/calculators/simple_interest"
+    fill_in "Principal", with: "1000000"
+    fill_in "Annual rate", with: "8"
+    fill_in "Time", with: "10"
+    click_button "Calculate"
+    within "#result" do
+      # 1,000,000 @ 8% for 10 years → 800,000.00 interest, 1,800,000.00 ending balance.
+      assert_text "1,800,000.00"
+      assert_text "800,000.00"
+      assert_text "1,000,000.00"
+    end
+    screenshot_full_page("44-simple-interest-large")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/simple_interest"
     # Submit with no numbers → server 422 → error fragment in #result.
