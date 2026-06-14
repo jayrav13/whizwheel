@@ -88,3 +88,43 @@ bin/rails runner 'sql=File.read("/tmp/wz_census_fks.sql"); ActiveRecord::Base.co
 The census is **authoritative for what exists**. Prefer `bin/rails runner` with ActiveRecord
 reads for all subsequent queries (it respects `Discardable` scopes and jsonb accessors); drop
 to `bin/rails dbconsole` / `psql` for the `calculation_logs` view or raw SQL.
+
+## Step 2 — reconcile the census against what you know
+
+This definition documents the schema **as of 2026-06-14 (the post-iteration-0002 schema)**.
+The schema grows; this overlay can lag. So after the census, **diff what the census returned
+against the documented set below** and state the gap explicitly. You are never silently blind:
+the census shows the full surface, and you are honest about where your deep knowledge stops.
+
+**Documented set (deep knowledge as of 2026-06-14):**
+
+- **`calculations`** (table) — `calculator` (string, indexed), `inputs` jsonb, `result`
+  jsonb, `user_id` (nullable → **anonymous vs. attributed**), `deleted_at`. Soft-deletable
+  (`Discardable`): use `.kept` / `.discarded`.
+- **`calculation_logs`** (VIEW) — `calculations` LEFT JOIN `users`; adds `username` so
+  attribution needs no manual join. Read via `dbconsole`/`psql` or
+  `ActiveRecord::Base.connection.select_all`.
+- **`users`** (table) — `username` (unique), `password_digest`. **Not** soft-deletable.
+- **`sessions`** (table) — `user_id`, `ip_address`, `user_agent`. **Not** soft-deletable.
+- **`roles`** (table) — join of `users`↔`role_types`. Soft-deletable (`Discardable`).
+- **`role_types`** (table) — `display_name`, `permalink` (unique). Soft-deletable. A user is
+  **admin** iff they hold a `.kept` role whose `role_type.permalink = 'ADMIN'`.
+
+**Soft-delete map (critical — never apply `kept`/`discarded` where `deleted_at` does not
+exist):** soft-deletable = `calculations`, `roles`, `role_types`. **Not** soft-deletable =
+`users`, `sessions`.
+
+**Attribution chain:** `calculations.user_id → users → roles → role_types`.
+
+**Report the reconciliation like this:**
+
+```
+schema census: <N> tables + <M> view(s) (RAILS_ENV=development)
+  documented in depth: <names present in BOTH census and the documented set>
+  ⚠ present in DB, NOT yet documented in this agent: <census names not in the documented set, or "none">
+    → reported with generic care (structure only, no semantic notes)
+```
+
+When something undocumented appears, report its structure from the census (columns/FKs) and
+flag that you have no semantic notes for it — do **not** guess its meaning or soft-delete
+status. Surfacing the gap is the job.
