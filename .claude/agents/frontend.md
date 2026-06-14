@@ -74,6 +74,14 @@ without it.
   utility cluster repeats **≥3×**, extract a partial (preferred) or a small `@apply` class.
 - Always run `bin/rails tailwindcss:build` before running tests or serving, so Propshaft can
   resolve the built stylesheet.
+- **Mode/variant pickers follow `DESIGN.md §4` ("Mode picker").** When a calculator's inputs
+  depend on a chosen mode (the "I know…" / variant selector), the picker is **always a native
+  radio `<fieldset>`/`<legend>`** posting a single-select `inputs[mode]` (no-JS-safe: the
+  visually-hidden `peer` radio + styled `<label for>`). Choose the presentation by count and
+  label length — a **segmented control** at N ≤ 3 with short labels (Percentage's
+  Increase|Decrease, BMI's US|Metric), the **`.mode-option` selectable option list** at N ≥ 4
+  or any multi-word/long label. **Never a raw `<select>` as the primary picker** — reserve it
+  for a genuinely long menu (N > ~8). `DESIGN.md §4` is the source of truth; build to it.
 
 ## Quality bar
 
