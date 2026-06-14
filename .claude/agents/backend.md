@@ -150,6 +150,31 @@ end
 - **Purity (`CLAUDE.md` rule #5):** no DB, no request, no user inside a calculator. That purity
   is what makes the 100% gate achievable.
 
+### Numeric input is guarded *before* casting — a `Base` guarantee (#109/#110)
+
+ActiveModel runs a `:decimal`/`:integer` **cast before validation**, and the cast silently
+swallows bad input: a non-numeric string casts to `0`/`0.0`, and a fractional value cast to
+`:integer` is truncated. Left alone, `numericality`/`only_integer` validations are
+**unreachable** — the calculator computes on garbage (#110) or on a truncated number (#109)
+instead of returning a 422.
+
+`Calculators::Base` therefore **captures each `:decimal`/`:integer` attribute's raw, pre-cast
+value** (recorded generically in `assign_attributes` via `attribute_types` — no per-calculator
+wiring) and a `validate` rejects any **non-blank** raw value that isn't a valid number
+(`:not_a_number` → "is not a number") or, for `:integer` attributes, isn't whole
+(`:not_an_integer` → "must be a whole number"). Blank/nil/whitespace is skipped so each
+calculator's own `presence` rules still own the "missing input" message. The rejection surfaces
+as a 422 through the §4 envelope and records **no** `calculation` row.
+
+This is a **shared `Base` contract**, not per-calculator code:
+
+- **Do not** re-add per-calculator `only_integer:`/`numericality:` workarounds for this — the
+  guard already covers every `:decimal`/`:integer` attribute on every calculator. (Per-calculator
+  `numericality` for *range* rules — `greater_than`, etc. — is still yours to add.)
+- **When you regenerate or touch `Base`, preserve this guard** — it must survive the regen
+  sweep (rule #1). If you rebuild `Base` from scratch, re-derive it; it is part of the contract,
+  not an optional patch.
+
 ## Quality bar — every feature ships tests (`§11`)
 
 - **Every calculator** ships a **reference-value unit test** — the `{inputs} → {expected}` table
