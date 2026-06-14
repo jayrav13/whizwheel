@@ -39,6 +39,19 @@ class MeanMedianModeRangeScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("32-mmr-no-mode-result")
   end
 
+  test "large 6+ digit figures fill the auto-fit stat grid without clipping" do
+    visit "/calculators/mean_median_mode_range"
+    fill_in "Numbers", with: "1234567, 7654321"
+    click_button "Calculate"
+    within "#result" do
+      assert_text "8,888,888"  # sum, delimited in full
+      assert_text "6,419,754"  # range, delimited in full
+      assert_text "7,654,321"  # largest
+      assert_text "1,234,567"  # smallest
+    end
+    screenshot_full_page("34-mmr-large-values")
+  end
+
   test "a non-numeric token shows the label-based error fragment" do
     visit "/calculators/mean_median_mode_range"
     fill_in "Numbers", with: "1, 2, banana"
