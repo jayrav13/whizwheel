@@ -60,7 +60,7 @@ Feature work follows **Issue → Branch → Commit → PR → Merge → Cleanup*
 - **PR** via `gh pr create`; put **`Closes #<issue>`** in the PR body; end the body with the Claude Code footer.
 - **Merge with a merge commit, never squash** (`gh pr merge <pr> --merge`) — preserve the per-task commit story.
 - **Never auto-merge** — merge only on explicit human instruction, after CI is green (see CI/CD monitoring).
-- **After merge:** delete the remote branch, remove the worktree if one was used (see Worktrees), and `git pull` on `main`.
+- **After merge — use `bin/merge-cleanup <pr>`** (it pins the order below; do not hand-run the steps). **Order matters:** a branch can't be deleted while a worktree references it, so worktree removal must come *before* branch deletion — otherwise `gh pr merge --delete-branch` aborts on the local delete and **silently skips the remote delete too**, leaving a stale remote branch. The sequence the script runs: (1) `gh pr merge <pr> --merge` (**no** `--delete-branch`); (2) `git worktree remove .claude/worktrees/<slug>` if one was used; (3) `git branch -D <branch>` **and** `git push origin --delete <branch>` (local *and* remote, each its own step); (4) `git checkout main && git pull --ff-only && git worktree prune`.
 
 ## Worktrees
 
@@ -75,7 +75,7 @@ There are **two lanes**, by who is doing the work:
   ```
   The agent then works inside that path (absolute paths), commits, **pushes, and opens its PR from the worktree — it never merges and never pushes to `main`**. We do **not** use the `Agent` tool's dispatch-time `isolation: "worktree"`; the agent owns its own isolation lifecycle.
 - **Report-only agents** (`ci-monitor`, `dependabot-agent`) never write, so they **do not** create a worktree.
-- **Removal happens at the standard post-merge cleanup** (main-thread / human, after the human merges the PR): `git worktree remove .claude/worktrees/<slug>` (or `ExitWorktree action: "remove"`), then `git pull` on `main`. An agent that only opened a PR leaves its worktree in place for that cleanup.
+- **Removal happens at the standard post-merge cleanup** (main-thread / human, after the human merges the PR) via **`bin/merge-cleanup <pr>`**, which removes the worktree **before** deleting the branch (so the delete can't fail) and deletes the local *and* remote branch. The order is load-bearing — see the "After merge" bullet above. (Manual equivalent, in order: `git worktree remove .claude/worktrees/<slug>` — or `ExitWorktree action: "remove"` — then delete local + remote branches, then `git pull --ff-only` on `main`.) An agent that only opened a PR leaves its worktree in place for that cleanup.
 
 ## Running things
 

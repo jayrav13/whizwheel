@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# merge-cleanup — merge a PR and clean up its branch + worktree in the CORRECT order.
+#
+# The ordering bug this fixes
+# ---------------------------
+# `gh pr merge <pr> --merge --delete-branch` fails partway whenever the PR's branch
+# is checked out in a worktree (our standing default — every dispatched writing agent
+# works in .claude/worktrees/<slug> on its branch). git refuses to delete a branch
+# that a worktree still references:
+#
+#     error: cannot delete branch '<branch>' used by worktree at '.claude/worktrees/<slug>'
+#
+# The merge itself succeeds, but --delete-branch aborts on the LOCAL delete — and
+# because it aborts there, it never reaches the REMOTE delete, leaving a stale remote
+# branch behind (easy to forget to clean up by hand).
+#
+# Fix: do NOT use --delete-branch. Remove the worktree FIRST, then delete the local
+# AND remote branches, then return to main. Worktree removal must precede branch
+# deletion; remote deletion is its own step so it can never be skipped.
+#
+# Order (each step defensive — skipped if its target is already gone):
+#   1. gh pr merge <pr> --merge        (no --delete-branch)
+#   2. resolve head branch + its worktree path under .claude/worktrees/
+#   3. git worktree remove <path>      (if a worktree holds the branch)
+#   4. git branch -D <branch>          (local)  AND  git push origin --delete <branch> (remote)
+#   5. git checkout main && git pull --ff-only && git worktree prune
+#
+# Usage:
+#   bin/merge-cleanup <pr-number>
+#
+# Run from the MAIN checkout (not from inside the worktree you're about to remove).
+
+set -uo pipefail
+
+pr="${1:-}"
+if [[ -z "$pr" ]]; then
+  echo "usage: bin/merge-cleanup <pr-number>" >&2
+  exit 2
+fi
+
+# Repo root (the main checkout). git worktree operations run from here.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$repo_root" ]]; then
+  echo "merge-cleanup: not inside a git repository" >&2
+  exit 1
+fi
+cd "$repo_root" || exit 1
+
+# ── Resolve the PR's head branch up front (needed for cleanup even after merge). ──
+branch="$(gh pr view "$pr" --json headRefName --jq .headRefName 2>/dev/null)"
+if [[ -z "$branch" ]]; then
+  echo "merge-cleanup: could not resolve head branch for PR #$pr (does it exist?)" >&2
+  exit 1
+fi
+echo "→ PR #$pr head branch: $branch"
+
+# ── Step 1: merge (merge commit, never squash; NO --delete-branch). ──
+echo "→ [1/5] merging PR #$pr (--merge, no --delete-branch)"
+if gh pr merge "$pr" --merge; then
+  echo "  merged."
+else
+  state="$(gh pr view "$pr" --json state --jq .state 2>/dev/null || echo UNKNOWN)"
+  if [[ "$state" == "MERGED" ]]; then
+    echo "  already merged — continuing to cleanup."
+  else
+    echo "merge-cleanup: gh pr merge failed (PR state: $state); aborting before cleanup." >&2
+    exit 1
+  fi
+fi
+
+# ── Step 2: locate the worktree (if any) holding this branch. ──
+# `git worktree list --porcelain` emits blocks of: worktree <path> / HEAD <sha> / branch refs/heads/<name>
+echo "→ [2/5] locating worktree for branch $branch"
+worktree_path=""
+current_path=""
+while IFS= read -r line; do
+  case "$line" in
+    "worktree "*) current_path="${line#worktree }" ;;
+    "branch refs/heads/$branch")
+      worktree_path="$current_path"
+      ;;
+  esac
+done < <(git worktree list --porcelain)
+
+if [[ -n "$worktree_path" ]]; then
+  echo "  found worktree: $worktree_path"
+else
+  echo "  no worktree holds $branch (skipping removal)."
+fi
+
+# ── Step 3: remove the worktree FIRST (so the branch is no longer in use). ──
+if [[ -n "$worktree_path" ]]; then
+  echo "→ [3/5] removing worktree $worktree_path"
+  if git worktree remove "$worktree_path"; then
+    echo "  removed."
+  else
+    echo "  plain remove failed; retrying with --force"
+    git worktree remove --force "$worktree_path" \
+      && echo "  removed (forced)." \
+      || echo "  WARNING: could not remove worktree $worktree_path — remove it manually." >&2
+  fi
+else
+  echo "→ [3/5] no worktree to remove (skipped)."
+fi
+
+# ── Step 4: delete the LOCAL and REMOTE branches (each independent, neither skipped). ──
+echo "→ [4/5] deleting branch $branch (local + remote)"
+if git show-ref --verify --quiet "refs/heads/$branch"; then
+  git branch -D "$branch" \
+    && echo "  local branch deleted." \
+    || echo "  WARNING: failed to delete local branch $branch." >&2
+else
+  echo "  local branch $branch already gone (skipped)."
+fi
+
+if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+  git push origin --delete "$branch" \
+    && echo "  remote branch deleted." \
+    || echo "  WARNING: failed to delete remote branch origin/$branch." >&2
+else
+  echo "  remote branch origin/$branch already gone (skipped)."
+fi
+
+# ── Step 5: back to main, fast-forward, prune stale worktree refs. ──
+echo "→ [5/5] checkout main, pull --ff-only, prune worktrees"
+git checkout main && git pull --ff-only && git worktree prune
+echo "✓ cleanup complete for PR #$pr ($branch)."
