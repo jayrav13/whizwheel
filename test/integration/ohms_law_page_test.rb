@@ -26,8 +26,8 @@ class OhmsLawPageTest < ActionDispatch::IntegrationTest
   end
 
   test "mode picker renders as one option list — a single bordered container of rows" do
-    # PROTOTYPE: the picker is ONE bordered, divided container (a selectable option
-    # list), not N independent chips. Each row carries its styled .mode-option label.
+    # DESIGN.md §4: six multi-word modes → the selectable option list — ONE bordered,
+    # divided container, not N independent chips. Each row carries a .mode-option label.
     get "/calculators/ohms_law"
     assert_select "fieldset div.divide-y" do
       assert_select "label.mode-option", count: 6
