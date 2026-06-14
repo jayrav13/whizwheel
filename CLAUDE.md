@@ -43,6 +43,15 @@ Concretely, this means you **default to backgrounding dispatched agents** (`run_
 - **Iterations** are pinned to a committed agent set and tagged `iteration-NNNN`.
 - **Everything lands via PR — never push directly to `main`.** This includes `docs/` and iteration bookkeeping by the PM and `JOURNEY.md` by the historian: branch → commit → PR → human merge. `main` is protected; no agent (or the main thread) pushes to it directly.
 
+## The calculator registry
+
+The calculator catalog lives in a **DB table — derived, never hand-maintained.** Its source of truth is **`docs/INVENTORY.md`** (the PM-maintained catalog: name, category, complexity, tags, build state); an **idempotent ingest** projects that into the `calculators` table, upserting by `slug`. Because the source is the centrally-maintained inventory and the table is *generated*, adding a calculator stays "add a file" and **no build edits the registry** — rule #3's conflict-free promise holds (it's a derived projection, not a shared edit).
+
+- **Refresh is CLI-driven:** an idempotent ingest rake task (e.g. `bin/rails calculators:ingest`), re-runnable and convergent. Fresh DBs populate via `db/seeds.rb`; **tests use fixtures** — CI builds the DB with `db:test:prepare`, which loads `db/structure.sql` and runs **neither migrations nor seeds**, so registry data for tests comes from fixtures, and the schema-creating migration must **not** run the ingest itself.
+- **Code is authoritative for what's real.** A row only links/renders if its `slug` resolves to a `Calculators::X` class (`Base.lookup`); the ingest **reconciles against the code** so the DB can never point at a calculator that isn't built (the DB can drift; the code cannot).
+- **Deprecate, never delete** (rule #4): a calculator dropped from the catalog is marked, not removed.
+- **Ownership:** `backend` builds the machinery (migration, model, ingest lib + rake task, fixtures — its existing `db`/migrations/models/rake turf, with ingest logic in a `lib` service so it's testable to the 100% gate); `database-agent` **operates** the refresh and reports drift (its definition is being extended from pure-inspector to run this one sanctioned ingest).
+
 ## Iteration delivery lifecycle
 
 An **iteration** (`iteration-NNNN`) is the unit of delivery. Every iteration runs the same six phases, in order:
@@ -165,6 +174,6 @@ Run this checklist before a session closes. The user will try to prompt you ("en
 
 1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: an iteration rebuilds the in-scope prior calculators from their specs with the latest agents (a fan-out, one agent per calculator — scope and layer set by the iteration, see "Iteration delivery lifecycle"; a sweep may be layer-scoped or even regen-only), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `project-manager-agent.md` (iterations).
 2. **Calculators are code, append-only** — deprecate, never delete (preserves historical comparability).
-3. **No central registration** — add a calculator by adding a file; never edit a shared registry/route/table (keeps parallel builds conflict-free).
+3. **No hand-edited central registration** — add a calculator by adding a file; never hand-edit a shared route/table to register it (keeps parallel builds conflict-free). A *derived* registry is fine: the catalog is projected into a DB table by an idempotent ingest from `docs/INVENTORY.md` (see "The calculator registry"), so builds never touch it — the registry is generated, not a shared edit.
 4. **Soft-delete, never hard-delete** user-facing data.
 5. **The math layer is pure** (no DB, no request) — that's what makes 100% coverage achievable.
