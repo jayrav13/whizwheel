@@ -31,11 +31,30 @@ class AmortizationScreenshotsTest < ApplicationSystemTestCase
       # The chart eyebrows are uppercased by CSS, so the rendered text is upper-case.
       assert_text "WHERE YOUR MONEY GOES"
       assert_text "BALANCE OVER TIME"
+      # The interactive JS charts (DESIGN.md §4) draw on connect: the Chart.js donut and
+      # the lightweight-charts curve libraries paint into their canvases, and the controller
+      # hides the no-JS fallbacks only after each chart builds. Both libraries inject a
+      # <canvas> we assert is present. This exercises the chart-rendering path the headless
+      # integration test can't (it asserts markup; only the browser runs the chart libraries).
+      assert_no_selector "[data-amortization-target=donutFallback]", visible: true
+      assert_no_selector "[data-amortization-target=curveFallback]", visible: true
+      assert_selector "[data-amortization-target=donutCanvas] canvas", visible: :all
+      assert_selector "[data-amortization-target=curveCanvas] canvas", visible: :all
       # Stimulus paginates: the first page of rows shows; the rest are hidden until
       # "Show all". Month 1 is visible; a far-out month (e.g. 200) is not, yet.
       assert_selector "tbody tr:not([hidden])", count: 12
       assert_text "Show all"
     end
+    # PIXEL-LEVEL proof the donut actually DREW (the visual gate caught a blank canvas that
+    # every markup assertion passed through — Chart.js was handed the wrapper div, not the
+    # <canvas>, and silently rendered nothing). Sample the canvas: a drawn doughnut has
+    # many non-transparent pixels; a blank canvas has zero. This makes the "chart didn't
+    # render" defect a hard test failure, not a visual-review-only catch.
+    assert_donut_drawn
+    # The balance curve's x-axis label fix ("Start"/"Yr N" instead of the raw-integer-as-
+    # UNIX-epoch "1970" artifact the gate caught) is drawn as bitmap pixels INSIDE the
+    # lightweight-charts canvas, not DOM text — so it isn't assertable via the DOM; the
+    # full-page screenshot below is its review surface.
     screenshot_full_page("31-amortization-result")
   end
 
@@ -65,5 +84,28 @@ class AmortizationScreenshotsTest < ApplicationSystemTestCase
       assert_selector "[role=alert] li", text: "Loan amount can't be blank"
     end
     screenshot_full_page("33-amortization-error")
+  end
+
+  private
+
+  # Assert the Chart.js doughnut actually painted: read the canvas's pixel data and count
+  # non-transparent pixels. A drawn doughnut covers a large fraction of its 112×112 box; a
+  # blank canvas (the defect the visual gate caught) has zero. We require a generous floor so
+  # the test proves "something substantial was drawn", not merely "a stray pixel exists".
+  def assert_donut_drawn
+    nonblank = page.evaluate_script(<<~JS)
+      (() => {
+        const c = document.querySelector('[data-amortization-target=donutCanvas] canvas');
+        if (!c) return -1;
+        const ctx = c.getContext('2d');
+        const data = ctx.getImageData(0, 0, c.width, c.height).data;
+        let n = 0;
+        for (let i = 3; i < data.length; i += 4) { if (data[i] > 0) n++; }
+        return n;
+      })()
+    JS
+    assert_operator nonblank, :>, 500,
+      "expected the Chart.js donut canvas to be painted (>500 non-transparent pixels), " \
+      "got #{nonblank} — the doughnut did not render"
   end
 end

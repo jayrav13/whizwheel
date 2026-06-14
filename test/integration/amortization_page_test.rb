@@ -60,14 +60,29 @@ class AmortizationPageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /360/          # number of payments
   end
 
-  test "the result renders the donut and balance-curve charts" do
+  test "the result renders the donut and balance-curve charts (with no-JS fallbacks)" do
     post "/calculators/amortization", params: { inputs: { principal: "100000", annual_rate: "6", years: "30" } }, headers: TURBO
     assert_response :success
-    # Donut: a labelled image with the principal-vs-interest breakdown.
+    # The no-JS fallbacks are always rendered server-side (DESIGN.md §4 / §6): a labelled
+    # donut image with the principal-vs-interest breakdown + the SVG balance curve line.
     assert_select "section#result [role=img][aria-label*='Principal']"
     assert_select "section#result svg polyline" # the balance curve line
     assert_select "section#result", text: /Where your money goes/i
     assert_select "section#result", text: /Balance over time/i
+  end
+
+  test "the result wires the interactive JS chart canvases and their data" do
+    post "/calculators/amortization", params: { inputs: { principal: "100000", annual_rate: "6", years: "30" } }, headers: TURBO
+    assert_response :success
+    # The hover-capable JS charts (DESIGN.md §4): a Chart.js donut canvas and a
+    # lightweight-charts curve container, each hidden until the controller draws it, with
+    # its fallback alongside. The controller reads the series from data-*-value attributes.
+    assert_select "section#result [data-amortization-target=donutCanvas] canvas"
+    assert_select "section#result [data-amortization-target=donutFallback]"
+    assert_select "section#result [data-amortization-target=curveCanvas]"
+    assert_select "section#result [data-amortization-target=curveFallback]"
+    assert_select "section#result [data-amortization-donut-value]"
+    assert_select "section#result [data-amortization-curve-value]"
   end
 
   test "the result renders the schedule table with month-1 and the paid-off final row" do
@@ -95,6 +110,20 @@ class AmortizationPageTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "section#result [data-controller=amortization]"
     assert_select "section#result button[data-action='amortization#showAll']"
+  end
+
+  test "the responsive stat grid renders large 7-digit totals without clipping" do
+    # Worst-case stat-grid test (frontend agent: "test the worst case"): a big loan whose
+    # total of payments and total interest run to 7 digits ($2M @ 6.5%/30y → ~$4.55M paid).
+    # The auto-fit grid sizes each card to a min width and flows, so a large value must
+    # render in full (no truncation/overflow) — we assert the delimited figure is present.
+    post "/calculators/amortization", params: { inputs: { principal: "2000000", annual_rate: "6.5", years: "30" } }, headers: TURBO
+    assert_response :success
+    # Total of payments is comfortably 7-figure ($4,550,xxx.xx) — the comma-grouped whole
+    # part proves the big number reached the card intact.
+    assert_select "section#result dl dd", text: /\A\$4,5\d{2},\d{3}\.\d{2}\z/
+    # The grid is the auto-fit grid (DESIGN.md §4 "Stat grid"), not a fixed column count.
+    assert_select "section#result dl[class*='auto-fit']"
   end
 
   test "the zero-rate loan computes without interest" do
