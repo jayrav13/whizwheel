@@ -1,13 +1,20 @@
 # Iteration 0002
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-13
-**Closed:** —
+**Closed:** 2026-06-13
 **Pinned agent SHA:** `1e18ce2` (`main` HEAD at open — carries the new DESIGN.md spacing scale)
 **Tag:** `iteration-0002`
 **Calculators:** Percentage (regeneration sweep — **frontend** only; spec #31)
 
-**Headline outcome:** — (open)
+**Headline outcome:** Spacing scale validated by regeneration — the Percentage page,
+regenerated from spec + the new DESIGN.md alone (prior page unread, zero human pixels;
+PR #41), came out with **visibly roomier mode pills** (Grouped-wrapping `gap-x-3 gap-y-4`),
+while the durable 0001 fixes (label-based errors, hero result) held through the rebuild. This
+is the **first confirmation of the agent-improvement loop** — a doc-only agent change alone
+produced measurably better output via the sweep. The bisect points to **DESIGN.md, not the FE
+self-review**, as the lever (the review was adequate once it had a standard to grade against).
+Strong single-sample signal, not proof. See `percentage.md`.
 
 ---
 
