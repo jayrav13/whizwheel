@@ -94,10 +94,10 @@ There is no sign-up. To log in, create a user via the CLI first: `bin/rails "use
 
 ## CI/CD monitoring
 
-After **any** push or PR, the CI run must be watched to completion — never assume green.
+After **any** push or PR, the CI run must be watched to completion — never assume green. **This verification is always delegated to `ci-monitor`; the main thread does not check CI itself.**
 
-- **Dispatch the `ci-monitor` subagent** to watch it (keeps the main session clean). Give it a branch, a commit SHA, or `--pr <n>`. It reports pass/fail and, on failure, the root cause. (Until `ci-monitor` is registered as a type, spawn a generic subagent and point it at `.claude/agents/ci-monitor.md` + this file — see "Every agent inherits this file".)
-- Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run); the agent wraps it with diagnosis.
+- **Always dispatch the `ci-monitor` subagent** to watch it — for *every* CI check, status glance included (this keeps CI mechanics and log/diagnosis tokens out of the main context). Give it a branch, a commit SHA, or `--pr <n>`. It reports pass/fail and, on failure, the root cause. **The main thread MUST NOT run `bin/ci-watch` itself** — there is no "quick single-shot glance" exception; a single dispatch is the cheaper, cleaner default, and a judgment-call carve-out just re-opens the loophole. (`ci-monitor` is a registered agent type — dispatch it by name.)
+- Mechanics live in **`bin/ci-watch`** (`0`=pass, `1`=fail, `2`=pending, `3`=no run) — that script is **`ci-monitor`'s tool, not the main thread's**; the agent wraps it with diagnosis.
 - **Visual gate (every PR).** `ci-monitor` reports *status* but is Bash-only — it can't *see*. After CI completes on **any** PR, the **main thread** pulls the screenshots with **`bin/ci-screenshots --pr <n>`** and **reviews them against `docs/DESIGN.md`** before merge — regardless of whether the diff looks UI-related (the CI/Linux render is a cheap cross-platform check that catches incidental regressions a code diff hides).
   - **Review every screenshot — never a sample.** The helper prints the count + a **sha256 manifest** so the set is enumerable; account for **each** shot. Either **view** it, or — against a baseline (`--baseline <dir>`) — let the byte-identical (sha256-equal) shots pass *deterministically* and **view only the CHANGED/NEW**. No silent skipping or vibe-sampling. On a docs-only PR this means a full baseline diff showing every shot `UNCHANGED` (CI renders are byte-stable run-to-run), not eyeballing a subset.
   - (Scale-up: a vision-capable review subagent so image tokens stay out of the main context.)
