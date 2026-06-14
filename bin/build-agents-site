@@ -1,0 +1,576 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# build-agents-site — generate the "Agents of whizwheel" GitHub Pages site
+# FROM the agent definitions, so the published site cannot drift from the
+# source of truth (.claude/agents/*.md).
+#
+# Why a standalone Ruby script (not a Rails rake task):
+#   - It must run in the Pages deploy workflow without booting Rails, a DB,
+#     or installing Node — consistent with whizwheel's no-Node-build norm
+#     (CLAUDE.md → "Running things"). Pure stdlib, no gems.
+#
+# What it does:
+#   1. Reads every .claude/agents/*.md (YAML-ish front-matter + markdown body).
+#   2. Derives a structured surface per agent (name, model, tools, one-line
+#      purpose, writes-via-PR vs report-only) and renders the full body.
+#   3. Emits a self-contained static site into the build dir (default: _site/),
+#      with an index (roster + orchestration overview) and one page per agent.
+#
+# The site is DERIVED, not hand-maintained: rerun this and the site is current.
+#
+# Usage:
+#   bin/build-agents-site [OUTPUT_DIR]      # default OUTPUT_DIR = _site
+#   AGENTS_DIR=path bin/build-agents-site   # override source dir (tests)
+
+require "cgi"
+require "fileutils"
+require "time"
+
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
+REPO_ROOT  = File.expand_path("..", __dir__)
+AGENTS_DIR = ENV.fetch("AGENTS_DIR", File.join(REPO_ROOT, ".claude", "agents"))
+OUTPUT_DIR = ARGV[0] || File.join(REPO_ROOT, "_site")
+
+# --------------------------------------------------------------------------
+# Front-matter + body parsing
+# --------------------------------------------------------------------------
+# Agent defs open with a `---` fenced YAML block. We only need flat
+# scalar keys (name, color, description, tools, model), so a tiny
+# line-based parser is enough — no YAML gem required.
+def parse_agent(path)
+  raw = File.read(path)
+  unless raw.start_with?("---")
+    return { meta: {}, body: raw.strip, slug: File.basename(path, ".md") }
+  end
+
+  # Split off the first front-matter block.
+  _, fm, body = raw.split(/^---\s*$\n/, 3)
+  meta = {}
+  current_key = nil
+  fm.to_s.each_line do |raw_line|
+    line = raw_line.chomp
+    if (m = line.match(/\A([A-Za-z0-9_]+):\s*(.*)\z/))
+      current_key = m[1]
+      meta[current_key] = m[2].strip
+    elsif current_key && line =~ /\A\s+\S/
+      # folded continuation line — append.
+      meta[current_key] = "#{meta[current_key]} #{line.strip}".strip
+    end
+  end
+
+  {
+    meta: meta,
+    body: body.to_s.strip,
+    slug: File.basename(path, ".md")
+  }
+end
+
+# Derived facts the index/cards display, inferred from the front-matter so
+# they stay in lockstep with the definition.
+def derive(agent)
+  meta  = agent[:meta]
+  tools = (meta["tools"] || "").split(",").map(&:strip).reject(&:empty?)
+  desc  = meta["description"].to_s
+
+  # A writing agent has Write or Edit in its toolset; everything else is
+  # report-only. We corroborate with the prose ("report-only") for clarity.
+  can_write   = tools.any? { |t| %w[Write Edit].include?(t) }
+  says_report = desc =~ /report-only/i
+  role = if can_write && !says_report
+           "writes — worktree → PR"
+  else
+           "report-only"
+  end
+
+  # One-line purpose: first sentence of the description.
+  purpose = desc.split(/(?<=[.!?])\s+/).first.to_s.strip
+
+  {
+    name:    meta["name"] || agent[:slug],
+    slug:    agent[:slug],
+    model:   (meta["model"] || "—").capitalize,
+    color:   meta["color"],
+    tools:   tools,
+    role:    role,
+    purpose: purpose,
+    description: desc
+  }
+end
+
+# --------------------------------------------------------------------------
+# Minimal Markdown -> HTML
+# --------------------------------------------------------------------------
+# Covers the constructs the agent defs actually use: ATX headings, fenced
+# code blocks, unordered/ordered lists (with nesting), blockquotes, hr,
+# paragraphs, and inline bold / italic / code / links. Deliberately small;
+# adding a markdown gem would mean adding a dependency to the Pages build.
+module Markdown
+  module_function
+
+  def render(text)
+    lines = text.gsub("\r\n", "\n").split("\n", -1)
+    html = +""
+    i = 0
+    while i < lines.length
+      line = lines[i]
+
+      # Fenced code block.
+      if line =~ /\A\s*```/
+        fence = line.strip
+        lang  = fence.sub(/\A`+/, "").strip
+        buf = []
+        i += 1
+        i += 1 while i < lines.length && lines[i] !~ /\A\s*```/ && (buf << lines[i])
+        i += 1 # skip closing fence
+        cls = lang.empty? ? "" : %( class="language-#{CGI.escapeHTML(lang)}")
+        html << %(<pre><code#{cls}>#{CGI.escapeHTML(buf.join("\n"))}\n</code></pre>\n)
+        next
+      end
+
+      # Horizontal rule.
+      if line =~ /\A\s*(---|\*\*\*|___)\s*\z/
+        html << "<hr>\n"
+        i += 1
+        next
+      end
+
+      # ATX heading.
+      if (m = line.match(/\A(\#{1,6})\s+(.*)\z/))
+        level = m[1].length
+        html << "<h#{level}>#{inline(m[2].strip)}</h#{level}>\n"
+        i += 1
+        next
+      end
+
+      # Blockquote (consume consecutive > lines).
+      if line =~ /\A\s*>/
+        buf = []
+        while i < lines.length && lines[i] =~ /\A\s*>/
+          buf << lines[i].sub(/\A\s*>\s?/, "")
+          i += 1
+        end
+        html << "<blockquote>\n#{render(buf.join("\n"))}</blockquote>\n"
+        next
+      end
+
+      # List (ordered or unordered) with one level of nesting by indent.
+      if line =~ /\A\s*([-*+]|\d+\.)\s+/
+        block, i = collect_list_block(lines, i)
+        html << render_list(block)
+        next
+      end
+
+      # Blank line.
+      if line.strip.empty?
+        i += 1
+        next
+      end
+
+      # Paragraph: gather until blank / block starter.
+      buf = []
+      while i < lines.length &&
+            !lines[i].strip.empty? &&
+            lines[i] !~ /\A\s*(\#{1,6}\s|```|>|([-*+]|\d+\.)\s|(---|\*\*\*|___)\s*\z)/
+        buf << lines[i]
+        i += 1
+      end
+      html << "<p>#{inline(buf.join(" ").strip)}</p>\n"
+    end
+    html
+  end
+
+  # Pull a contiguous list block out of the line stream. A list block runs
+  # until a blank line that is NOT followed by an indented continuation,
+  # or a non-indented line that is not itself a list item.
+  def collect_list_block(lines, i)
+    block = []
+    while i < lines.length
+      l = lines[i]
+      if l.strip.empty?
+        break if i + 1 >= lines.length || lines[i + 1] !~ /\A\s+\S/
+        i += 1
+        next
+      end
+      # A non-list, non-indented line ends the block (back to a paragraph).
+      break if l !~ /\A\s*([-*+]|\d+\.)\s+/ && l !~ /\A\s+\S/
+      block << l
+      i += 1
+    end
+    [ block, i ]
+  end
+
+  # A list item. `content` is the marker line's text; `cont` holds raw
+  # continuation lines (for fenced blocks etc.); `indent` is the marker column.
+  Item = Struct.new(:content, :cont, :indent, :children, :ordered, :fenced)
+
+  # Build a nested item tree from the raw list lines. Lines that start with a
+  # list marker open a new item at their indent; lines that are merely indented
+  # (no marker) are CONTINUATIONS of the current item — they are attached to
+  # it, NOT treated as nested items. Continuation lines are joined into the
+  # item text, EXCEPT when the item contains a fenced code block, in which case
+  # the whole item body is rendered block-level so the fence survives intact.
+  def build_items(block)
+    items = []
+    in_fence = false
+    block.each do |line|
+      indent = line[/\A\s*/].length
+      starts_item = !in_fence && line =~ /\A\s*([-*+]|\d+\.)\s+/
+      if starts_item
+        ordered = !line[/\A\s*(\d+)\.\s/].nil?
+        items << Item.new(line.sub(/\A\s*([-*+]|\d+\.)\s+/, "").rstrip, [], indent, [], ordered, false)
+      elsif !items.empty?
+        items.last.cont << line
+        if line.strip.start_with?("```")
+          in_fence = !in_fence
+          items.last.fenced = true
+        end
+      end
+    end
+    nest(items)
+  end
+
+  # Fold a flat, indent-tagged item list into a tree by indentation.
+  def nest(items)
+    roots = []
+    stack = []
+    items.each do |it|
+      it.children = []
+      pop_to(stack, it.indent)
+      if stack.empty?
+        roots << it
+      else
+        stack.last.children << it
+      end
+      stack << it
+    end
+    roots
+  end
+
+  def pop_to(stack, indent)
+    stack.pop while !stack.empty? && stack.last.indent >= indent
+  end
+
+  def render_list(block)
+    render_items(build_items(block))
+  end
+
+  def render_items(items)
+    return "" if items.empty?
+
+    tag = items.first.ordered ? "ol" : "ul"
+    out = +"<#{tag}>\n"
+    items.each do |it|
+      out << "<li>"
+      if it.fenced
+        # Render the marker line + continuation block-level so the fenced
+        # code block (and any prose around it) renders correctly. Strip the
+        # common leading indent off continuation lines so fenced content is
+        # not artificially indented.
+        strip = it.cont.reject { |l| l.strip.empty? }
+                       .map { |l| l[/\A */].length }.min || 0
+        body = ([ it.content ] + it.cont.map { |l| l.sub(/\A {0,#{strip}}/, "") }).join("\n")
+        out << "\n#{render(body)}"
+      else
+        joined = ([ it.content ] + it.cont.map(&:strip).reject(&:empty?)).join(" ").strip
+        out << inline(joined)
+      end
+      out << "\n#{render_items(it.children)}" unless it.children.empty?
+      out << "</li>\n"
+    end
+    out << "</#{tag}>\n"
+    out
+  end
+
+  # Inline spans. Order matters: protect code spans first.
+  def inline(text)
+    placeholders = []
+    # Inline code.
+    text = text.gsub(/`([^`]+)`/) do
+      placeholders << "<code>#{CGI.escapeHTML(Regexp.last_match(1))}</code>"
+      " #{placeholders.length - 1} "
+    end
+    # Escape everything else.
+    text = CGI.escapeHTML(text)
+    # Links [text](url).
+    text = text.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do
+      label = Regexp.last_match(1)
+      href  = Regexp.last_match(2)
+      %(<a href="#{href}">#{label}</a>)
+    end
+    # Bold (non-greedy so it may contain nested italic), then italic.
+    text = text.gsub(/\*\*(.+?)\*\*/m, '<strong>\1</strong>')
+    text = text.gsub(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/, '<em>\1</em>')
+    # Restore code spans.
+    text.gsub(/ (\d+) /) { placeholders[Regexp.last_match(1).to_i] }
+  end
+end
+
+# --------------------------------------------------------------------------
+# HTML chrome (hand-authored shell; agent CONTENT is always regenerated)
+# --------------------------------------------------------------------------
+STYLES = <<~CSS
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel-2: #1c2230;
+    --ink: #e6edf3; --muted: #9aa7b4; --line: #283041;
+    --accent: #58a6ff; --accent-2: #7ee787; --warn: #f0a868;
+    --radius: 14px; --maxw: 880px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+  header.site {
+    border-bottom: 1px solid var(--line); padding: 40px 0 28px;
+    background: radial-gradient(120% 120% at 50% -20%, #1a2436 0%, var(--bg) 60%);
+  }
+  header.site h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -0.02em; }
+  header.site p { margin: 0; color: var(--muted); }
+  header.site .crumb { margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+  main { padding: 36px 0 64px; }
+  h2 { font-size: 22px; letter-spacing: -0.01em; margin: 38px 0 14px; }
+  h3 { font-size: 18px; margin: 28px 0 10px; }
+  h4 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 8px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+  code {
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 1px 5px; font-size: 0.88em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; overflow-x: auto;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: 0.85em; }
+  blockquote {
+    margin: 16px 0; padding: 2px 16px; border-left: 3px solid var(--accent);
+    background: var(--panel); border-radius: 0 8px 8px 0; color: var(--muted);
+  }
+  blockquote p { margin: 10px 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin: 20px 0 8px; }
+  .card {
+    display: block; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 18px 16px; transition: border-color .15s, transform .15s;
+  }
+  a.card:hover { border-color: var(--accent); transform: translateY(-2px); text-decoration: none; }
+  .card .name { font-size: 17px; font-weight: 650; color: var(--ink); }
+  .card .purpose { color: var(--muted); font-size: 14px; margin: 8px 0 12px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge {
+    font-size: 12px; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+  }
+  .badge.model { color: var(--accent); border-color: #2a3f5f; }
+  .badge.writes { color: var(--accent-2); border-color: #244a31; }
+  .badge.report { color: var(--warn); border-color: #4a3a24; }
+  .meta-table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; }
+  .meta-table th, .meta-table td {
+    text-align: left; padding: 8px 12px; border: 1px solid var(--line); vertical-align: top;
+  }
+  .meta-table th { width: 150px; color: var(--muted); font-weight: 600; background: var(--panel); }
+  .flow {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px; overflow-x: auto; line-height: 1.45;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: var(--ink);
+  }
+  footer.site { border-top: 1px solid var(--line); padding: 24px 0 48px; color: var(--muted); font-size: 13px; }
+  .lockstep { background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--accent-2);
+    border-radius: 8px; padding: 14px 18px; margin: 22px 0; }
+  .agent-body { margin-top: 8px; }
+  .backlink { font-size: 13px; }
+CSS
+
+def layout(title:, crumb:, body:)
+  <<~HTML
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>#{CGI.escapeHTML(title)}</title>
+      <meta name="description" content="The agents of whizwheel — an experiment in agent-driven development. Auto-generated from .claude/agents/*.md.">
+      <style>#{STYLES}</style>
+    </head>
+    <body>
+      <header class="site">
+        <div class="wrap">
+          <div class="crumb">#{crumb}</div>
+          <h1>#{CGI.escapeHTML(title)}</h1>
+          <p>The roster of agents that build <strong>whizwheel</strong> — an experiment in agent-driven development.</p>
+        </div>
+      </header>
+      <main>
+        <div class="wrap">
+          #{body}
+        </div>
+      </main>
+      <footer class="site">
+        <div class="wrap">
+          Generated from <code>.claude/agents/*.md</code> by <code>bin/build-agents-site</code> on #{Time.now.utc.strftime("%Y-%m-%d")} (UTC).
+          The site is <strong>derived from the definitions</strong>, so it cannot drift from them.
+        </div>
+      </footer>
+    </body>
+    </html>
+  HTML
+end
+
+def role_badge(role)
+  if role.start_with?("writes")
+    %(<span class="badge writes">writes &middot; worktree &rarr; PR</span>)
+  else
+    %(<span class="badge report">report-only</span>)
+  end
+end
+
+ORCHESTRATION_FLOW = <<~FLOW
+     ┌─────────────┐
+     │ main thread │  orchestrator — stays ahead of the airplane
+     └──────┬──────┘
+            │ dispatches (default: in the background)
+            ▼
+   ┌────────────────────────────────────────────┐
+   │   build / write agents      report-only     │
+   │   backend  frontend         ci-monitor      │
+   │   project-manager-agent     dependabot-agent│
+   │   historian  database-agent                 │
+   └───────┬─────────────────────────┬──────────┘
+           │ each creates its own     │ never write;
+           │ worktree, opens a PR     │ just report
+           ▼                          │
+        ┌──────┐   ci-monitor watches │
+        │  PR  │◀─────────────────────┘
+        └───┬──┘   + visual gate (screenshots)
+            │
+            ▼
+     ┌────────────┐
+     │ human merge│  never auto-merged
+     └────────────┘
+FLOW
+
+# --------------------------------------------------------------------------
+# Page builders
+# --------------------------------------------------------------------------
+def index_page(agents)
+  cards = agents.map do |a|
+    badges = [
+      %(<span class="badge model">#{CGI.escapeHTML(a[:model])}</span>),
+      role_badge(a[:role])
+    ].join
+    <<~CARD
+      <a class="card" href="#{a[:slug]}.html">
+        <div class="name">#{CGI.escapeHTML(a[:name])}</div>
+        <div class="purpose">#{CGI.escapeHTML(a[:purpose])}</div>
+        <div class="badges">#{badges}</div>
+      </a>
+    CARD
+  end.join("\n")
+
+  body = <<~BODY
+    <p>
+      whizwheel is built by <strong>iterating on agent definitions</strong>, not by hand-editing code.
+      Each agent below has one job, a fixed scope, and clear boundaries. This page is generated
+      directly from <code>.claude/agents/*.md</code> — the source of truth — so it is always current.
+    </p>
+
+    <div class="lockstep">
+      <strong>Lockstep by construction.</strong> This site is <em>derived</em> from the agent
+      definitions at deploy time. Change a definition and the published page changes with it; there
+      is nothing to hand-sync, so it cannot drift.
+    </div>
+
+    <h2>The roster</h2>
+    <div class="grid">
+      #{cards}
+    </div>
+
+    <h2>How the agents fit together</h2>
+    <p>
+      The <strong>main thread</strong> is an orchestrator: it catches unblocked work and dispatches it
+      to specialized agents — by default <em>in the background</em>, so it never sits idle. Writing
+      agents each work in their own <strong>git worktree</strong> and land changes through a
+      <strong>pull request</strong>; report-only agents never write. Every PR is watched by
+      <code>ci-monitor</code> and cleared through a <strong>visual gate</strong> before a
+      <strong>human</strong> merges it — nothing is auto-merged.
+    </p>
+    <pre class="flow">#{CGI.escapeHTML(ORCHESTRATION_FLOW)}</pre>
+
+    <h3>The two lanes</h3>
+    <ul>
+      <li><strong>Writing agents</strong> — create a worktree, commit, push, and open a PR; they never merge and never push to <code>main</code>.</li>
+      <li><strong>Report-only agents</strong> — observe and report (CI status, dependency triage); they never edit, merge, or file changes.</li>
+    </ul>
+  BODY
+
+  layout(
+    title: "Agents of whizwheel",
+    crumb: "whizwheel &middot; agent-driven development",
+    body: body
+  )
+end
+
+def agent_page(a, body_html)
+  tools = a[:tools].empty? ? "—" : a[:tools].map { |t| "<code>#{CGI.escapeHTML(t)}</code>" }.join(", ")
+  meta = <<~META
+    <table class="meta-table">
+      <tr><th>Name</th><td><code>#{CGI.escapeHTML(a[:name])}</code></td></tr>
+      <tr><th>Model</th><td>#{CGI.escapeHTML(a[:model])}</td></tr>
+      <tr><th>Role</th><td>#{role_badge(a[:role])}</td></tr>
+      <tr><th>Tools</th><td>#{tools}</td></tr>
+      <tr><th>Purpose</th><td>#{CGI.escapeHTML(a[:purpose])}</td></tr>
+    </table>
+  META
+
+  body = <<~BODY
+    <p class="backlink"><a href="index.html">&larr; All agents</a></p>
+    <h2>#{CGI.escapeHTML(a[:name])}</h2>
+    <p>#{CGI.escapeHTML(a[:description])}</p>
+    #{meta}
+    <h4>Full definition</h4>
+    <div class="agent-body">#{body_html}</div>
+  BODY
+
+  layout(
+    title: "#{a[:name]} — Agents of whizwheel",
+    crumb: %(<a href="index.html">Agents</a> &middot; #{CGI.escapeHTML(a[:name])}),
+    body: body
+  )
+end
+
+# --------------------------------------------------------------------------
+# Main
+# --------------------------------------------------------------------------
+def main
+  paths = Dir.glob(File.join(AGENTS_DIR, "*.md")).sort
+  abort "No agent definitions found in #{AGENTS_DIR}" if paths.empty?
+
+  parsed = paths.map { |p| [ parse_agent(p), p ] }
+  agents = parsed.map { |agent, _| derive(agent) }
+
+  FileUtils.mkdir_p(OUTPUT_DIR)
+  # .nojekyll: tell GitHub Pages to serve our files as-is (no Jekyll pass).
+  File.write(File.join(OUTPUT_DIR, ".nojekyll"), "")
+
+  File.write(File.join(OUTPUT_DIR, "index.html"), index_page(agents))
+
+  parsed.each_with_index do |(agent, _path), idx|
+    a = agents[idx]
+    body_html = Markdown.render(agent[:body])
+    File.write(File.join(OUTPUT_DIR, "#{a[:slug]}.html"), agent_page(a, body_html))
+  end
+
+  puts "Built #{agents.length} agent page(s) + index into #{OUTPUT_DIR}"
+  agents.each { |a| puts "  - #{a[:name]} (#{a[:model]}, #{a[:role]})" }
+end
+
+main if $PROGRAM_NAME == __FILE__

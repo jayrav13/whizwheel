@@ -49,3 +49,8 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# Generated GitHub Pages output (bin/build-agents-site). Regenerated from
+# .claude/agents/*.md on every deploy, so it is never committed — the site is
+# derived, not stored (lockstep by construction). See .github/workflows/agents-pages.yml.
+/_site/
