@@ -1,16 +1,16 @@
 require "application_system_test_case"
 
-# Drives the real browser through the Percentage page's key states and saves a
-# full-page screenshot of each (issue #31). Doubles as a Turbo/Stimulus regression
-# check (the form submits over Turbo and the #result fragment updates in place,
-# the Stimulus controller hides irrelevant fields per mode) and a visual artifact
-# reviewed against docs/DESIGN.md (CI uploads the PNGs).
+# Drives the real browser through the Percentage page's key states and saves a full-page
+# screenshot of each (issue #31), regenerated for iteration-0005. Doubles as a Turbo/
+# Stimulus regression check (the form submits over Turbo and the #result fragment updates
+# in place; the Stimulus controller hides irrelevant fields per mode) and as the visual
+# artifact reviewed against docs/DESIGN.md (CI uploads the PNGs).
 class PercentageScreenshotsTest < ApplicationSystemTestCase
   test "default mode with empty result" do
     visit "/calculators/percentage"
     assert_selector "h1", text: "Percentage Calculator"
-    # The main mode picker is the selectable option list: five full-width rows, each
-    # with a bold mode label + a one-line helper naming what it computes.
+    # The main mode picker is the selectable option list: five full-width rows, each with
+    # a bold mode label + a one-line helper naming what it computes.
     assert_selector "label.mode-option", count: 5
     assert_selector "label.mode-option", text: "Percent of a number"
     assert_selector "label.mode-option", text: "What is P% of a number"

@@ -1,9 +1,10 @@
-<%# Percentage hero result (DESIGN.md §4 "Hero-result"): a surface card with a 5px coral
-    left rule and a big tabular-nums number — the page's headline answer. The selected
-    mode returns a single result key (value | percent | base, ARCHITECTURE.md §4); that
-    key drives the caption and whether the number reads as a percentage (the % suffix).
-    `calc:` is a valid Calculators::Percentage (the empty + error states are handled one
-    level up in _result.html.erb). %>
+<%# Percentage hero result (DESIGN.md §4 "Hero-result"), regenerated for iteration-0005:
+    a surface card with a 5px coral left rule and a big tabular-nums number — the page's
+    headline answer. The selected mode returns a single result key (value | percent | base,
+    ARCHITECTURE.md §4); that key drives the caption, the "% " suffix (only when the answer
+    IS a percentage), and the one-line detail sentence that reads the answer in context.
+    `calc:` is a valid Calculators::Percentage — the empty + error states are handled one
+    level up in _result.html.erb. %>
 <% key, value = calc.result.first %>
 <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
   <div class="flex gap-5 p-7">

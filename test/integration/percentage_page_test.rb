@@ -1,9 +1,10 @@
 require "test_helper"
 
-# Integration tests for the Percentage calculator page (issue #31): the GET page
-# renders its modes/fields, and the POST Turbo Stream response renders the right
-# result fragment for each state (answer + 422 errors). These assert the markup the
-# system test then verifies visually; together they are the §11 frontend gate.
+# Integration tests for the Percentage calculator page (issue #31), regenerated for
+# iteration-0005: the GET page renders its modes/fields per DESIGN.md §4, and the POST
+# Turbo Stream response renders the right result fragment for each state (the per-mode
+# answer + the 422 error card). These assert the markup the system test then verifies
+# visually; together they are the §11 frontend gate.
 class PercentagePageTest < ActionDispatch::IntegrationTest
   TURBO = { "Accept" => "text/vnd.turbo-stream.html" }.freeze
 
@@ -12,32 +13,41 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
   test "page renders the title, lede and submit" do
     get "/calculators/percentage"
     assert_response :success
+    assert_select "p", text: "Math"
     assert_select "h1", text: "Percentage Calculator"
     assert_select "input[type=submit][value=Calculate]"
   end
 
-  test "page renders all five mode options" do
+  test "page renders all five mode options as native radios posting inputs[mode]" do
     get "/calculators/percentage"
     %w[percent_of what_percent percent_of_what difference change].each do |mode|
       assert_select "input[type=radio][name='inputs[mode]'][value=?]", mode
     end
   end
 
-  # The main mode picker is the "selectable option list" (.mode-option), per the
-  # picker rule (5 multi-word modes → option list, not a wrapping pill row). It is a
-  # native radio <fieldset>; each row is a styled <label> with a bold mode label + a
-  # one-line helper naming what that mode computes.
+  # The main mode picker is the "selectable option list" (.mode-option), per the picker
+  # rule (5 multi-word modes → option list, not a wrapping pill row, never a <select>).
+  # It is a native radio <fieldset>; each row is a styled <label> with a bold mode label
+  # + a one-line helper naming what that mode computes.
   test "main mode picker renders as the selectable option list" do
     get "/calculators/percentage"
     assert_select "fieldset legend", text: "Mode"
     # One bordered, divided container of full-width rows (not N wrapping chips).
     assert_select "div.divide-y label.mode-option", count: 5
-    # No wrapping-pill mode chips remain.
+    # No wrapping-pill mode chips, no raw <select> as the picker.
     assert_select "label.mode-pill", count: 0
+    assert_select "select[name='inputs[mode]']", count: 0
     # Each row carries its bold label + a one-line helper.
     assert_select "label.mode-option[data-mode=percent_of]", text: /Percent of a number/
     assert_select "label.mode-option[data-mode=percent_of]", text: /What is P% of a number/
     assert_select "label.mode-option[data-mode=change]", text: /Apply a P% increase or decrease/
+  end
+
+  # percent_of is the default mode (its radio carries checked) so the page is usable
+  # before any selection — the no-JS baseline.
+  test "the first mode (percent_of) is checked by default" do
+    get "/calculators/percentage"
+    assert_select "input[type=radio][name='inputs[mode]'][value=percent_of][checked]"
   end
 
   test "page renders every per-mode input with a label" do
@@ -51,7 +61,7 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
   end
 
   # The direction sub-toggle (change mode) is the segmented control — N = 2 short labels
-  # (DESIGN.md §4) — and a native radio <fieldset>/<legend> grouping increase/decrease.
+  # (DESIGN.md §4) — a native radio <fieldset>/<legend> grouping increase/decrease.
   test "page renders the increase/decrease direction toggle for change mode" do
     get "/calculators/percentage"
     assert_select "fieldset[data-percentage-field=change] legend", text: "Direction"
@@ -69,7 +79,7 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /your answer appears here/i
   end
 
-  # ── POST /calculators/percentage — Turbo Stream success ─────────────────
+  # ── POST /calculators/percentage — Turbo Stream success (one per mode) ───
 
   test "percent_of renders the computed value into the result target" do
     post "/calculators/percentage", params: { inputs: { mode: "percent_of", v1: "50", percent: "20" } }, headers: TURBO
@@ -77,18 +87,13 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     assert_match "turbo-stream", @response.body
     assert_select "turbo-stream[target=result]"
     assert_select "section#result", text: /10\b/
+    assert_select "section#result", text: /20% of 50/
   end
 
   test "what_percent renders a percent result with a percent sign" do
     post "/calculators/percentage", params: { inputs: { mode: "what_percent", v1: "10", v2: "50" } }, headers: TURBO
     assert_response :success
     assert_select "section#result", text: /20%/
-  end
-
-  test "change increase renders the new value" do
-    post "/calculators/percentage", params: { inputs: { mode: "change", v1: "500", percent: "10", direction: "increase" } }, headers: TURBO
-    assert_response :success
-    assert_select "section#result", text: /550\b/
   end
 
   test "percent_of_what renders the whole" do
@@ -101,6 +106,25 @@ class PercentagePageTest < ActionDispatch::IntegrationTest
     post "/calculators/percentage", params: { inputs: { mode: "difference", v1: "10", v2: "6" } }, headers: TURBO
     assert_response :success
     assert_select "section#result", text: /50%/
+  end
+
+  test "change increase renders the new value" do
+    post "/calculators/percentage", params: { inputs: { mode: "change", v1: "500", percent: "10", direction: "increase" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result", text: /550\b/
+  end
+
+  test "change decrease renders the reduced value" do
+    post "/calculators/percentage", params: { inputs: { mode: "change", v1: "500", percent: "10", direction: "decrease" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result", text: /450\b/
+  end
+
+  # A 6+ digit answer must render in full — no truncation/overflow (worst-case render).
+  test "a large answer renders without clipping" do
+    post "/calculators/percentage", params: { inputs: { mode: "percent_of", v1: "1234567", percent: "100" } }, headers: TURBO
+    assert_response :success
+    assert_select "section#result", text: /1,234,567/
   end
 
   # ── POST /calculators/percentage — Turbo Stream 422 (invalid) ───────────
