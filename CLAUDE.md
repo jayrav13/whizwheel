@@ -50,7 +50,7 @@ The calculator catalog lives in a **DB table — derived, never hand-maintained.
 - **Refresh is CLI-driven:** an idempotent ingest rake task (e.g. `bin/rails calculators:ingest`), re-runnable and convergent. Fresh DBs populate via `db/seeds.rb`; **tests use fixtures** — CI builds the DB with `db:test:prepare`, which loads `db/structure.sql` and runs **neither migrations nor seeds**, so registry data for tests comes from fixtures, and the schema-creating migration must **not** run the ingest itself.
 - **Code is authoritative for what's real.** A row only links/renders if its `slug` resolves to a `Calculators::X` class (`Base.lookup`); the ingest **reconciles against the code** so the DB can never point at a calculator that isn't built (the DB can drift; the code cannot).
 - **Deprecate, never delete** (rule #4): a calculator dropped from the catalog is marked, not removed.
-- **Ownership:** `backend` builds the machinery (migration, model, ingest lib + rake task, fixtures — its existing `db`/migrations/models/rake turf, with ingest logic in a `lib` service so it's testable to the 100% gate); `database-agent` **operates** the refresh and reports drift (its definition is being extended from pure-inspector to run this one sanctioned ingest).
+- **Ownership:** `backend` builds the machinery (migration, model, ingest lib + rake task, fixtures — its existing `db`/migrations/models/rake turf, with ingest logic in a `lib` service so it's testable to the 100% gate); `database-agent` **operates** the refresh and reports drift (its definition is extended from pure-inspector to run this one sanctioned ingest — `bin/rails calculators:ingest`).
 
 ## Iteration delivery lifecycle
 
