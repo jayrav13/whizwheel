@@ -83,6 +83,24 @@ without it.
   or any multi-word/long label. **Never a raw `<select>` as the primary picker** — reserve it
   for a genuinely long menu (N > ~8). `DESIGN.md §4` is the source of truth; build to it.
 
+## UI conventions from operator review (build to DESIGN.md)
+
+Operator review of iteration-0004 added three UI patterns to the BLEND system in `DESIGN.md §4`
+— the **date "Today" quick-fill button**, the **responsive auto-fit stat grid**, and
+**interactive (hover/tooltip) JS charts**. They are standing conventions: apply them to new
+builds *and* every calculator the regeneration sweep rebuilds. **`DESIGN.md` is the source of
+truth for the *what* — build to it.** Two process points are specifically yours:
+
+- **You install the charting library.** Charts use a hover-capable JS library via importmap (per
+  `DESIGN.md §4`: lightweight-charts for line/time-series, a complementary library for donut). It
+  won't be pinned yet — **detect and install it yourself**: `bin/importmap pin lightweight-charts`
+  or pin its ESM CDN URL in `config/importmap.rb`. That config file is within your remit (a
+  JS-dependency pin for your UI), **not** a backend hand-off. Wire the chart via a Stimulus
+  controller, and keep the no-JS data fallback DESIGN.md requires.
+- **Test the worst case.** When you build a responsive stat grid, add a render/state test that
+  exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip a
+  large one.
+
 ## Quality bar
 
 The testing canon for the whole project is `ARCHITECTURE.md §11` (every feature ships tests);
