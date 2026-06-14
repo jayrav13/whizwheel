@@ -1,22 +1,31 @@
 <% content_for :title, "Percentage Calculator — whizwheel" %>
 
 <%#
-  Percentage calculator page (spec issue #31, DESIGN.md BLEND). A multi-mode
-  calculator: the main mode picker selects the operation; only that mode's inputs show.
-  The form posts over Turbo and re-renders the #result region in place; it works
-  without JS (server validates the selected mode). Layout per DESIGN.md §3 — an input
-  column + a results panel (≈380px 1fr), collapsing to one column on mobile.
+  Percentage calculator (spec issue #31) — a multi-mode calculator (ARCHITECTURE.md
+  §3.2 spec:v1). A required `mode` selects one of five percentage operations; only the
+  inputs that mode names are shown, and the single result key it returns drives the hero
+  answer. Built to BLEND (DESIGN.md): the input column + results panel two-up on desktop
+  (≈380px 1fr, §3 layout grid), one stacked column on mobile (mobile-first).
 
-  Mode-picker rule (the picker-rule sweep): a mode picker is always a native radio
-  <fieldset>; presentation follows N + label length. The main picker has FIVE
-  multi-word modes (N ≥ 4 / multi-word) → the "selectable option list" (.mode-option):
-  one bordered, divided container, each row = a radio glyph + the bold mode label + a
-  one-line helper naming what it computes. The Increase|Decrease sub-toggle, by
-  contrast, is N = 2 short labels → it stays a segmented control (unchanged).
+  Submit model: a plain server-rendered <form> posting inputs[...] to the §4 JSON
+  endpoint over Turbo (Accept: turbo-stream → create.turbo_stream.erb replaces #result
+  in place). It works with NO JS — the server validates exactly the selected mode and
+  re-renders the result region. Stimulus is pure polish (DESIGN.md §0.5): it reveals
+  only the active mode's fields and lifts the active direction half.
 
-  Spacing scale (DESIGN.md §3, "targets not minimums"):
-    • stacked fields → space-y-5
-    • major blocks within the card (mode → fields → submit) → mt-8 (Section tier)
+  Mode-picker choice (DESIGN.md §4 "Mode picker"). The picker is ALWAYS a native radio
+  <fieldset>/<legend> posting a single-select inputs[mode]; the presentation is chosen
+  by count + label length:
+    • Main picker — FIVE modes, every label multi-word → the selectable option list
+      (.mode-option): one bordered, divided container of full-width rows, each a radio
+      glyph + a bold mode name + a one-line helper naming what it solves. (N ≥ 4 or any
+      multi-word label ⇒ option list — never a wrapping pill row, never a <select>.)
+    • Direction sub-toggle (change mode) — N = 2, short labels (Increase | Decrease) ⇒
+      the segmented control (the connected horizontal track, DESIGN.md §4).
+
+  Spacing (DESIGN.md §3 — targets, not minimums):
+    • stacked fields → space-y-5 (Stacked tier)
+    • mode → fields → submit, the major blocks → mt-8 (Section tier)
     • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
 %>
 
@@ -25,8 +34,8 @@
   <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Percentage Calculator</h1>
   <p class="mt-3 text-[15px] leading-relaxed text-muted">
     Five percentage operations in one place — what is P% of a number, what percent one
-    number is of another, percent-of-what, the difference between two numbers, and an
-    increase or decrease. Every answer is computed server-side.
+    number is of another, percent-of-what, the difference between two numbers, and a
+    percent increase or decrease. Every answer is computed server-side.
   </p>
 </header>
 
@@ -36,24 +45,24 @@
     <%= form_with url: "/calculators/percentage", scope: :inputs, method: :post,
           data: { controller: "percentage" } do |f| %>
 
-      <%# Main mode picker — "selectable option list" (.mode-option), per the picker rule:
-          FIVE multi-word modes (N ≥ 4 / multi-word) → one bordered, divided container of
-          full-width rows, NOT N wrapping chips. The accessible control is unchanged: a
-          radio <fieldset>/<legend> posting inputs[mode], each radio visually-hidden
-          (peer sr-only) and paired to a styled <label for>; the active row is painted
-          with no JS via peer:checked, and a real radio glyph (.mode-option::before) is
-          the non-colour active cue (DESIGN.md §6). Each row names the operation (label)
-          and, on a helper line, what that mode computes. %>
+      <%# Main mode picker — the selectable option list (DESIGN.md §4 "Mode picker"):
+          five multi-word modes ⇒ one bordered, divided container of full-width rows,
+          NOT N wrapping chips and NOT a <select>. Underneath it is a native radio
+          <fieldset>/<legend> posting inputs[mode]; each radio is visually-hidden
+          (peer sr-only) and paired to a styled <label for>. peer:checked paints the
+          active row with no JS, and the row's leading radio glyph (.mode-option::before)
+          is the non-colour active cue (DESIGN.md §6). Each row carries the mode name and
+          a one-line helper naming what it solves. %>
       <fieldset>
-        <legend class="text-xs font-bold text-label">Mode</legend>
+        <legend class="field-label">Mode</legend>
         <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
           <% [
-               ["percent_of",      "Percent of a number",  "What is P% of a number"],
-               ["what_percent",    "What percent",         "What percent one number is of another"],
-               ["percent_of_what", "Percent of what",      "A number is P% of what whole"],
+               ["percent_of",      "Percent of a number",   "What is P% of a number"],
+               ["what_percent",    "What percent",          "What percent one number is of another"],
+               ["percent_of_what", "Percent of what",       "A number is P% of what whole"],
                ["difference",      "Percentage difference", "The percent difference between two numbers"],
-               ["change",          "Increase / decrease",  "Apply a P% increase or decrease to a number"]
-             ].each_with_index do |(value, text, helper), i| %>
+               ["change",          "Increase / decrease",   "Apply a P% increase or decrease to a number"]
+             ].each_with_index do |(value, name, helper), i| %>
             <div>
               <%= f.radio_button :mode, value,
                     checked: i.zero?,
@@ -61,8 +70,8 @@
                     data: { percentage_target: "modeInput", action: "percentage#select" } %>
               <%= f.label :mode, value: value,
                     class: "mode-option",
-                    data: { percentage_target: "pill", mode: value } do %>
-                <span class="text-sm font-semibold text-ink"><%= text %></span>
+                    data: { percentage_target: "modeOption", mode: value } do %>
+                <span class="text-sm font-semibold text-ink"><%= name %></span>
                 <span class="text-xs text-muted"><%= helper %></span>
               <% end %>
             </div>
@@ -70,11 +79,13 @@
         </div>
       </fieldset>
 
-      <%# Per-mode fields. Each block declares the modes it serves; Stimulus shows only
-          the active mode's blocks and disables the rest so they aren't submitted.
-          Stacked tier: space-y-5 down the column (DESIGN.md §3). %>
+      <%# Per-mode fields. Each block declares the modes it serves via
+          data-percentage-modes; Stimulus shows only the active mode's blocks and
+          disables the inputs in the rest so they aren't submitted. The no-JS baseline
+          submits every field, and the server simply ignores inputs the mode doesn't
+          name (it validates only that mode's required set). Stacked tier — space-y-5. %>
       <div class="mt-8 space-y-5">
-        <%# V1 — every mode %>
+        <%# V1 — required by every mode. %>
         <div data-percentage-target="field"
              data-percentage-modes="percent_of what_percent percent_of_what difference change">
           <%= f.label :v1, "Value (V1)", class: "field-label", for: "inputs_v1" %>
@@ -82,7 +93,7 @@
                 placeholder: "0", class: "field-input mt-1.5" %>
         </div>
 
-        <%# V2 — what_percent, difference %>
+        <%# V2 — what_percent, difference. %>
         <div data-percentage-target="field"
              data-percentage-modes="what_percent difference">
           <%= f.label :v2, "Value (V2)", class: "field-label", for: "inputs_v2" %>
@@ -90,7 +101,8 @@
                 placeholder: "0", class: "field-input mt-1.5" %>
         </div>
 
-        <%# Percent — percent_of, percent_of_what, change. % affix on the Affix tier. %>
+        <%# Percent — percent_of, percent_of_what, change. The % is a unit affix beside
+            its field on the Affix tier (gap-2, DESIGN.md §3). %>
         <div data-percentage-target="field"
              data-percentage-modes="percent_of percent_of_what change">
           <%= f.label :percent, "Percent (P)", class: "field-label", for: "inputs_percent" %>
@@ -101,10 +113,12 @@
           </div>
         </div>
 
-        <%# Direction toggle — change only (the increase/decrease segmented control). %>
-        <div data-percentage-target="field" data-percentage-field="change"
-             data-percentage-modes="change">
-          <span class="field-label">Direction</span>
+        <%# Direction — change only. N = 2 short labels ⇒ the segmented control: a native
+            radio <fieldset>/<legend> under a connected horizontal track, the chosen half
+            lifted to surface white (DESIGN.md §4). %>
+        <fieldset data-percentage-target="field" data-percentage-field="change"
+                  data-percentage-modes="change">
+          <legend class="field-label">Direction</legend>
           <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
             <% [["increase", "Increase"], ["decrease", "Decrease"]].each_with_index do |(value, text), i| %>
               <%= f.radio_button :direction, value,
@@ -116,16 +130,16 @@
                     data: { percentage_target: "directionPill" } %>
             <% end %>
           </div>
-        </div>
+        </fieldset>
       </div>
 
-      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%# Submit — Section tier above; the primary coral button (DESIGN.md §4). %>
       <%= f.submit "Calculate",
             class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
     <% end %>
   </section>
 
-  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <%# ── Results panel (the Turbo target; aria-live so the answer is announced) ── %>
   <section id="result" aria-live="polite">
     <%= render "calculators/result", calc: nil %>
   </section>

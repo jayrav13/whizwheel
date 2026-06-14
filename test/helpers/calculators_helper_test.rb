@@ -318,4 +318,200 @@ class CalculatorsHelperTest < ActionView::TestCase
     c.valid?
     assert_includes calculator_error_messages(c), "Numbers can't be blank"
   end
+
+  # ── Amortization helpers (issue #84) ────────────────────────────────────
+
+  def amort(attrs)
+    Calculators::Amortization.new(attrs)
+  end
+
+  # money_display — delimit thousands, keep the 2dp the envelope already rounded to.
+  test "money_display delimits thousands and keeps two decimals" do
+    assert_equal "215,838.45", money_display("215838.45")
+  end
+
+  test "money_display leaves a sub-thousand amount untouched" do
+    assert_equal "599.55", money_display("599.55")
+  end
+
+  test "money_display keeps a zero amount as 0.00" do
+    assert_equal "0.00", money_display("0.00")
+  end
+
+  # amortization_donut — two slices; the LARGER one is accent green (DESIGN.md §1).
+  test "amortization_donut puts the larger slice (interest > principal) in accent green" do
+    # 100000 @ 6%/30y: interest 115,838.45 > principal 100,000 → interest is green.
+    chart = { principal: "100000.00", total_interest: "115838.45" }
+    slices = amortization_donut(chart)
+    assert_equal :principal, slices.first[:key]
+    assert_equal "primary", slices.first[:color]      # smaller → coral
+    assert_equal "accent",  slices.last[:color]        # larger → green
+    assert_in_delta 46.33, slices.first[:pct], 0.01    # principal share
+    assert_in_delta 100.0, slices.first[:pct] + slices.last[:pct], 0.0001
+  end
+
+  test "amortization_donut puts the larger slice (principal >= interest) in accent green" do
+    # 10000 @ 4.5%/5y: principal 10,000 > interest 1,185.83 → principal is green.
+    chart = { principal: "10000.00", total_interest: "1185.83" }
+    slices = amortization_donut(chart)
+    assert_equal "accent",  slices.first[:color]       # principal, larger → green
+    assert_equal "primary", slices.last[:color]        # interest, smaller → coral
+  end
+
+  test "amortization_donut treats an equal split as principal-larger (>= boundary)" do
+    chart = { principal: "100.00", total_interest: "100.00" }
+    slices = amortization_donut(chart)
+    assert_equal "accent", slices.first[:color] # principal, on the >= boundary, green
+  end
+
+  # amortization_donut_gradient — a conic-gradient from the two TOKEN colours (no hex).
+  test "amortization_donut_gradient composes a conic-gradient from token custom properties" do
+    chart = { principal: "100000.00", total_interest: "100000.00" } # 50/50
+    g = amortization_donut_gradient(amortization_donut(chart))
+    assert_match(/conic-gradient\(/, g)
+    assert_includes g, "var(--color-accent)"
+    assert_includes g, "var(--color-primary)"
+    assert_includes g, "50.0%"
+    refute_match(/#/, g) # never an inline hex (DESIGN.md §5 guardrail)
+  end
+
+  # amortization_curve_points — map (month, balance) samples into a 0..100 unit box.
+  test "amortization_curve_points maps the endpoints to the box corners" do
+    curve = [
+      { month: 0,   balance: "100000.00" },
+      { month: 180, balance: "50000.00" },
+      { month: 360, balance: "0.00" }
+    ]
+    pts = amortization_curve_points(curve).split(" ")
+    # month 0, full balance → top-left (x=0, y=0); month 360, zero balance → bottom-right.
+    assert_equal "0.0,0.0", pts.first
+    assert_equal "100.0,100.0", pts.last
+    # midpoint: half the months, half the balance → (50, 50).
+    assert_equal "50.0,50.0", pts[1]
+  end
+
+  test "amortization_curve_points guards a degenerate all-zero curve without dividing by zero" do
+    # A pathological single-point/zero curve (never produced in practice) must not raise.
+    curve = [ { month: 0, balance: "0.00" } ]
+    assert_equal "0.0,100.0", amortization_curve_points(curve)
+  end
+
+  # field_labels_for / calculator_error_messages — Amortization's bespoke label map.
+  test "field_labels_for returns the Amortization label map for an Amortization instance" do
+    labels = field_labels_for(amort({}))
+    assert_equal "Loan amount", labels["principal"]
+    assert_equal "Annual interest rate", labels["annual_rate"]
+    assert_equal "Loan term", labels["years"]
+  end
+
+  test "Amortization errors are phrased against the visible labels, not the raw keys" do
+    c = amort(principal: "", annual_rate: "", years: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Loan amount can't be blank"
+    assert_includes messages, "Annual interest rate can't be blank"
+    assert_includes messages, "Loan term can't be blank"
+  end
+
+  # ── Age helpers (issue #82) ─────────────────────────────────────────────
+
+  def age(attrs)
+    Calculators::Age.new(attrs)
+  end
+
+
+  # integer_display — whole-integer counts with thousands delimiters.
+  test "integer_display delimits a large whole count" do
+    assert_equal "12,418", integer_display(12_418)
+  end
+
+  test "integer_display renders a plain zero" do
+    assert_equal "0", integer_display(0)
+  end
+
+  # age_total_units — the four coarse-to-fine conversions, in order.
+  test "age_total_units lists the four totals coarse-to-fine" do
+    assert_equal %i[total_months total_weeks total_days total_hours], age_total_units.map { |u| u[:key] }
+    assert_equal %w[Months Weeks Days Hours], age_total_units.map { |u| u[:label] }
+  end
+
+  # age_breakdown_phrase — drops zero units, pluralizes, never empty.
+  test "age_breakdown_phrase joins the non-zero units" do
+    phrase = age_breakdown_phrase(years: 33, months: 11, days: 30)
+    assert_equal "33 years · 11 months · 30 days", phrase
+  end
+
+  test "age_breakdown_phrase drops zero-valued units" do
+    # An exact-year anniversary (24y 0m 0d) reads as just the years.
+    assert_equal "24 years", age_breakdown_phrase(years: 24, months: 0, days: 0)
+  end
+
+  test "age_breakdown_phrase singularizes a unit of one" do
+    assert_equal "1 year · 1 month · 1 day", age_breakdown_phrase(years: 1, months: 1, days: 1)
+  end
+
+  test "age_breakdown_phrase falls back to '0 days' when every unit is zero" do
+    # A same-day age — all zeros — still reads as a real span, never empty.
+    assert_equal "0 days", age_breakdown_phrase(years: 0, months: 0, days: 0)
+  end
+
+  # field_labels_for / calculator_error_messages — Age's bespoke label map.
+  test "field_labels_for returns the Age label map for an Age instance" do
+    assert_equal "Date of birth", field_labels_for(age({}))["birth_date"]
+    assert_equal "Age at the date of", field_labels_for(age({}))["end_date"]
+  end
+
+  test "Age errors are phrased against the visible labels, not the raw keys" do
+    c = age(birth_date: "", end_date: "")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Date of birth can't be blank"
+  end
+
+  test "an out-of-order Age error reads against the visible birth-date label" do
+    c = age(birth_date: "2024-06-15", end_date: "2024-06-14")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Date of birth must be on or before the end date"
+  end
+
+  # ── Simple Interest (issue #78) ─────────────────────────────────────────
+
+  def simple_interest(attrs)
+    Calculators::SimpleInterest.new(attrs)
+  end
+
+  # money_display — fixed 2dp, half-up, thousands-delimited (Simple Interest's outputs
+  # are money, so they always read with cents).
+  test "money_display renders an integer-valued amount with two decimals" do
+    assert_equal "150.00", money_display(BigDecimal("150"))
+  end
+
+  test "money_display keeps two decimals and delimits thousands" do
+    assert_equal "1,150.00", money_display(BigDecimal("1150.0"))
+  end
+
+  test "money_display rounds half-up to two decimals" do
+    assert_equal "2.35", money_display(BigDecimal("2.345"))
+  end
+
+  test "money_display renders a plain zero with cents" do
+    assert_equal "0.00", money_display(BigDecimal("0"))
+  end
+
+  test "field_labels_for returns the Simple Interest label map for a SimpleInterest instance" do
+    labels = field_labels_for(simple_interest({}))
+    assert_equal CalculatorsHelper::SIMPLE_INTEREST_FIELD_LABELS, labels
+    assert_equal "Principal", labels["principal"]
+    assert_equal "Annual rate", labels["rate"]
+    assert_equal "Time", labels["time"]
+    assert_equal "Time unit", labels["unit"]
+  end
+
+  test "Simple Interest errors are phrased against the visible labels, not the raw keys" do
+    c = simple_interest(principal: "", rate: "", time: "", unit: "years")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Principal can't be blank"
+    assert_includes messages, "Annual rate can't be blank"
+    assert_includes messages, "Time can't be blank"
+  end
 end

@@ -187,13 +187,138 @@ module CalculatorsHelper
     "#{formatted[0..-2].join(', ')} and #{formatted.last}"
   end
 
-  # The label map for a calculator instance — each bespoke calculator has its own map;
+  # The visible label for each Amortization input (issue #84) — same single-source-of-
+  # truth role as the maps above: the page renders these AND the error phrasing maps a
+  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  AMORTIZATION_FIELD_LABELS = {
+    "principal"   => "Loan amount",
+    "annual_rate" => "Annual interest rate",
+    "years"       => "Loan term"
+  }.freeze
+
+  # The donut series for the Amortization result (DESIGN.md §4 "Charts — donut via CSS
+  # conic-gradient; largest slice green, then coral"). The donut compares principal vs.
+  # total interest. Returns each slice with its share (0–100, for the conic stops) and
+  # which token paints it — the LARGER slice gets accent green per DESIGN.md, the smaller
+  # gets coral. The backend owns the figures; this only derives display proportions.
+  def amortization_donut(chart)
+    principal = BigDecimal(chart[:principal])
+    interest  = BigDecimal(chart[:total_interest])
+    total     = principal + interest
+    # total is always > 0 here (principal validates greater_than 0).
+    p_pct = (principal / total * 100).to_f
+    i_pct = 100.0 - p_pct
+    principal_bigger = principal >= interest
+    [
+      { key: :principal,      label: "Principal",     amount: chart[:principal],      pct: p_pct, color: principal_bigger ? "accent" : "primary" },
+      { key: :total_interest, label: "Total interest", amount: chart[:total_interest], pct: i_pct, color: principal_bigger ? "primary" : "accent" }
+    ]
+  end
+
+  # The conic-gradient value for the donut: the first slice fills 0→p_pct, the second
+  # fills the remainder. Returns a ready-to-use `conic-gradient(...)` string composed of
+  # the two token colours so the chart needs no inline hex (DESIGN.md §5 guardrail —
+  # the colours come from CSS custom properties the @theme tokens define).
+  def amortization_donut_gradient(slices)
+    first = slices.first
+    stop = first[:pct].round(4)
+    "conic-gradient(var(--color-#{first[:color]}) 0 #{stop}%, var(--color-#{slices.last[:color]}) #{stop}% 100%)"
+  end
+
+  # The balance-over-time curve as SVG polyline/area points in a unit viewBox
+  # (0..100 × 0..100), derived from the backend's `balance_curve` samples (month →
+  # remaining balance). The FE does no math beyond mapping the supplied points into the
+  # plot box: x by month over the term, y by balance over the starting principal
+  # (inverted so a falling balance descends). Returns "x,y x,y …" for the points attr.
+  def amortization_curve_points(curve)
+    max_month   = curve.last[:month].to_f
+    max_balance = curve.first[:balance].to_f # month 0 = starting principal, the peak
+    max_month = 1.0 if max_month.zero?       # single-point guard (never in practice)
+    max_balance = 1.0 if max_balance.zero?
+    curve.map do |point|
+      x = point[:month].to_f / max_month * 100
+      y = 100 - (point[:balance].to_f / max_balance * 100)
+      "#{x.round(3)},#{y.round(3)}"
+    end.join(" ")
+  end
+
+  # The visible label for each Age input (issue #82) — same single-source-of-truth role
+  # as the other maps: the page renders these AND the error phrasing maps an attribute
+  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  AGE_FIELD_LABELS = {
+    "birth_date" => "Date of birth",
+    "end_date"   => "Age at the date of"
+  }.freeze
+
+  # The four total-unit conversions the Age result reports beneath the Y/M/D breakdown,
+  # in coarse-to-fine order, each with its result key and a human label. Drives the
+  # Age result stat grid (DESIGN.md §4 "Stat grid") so the same interval reads four ways.
+  AGE_TOTAL_UNITS = [
+    { key: :total_months, label: "Months" },
+    { key: :total_weeks,  label: "Weeks" },
+    { key: :total_days,   label: "Days" },
+    { key: :total_hours,  label: "Hours" }
+  ].freeze
+
+  # The four Age total-unit conversions, coarse-to-fine, for the result render — a helper
+  # so the view reaches the constant without qualifying it (templates see the module's
+  # methods, not its constants).
+  def age_total_units = AGE_TOTAL_UNITS
+
+  # A whole-integer count for display (the Age outputs are all integers — ARCHITECTURE.md
+  # §10, no rounding) with thousands delimiters so large spans (12,418 days) stay readable
+  # and align under tabular-nums.
+  def integer_display(value)
+    number_with_delimiter(value.to_i)
+  end
+
+  # The "33 years · 11 months · 30 days" breakdown phrase from an Age result, dropping any
+  # leading zero units so a 24y-0m-0d age reads "24 years", not "24 years 0 months 0 days"
+  # — but never empty: a same-day age (all zeros) still reads "0 days". Each unit is
+  # singular/plural correct ("1 year", "2 years").
+  def age_breakdown_phrase(result)
+    parts = [ [ :years, result[:years] ], [ :months, result[:months] ], [ :days, result[:days] ] ]
+      .reject { |_unit, count| count.zero? }
+      .map { |unit, count| "#{count} #{count == 1 ? unit.to_s.singularize : unit}" }
+    parts.empty? ? "0 days" : parts.join(" · ")
+  end
+
+  # The visible label for each Simple Interest input (issue #78) — same single-source-of-
+  # truth role as the other maps: the page renders these AND the error phrasing maps a key
+  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  SIMPLE_INTEREST_FIELD_LABELS = {
+    "principal" => "Principal",
+    "rate"      => "Annual rate",
+    "time"      => "Time",
+    "unit"      => "Time unit"
+  }.freeze
+
+  # Money for display (ARCHITECTURE.md §10 — round only for display): a fixed two decimal
+  # places, half-up, thousands-delimited — so money always reads with cents ("150.00",
+  # "1,150.00"). Accepts either a numeric/BigDecimal (Simple Interest passes raw values,
+  # which this rounds half-up to 2dp) OR an already-rounded 2dp String from the envelope
+  # (Amortization owns its rounding and emits "215838.45"/"0.00" — the FE does no math,
+  # only delimits the whole part and keeps the supplied cents).
+  def money_display(value)
+    if value.is_a?(String)
+      whole, frac = value.split(".")
+      "#{number_with_delimiter(whole)}.#{frac}"
+    else
+      rounded = value.round(2, BigDecimal::ROUND_HALF_UP)
+      number_with_delimiter(format("%.2f", rounded))
+    end
+  end
+
+  # The label map for a calculator instance — each built calculator has a bespoke map;
   # anything else gets none (error phrasing then falls back to a humanized attribute).
   def field_labels_for(calc)
     case calc
     when Calculators::Percentage          then PERCENTAGE_FIELD_LABELS
     when Calculators::OhmsLaw             then OHMS_LAW_FIELD_LABELS
     when Calculators::Bmi                 then BMI_FIELD_LABELS
+    when Calculators::Age                 then AGE_FIELD_LABELS
+    when Calculators::SimpleInterest      then SIMPLE_INTEREST_FIELD_LABELS
+    when Calculators::Amortization        then AMORTIZATION_FIELD_LABELS
     when Calculators::MeanMedianModeRange then MEAN_MEDIAN_MODE_RANGE_FIELD_LABELS
     else {}
     end
