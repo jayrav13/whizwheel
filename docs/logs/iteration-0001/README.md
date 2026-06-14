@@ -1,10 +1,18 @@
 # Iteration 0001
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-13
+**Closed:** 2026-06-13
 **Pinned agent SHA:** `c7796eb` (`main` HEAD at open)
 **Tag:** `iteration-0001`
-**Calculators:** Percentage (#30)
+**Calculators:** Percentage (#30 backend / #31 frontend)
+
+**Headline outcome:** Percentage shipped end-to-end (backend #32, page-serving #34,
+frontend #35) — the first full `spec → build → measure` loop. Backend nailed the math +
+validation contract (the `send`-dispatch multi-mode pattern dodging the unreachable-branch
+100% gate); the FE page came out on-system but with **cramped mode pills** that its own
+screenshot self-review **declared "roomy"** — a miscalibrated spacing bar. → iteration 0002
+invests in a real DESIGN.md spacing system (and, following it, teeth for the FE self-review).
 
 ---
 
@@ -45,6 +53,6 @@ Per-calculator notes accrue in `docs/logs/iteration-0001/percentage.md` as the b
 
 ## Per-calculator notes
 
-| Calculator | Issue | File | Kind |
+| Calculator | Issues | File | Kind |
 |---|---|---|---|
-| Percentage | #30 | `percentage.md` | new build |
+| Percentage | #30 (BE) / #31 (FE) | `percentage.md` | new build |
