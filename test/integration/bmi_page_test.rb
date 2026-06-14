@@ -24,6 +24,18 @@ class BmiPageTest < ActionDispatch::IntegrationTest
     assert_select "input[type=radio][name='inputs[unit_system]'][value=metric]"
   end
 
+  test "the unit-system selector is a segmented control, not a wrapping pill row" do
+    get "/calculators/bmi"
+    # Picker rule: N=2 short options → a segmented control. The two options live as
+    # `.direction-pill` halves inside ONE connected, bordered track (the same vocabulary
+    # the Percentage page uses for its increase/decrease toggle) — never the wrapping
+    # `.mode-pill` chips that scrunched. Each half stays a native radio <label> so the
+    # control posts inputs[unit_system] and works without JS.
+    assert_select "fieldset legend", text: "Unit system"
+    assert_select "fieldset > div.flex.gap-1 label.direction-pill", count: 2
+    assert_select "fieldset label.mode-pill", count: 0
+  end
+
   test "page renders the weight field with a label" do
     get "/calculators/bmi"
     assert_select "label[for=inputs_weight]", text: /Weight/

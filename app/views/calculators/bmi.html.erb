@@ -2,7 +2,7 @@
 
 <%#
   BMI calculator page (spec issue #53, DESIGN.md BLEND). A two-mode calculator: a
-  unit-system pill row (US / Metric) picks the formula and which height inputs show.
+  unit-system segmented control (US / Metric) picks the formula and which height inputs show.
   The form posts over Turbo and re-renders the #result region in place; it works
   WITHOUT JS — the canonical posted fields are inputs[weight], inputs[height] (total
   inches for US, cm for metric) and the checked inputs[unit_system]. With JS, US mode
@@ -11,7 +11,7 @@
 
   Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing
   to one column on mobile. Spacing scale ("targets not minimums"):
-    • unit-system pills → Grouped-wrapping tier (gap-x-3 gap-y-4)
+    • unit-system segmented control → halves tight on the Affix tier (gap-1)
     • stacked fields    → space-y-5
     • mode → fields → submit (major blocks) → mt-8 (Section tier)
     • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
@@ -32,23 +32,29 @@
     <%= form_with url: "/calculators/bmi", scope: :inputs, method: :post,
           data: { controller: "bmi", bmi_weight_units_value: { us: "lb", metric: "kg" }.to_json } do |f| %>
 
-      <%# Unit-system pills — the mode selector (DESIGN.md §4 "Tab pills"), Grouped-wrapping
-          tier (gap-x-3 gap-y-4) so each chip reads as a distinct, separately-hittable target.
-          Active = filled accent (green) via the peer :checked / .is-active hook. %>
+      <%# Unit-system selector — a mode/variant picker with N=2 short options, so per the
+          picker rule it is a SEGMENTED CONTROL: one connected horizontal track, the two
+          options as halves, the active half filled/lifted (NOT the wrapping pill row that
+          scrunched the two chips). Reuses the existing segmented-control vocabulary from
+          the Percentage page's increase/decrease toggle — a bg-tinted bordered track with
+          the two halves tight on the Affix tier (gap-1, parts of one control — DESIGN.md
+          §3), each half a `.direction-pill` that lifts to surface white when chosen.
+          Native radio <fieldset>/<legend> with peer sr-only radios posting
+          inputs[unit_system]; the active half is painted by peer :checked (the no-JS
+          baseline) and .is-active (the bmi_controller's paintPills hook), so it works
+          without JS and the controller's field show/hide is unchanged. %>
       <fieldset>
         <legend class="text-xs font-bold text-label">Unit system</legend>
-        <div class="mt-3 flex flex-wrap gap-x-3 gap-y-4">
+        <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
           <% [["us", "US units"], ["metric", "Metric units"]].each_with_index do |(value, text), i| %>
-            <div>
-              <%= f.radio_button :unit_system, value,
-                    checked: i.zero?,
-                    class: "peer sr-only",
-                    data: { bmi_target: "systemInput", action: "bmi#select" } %>
-              <%= f.label :unit_system, text, value: value,
-                    class: "mode-pill",
-                    data: { bmi_target: "pill", system: value } %>
-            <% end %>
-          </div>
+            <%= f.radio_button :unit_system, value,
+                  checked: i.zero?,
+                  class: "peer sr-only",
+                  data: { bmi_target: "systemInput", action: "bmi#select" } %>
+            <%= f.label :unit_system, text, value: value,
+                  class: "direction-pill",
+                  data: { bmi_target: "pill", system: value } %>
+          <% end %>
         </div>
       </fieldset>
 
