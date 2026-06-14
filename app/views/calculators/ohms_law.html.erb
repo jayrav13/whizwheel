@@ -2,14 +2,21 @@
 
 <%#
   Ohm's Law calculator page (spec issue #55, DESIGN.md BLEND). A multi-mode calculator:
-  a wrapping pill row picks the input PAIR (the `mode` — one of six unordered pairs of
-  V/I/R/P); only that pair's two inputs show, and the page solves the other two. The
-  form posts over Turbo and re-renders the #result region in place; it works without JS
-  (the server validates the selected mode). Layout per DESIGN.md §3 — an input column +
-  a results panel (≈380px 1fr), collapsing to one column on mobile.
+  the picker selects the input PAIR (the `mode` — one of six unordered pairs of V/I/R/P);
+  only that pair's two inputs show, and the page solves the other two. The form posts
+  over Turbo and re-renders the #result region in place; it works WITHOUT JS — the server
+  validates exactly the selected mode's two inputs and re-renders the result fragment.
+  Stimulus is pure polish: it reveals the two fields the chosen mode uses and lifts the
+  active row. Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr),
+  collapsing to one column on mobile.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): SIX modes, each a multi-word pair
+  label ("Voltage & Current", …). N ≥ 4 AND multi-word labels → the SELECTABLE OPTION
+  LIST (.mode-option), not a segmented control (reserved for N ≤ 3 short labels) and not
+  a raw <select> (only N > ~8). It stays a native radio <fieldset>/<legend> posting a
+  single-select inputs[mode].
 
   Spacing scale (DESIGN.md §3, "targets not minimums"):
-    • mode pills → Grouped-wrapping tier (gap-x-3 gap-y-4)
     • stacked fields → space-y-5
     • major blocks within the card (mode → fields → submit) → mt-8 (Section tier)
     • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
@@ -31,15 +38,14 @@
     <%= form_with url: "/calculators/ohms_law", scope: :inputs, method: :post,
           data: { controller: "ohms-law" } do |f| %>
 
-      <%# Mode picker — PROTOTYPE: a "selectable option list" replacing the wrapping pill
-          row, to validate before codifying into DESIGN.md + sweeping all calculators.
-          The accessible control is unchanged: a radio <fieldset>/<legend> posting
-          inputs[mode], each radio visually-hidden (peer sr-only) and paired to a styled
-          <label for>. The styling now makes it read as ONE selector — full-width rows in
-          one bordered container, divided by rules (divide-y) — not N independent chips.
+      <%# Mode picker — selectable option list (.mode-option), per DESIGN.md §4: six
+          multi-word pair modes → one bordered, divided container of full-width rows, NOT
+          N wrapping chips. The accessible control is a native radio <fieldset>/<legend>
+          posting inputs[mode]; each radio is visually-hidden (peer sr-only) and paired to
+          a styled <label for>. The active row is painted with no JS via peer:checked, and
+          the .mode-option::before radio glyph is the non-colour active cue (DESIGN.md §6).
           Each row names the PAIR the user supplies (label) and, on a helper line, the two
-          quantities that mode solves. A real radio glyph (.mode-option::before) is the
-          non-colour active cue (DESIGN.md §6). %>
+          quantities that mode solves. %>
       <fieldset>
         <legend class="text-xs font-bold text-label">I know…</legend>
         <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
@@ -68,9 +74,10 @@
       </fieldset>
 
       <%# Per-quantity fields. Each block declares the modes it serves; Stimulus shows
-          only the active mode's two blocks and disables the rest so they aren't
-          submitted. Stacked tier: space-y-5 down the column (DESIGN.md §3). Each input
-          carries its SI-unit affix on the Affix tier (gap-2 — DESIGN.md §3). %>
+          only the active mode's two blocks and disables the rest so they aren't submitted
+          (the no-JS baseline shows all four — the server still reads only the mode's two).
+          Stacked tier: space-y-5 down the column (DESIGN.md §3). Each input carries its
+          SI-unit affix on the Affix tier (gap-2 — DESIGN.md §3). %>
       <div class="mt-8 space-y-5">
         <%# Voltage — vi, vr, vp %>
         <div data-ohms-law-target="field" data-ohms-law-modes="vi vr vp">
@@ -78,7 +85,7 @@
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :voltage, id: "inputs_voltage", step: "any", inputmode: "decimal",
                   placeholder: "0", class: "field-input" %>
-            <span class="text-sm font-bold text-label" aria-hidden="true">V</span>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">V</span>
           </div>
         </div>
 
@@ -88,7 +95,7 @@
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :current, id: "inputs_current", step: "any", inputmode: "decimal",
                   placeholder: "0", class: "field-input" %>
-            <span class="text-sm font-bold text-label" aria-hidden="true">A</span>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">A</span>
           </div>
         </div>
 
@@ -98,7 +105,7 @@
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :resistance, id: "inputs_resistance", step: "any", inputmode: "decimal",
                   placeholder: "0", class: "field-input" %>
-            <span class="text-sm font-bold text-label" aria-hidden="true">Ω</span>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">Ω</span>
           </div>
         </div>
 
@@ -108,7 +115,7 @@
           <div class="mt-1.5 flex items-center gap-2">
             <%= f.number_field :power, id: "inputs_power", step: "any", inputmode: "decimal",
                   placeholder: "0", class: "field-input" %>
-            <span class="text-sm font-bold text-label" aria-hidden="true">W</span>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">W</span>
           </div>
         </div>
       </div>

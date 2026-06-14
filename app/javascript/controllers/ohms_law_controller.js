@@ -1,11 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Ohm's Law page (spec issue #55): a wrapping pill row picks the input pair (the
-// `mode` — one of the six unordered pairs of V/I/R/P), and each mode needs exactly
-// two of the four inputs. This controller is pure progressive enhancement — the form
-// posts over Turbo and works without JS (the server validates exactly the selected
-// mode's two inputs and re-renders the result fragment). The controller only
-// (a) reveals the two fields the chosen mode uses, and (b) lifts the active mode pill.
+// Ohm's Law page (spec issue #55): a selectable option list (DESIGN.md §4 "Mode
+// picker") picks the input pair (the `mode` — one of the six unordered pairs of
+// V/I/R/P), and each mode needs exactly two of the four inputs. This controller is
+// pure progressive enhancement — the form posts over Turbo and works without JS (the
+// server validates exactly the selected mode's two inputs and re-renders the result
+// fragment). The controller only (a) reveals the two fields the chosen mode uses, and
+// (b) lifts the active option row (the .is-active hook the .mode-option styling reads).
 //
 // Field visibility is data-driven: each per-quantity field block declares the modes
 // it belongs to via `data-ohms-law-modes` (space-separated). The active mode shows
