@@ -137,13 +137,35 @@ module CalculatorsHelper
     format("%.1f", value)
   end
 
-  # The label map for a calculator instance — Percentage and BMI have bespoke maps;
+  # The visible label for each Tip input (issue #76) — same single-source-of-truth role
+  # as the other maps: the page renders these AND the error phrasing maps an attribute key
+  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  TIP_FIELD_LABELS = {
+    "bill"        => "Bill amount",
+    "tip_percent" => "Tip",
+    "people"      => "People"
+  }.freeze
+
+  # Common restaurant tip rates offered as quick-pick chips on the Tip page (the field
+  # stays directly editable, so these are pure progressive-enhancement convenience).
+  TIP_PERCENT_PRESETS = [ 15, 18, 20, 25 ].freeze
+  def tip_percent_presets = TIP_PERCENT_PRESETS
+
+  # Money for display (ARCHITECTURE.md §10 — round only for display): the calculator
+  # already rounds money to the cent, but render a fixed two decimals + thousands
+  # delimiter so every figure reads "$57.50", "$1,234.00" — columns of currency align.
+  def money_display(value)
+    number_with_delimiter(format("%.2f", value))
+  end
+
+  # The label map for a calculator instance — each built calculator has a bespoke map;
   # anything else gets none (error phrasing then falls back to a humanized attribute).
   def field_labels_for(calc)
     case calc
     when Calculators::Percentage then PERCENTAGE_FIELD_LABELS
     when Calculators::OhmsLaw    then OHMS_LAW_FIELD_LABELS
     when Calculators::Bmi        then BMI_FIELD_LABELS
+    when Calculators::Tip        then TIP_FIELD_LABELS
     else {}
     end
   end

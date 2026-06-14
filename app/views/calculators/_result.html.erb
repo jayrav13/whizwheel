@@ -33,6 +33,9 @@
 <% elsif calc.is_a?(Calculators::Bmi) %>
   <%= render "calculators/results/bmi", calc: calc %>
 
+<% elsif calc.is_a?(Calculators::Tip) %>
+  <%= render "calculators/results/tip", calc: calc %>
+
 <% else %>
   <%= render "calculators/results/generic", calc: calc %>
 <% end %>
