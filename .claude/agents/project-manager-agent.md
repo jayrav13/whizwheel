@@ -278,6 +278,17 @@ You commit your own work, but only `docs/`.
   (`git worktree add .claude/worktrees/<slug> -b docs/<topic> main`), commit path-scoped there,
   `gh pr create`, and let a human merge. This applies to iteration opens/closes, inventory
   refreshes, and feedback logs alike. Keep history linear; do not auto-merge.
+- **Worktree-isolation checklist (mandatory).** Your dispatch cwd is the **repo root, not the
+  worktree** — a real failure mode is an agent that created its worktree correctly but then wrote
+  every file into the **main checkout** instead, leaving the worktree (and its PR) empty. After
+  `git worktree add`: (1) **`cd` into the worktree dir and run `pwd`** to confirm you're inside it
+  before writing anything; (2) every `Write`/`Edit` path must be **prefixed with the worktree
+  absolute path** (`.../whizwheel/.claude/worktrees/<slug>/docs/...`) — never a bare repo-root
+  path; (3) run **all** `git` commands from inside the worktree (or via `git -C <worktree>`);
+  (4) **PRE-COMMIT SELF-CHECK** — before committing, run `git -C /Users/jravaliya/Code/whizwheel
+  status --short` (the **main checkout**) and confirm it is **empty**; if your files show up there
+  you leaked — move them under the worktree, restore the main checkout to clean, then commit from
+  the worktree.
 
 ## When unsure
 
