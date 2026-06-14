@@ -40,4 +40,169 @@ class Calculators::BaseTest < ActiveSupport::TestCase
   test "compute is abstract on Base itself" do
     assert_raises(NotImplementedError) { Calculators::Base.new.result }
   end
+
+  # --- numeric coercion guard (#109, #110) -----------------------------------
+  # The :decimal cast turns "abc" into BigDecimal(0) and the :integer cast
+  # truncates "2.5" to 2 — both BEFORE validation — so a plain numericality check
+  # is defeated. Base captures the RAW value and rejects bad input itself.
+
+  test "a non-numeric decimal raw value is rejected (not coerced to 0)" do
+    calc = Calculators::NumericGuardDouble.new(amount: "abc", count: 1)
+    assert_not calc.valid?
+    assert_includes calc.errors[:amount], "is not a number"
+    assert_nil calc.result
+  end
+
+  test "a non-numeric integer raw value is rejected (not coerced to 0)" do
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: "abc")
+    assert_not calc.valid?
+    assert_includes calc.errors[:count], "is not a number"
+  end
+
+  test "a fractional integer raw value is rejected (not truncated)" do
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: "2.5")
+    assert_not calc.valid?
+    assert_includes calc.errors[:count], "must be a whole number"
+  end
+
+  test "a whole-number integer raw value passes the guard" do
+    # "2", "2.0" and "2." are all whole numbers — accepted; the cast yields 2.
+    %w[2 2.0 2.].each do |whole|
+      calc = Calculators::NumericGuardDouble.new(amount: 1, count: whole)
+      assert calc.valid?, "expected count=#{whole.inspect} to pass: #{calc.errors.full_messages}"
+      assert_equal 2, calc.count
+    end
+  end
+
+  test "valid numeric strings (including signed and bare-fractional) pass the guard" do
+    calc = Calculators::NumericGuardDouble.new(amount: "-.5", count: "-3")
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal BigDecimal("-0.5"), calc.amount
+    assert_equal(-3, calc.count)
+  end
+
+  test "blank or omitted numeric input is left to the calculator's own presence rules" do
+    # The guard skips nil, an empty string, and an all-whitespace string — it never
+    # reports those as "not a number" (presence validations own missing input).
+    [ nil, "", "   " ].each do |blank|
+      calc = Calculators::NumericGuardDouble.new(amount: blank, count: blank)
+      assert calc.valid?, "expected blank #{blank.inspect} to raise no guard error: #{calc.errors.full_messages}"
+    end
+  end
+
+  test "a non-numeric value in a non-numeric (string) attribute is untouched" do
+    # The guard only inspects :decimal / :integer attributes — a :string attribute
+    # carries arbitrary text, exercising the non-numeric branch of raw capture.
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: 1, label: "hello")
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal "hello", calc.label
+  end
+
+  # --- scientific notation is ACCEPTED and casts losslessly (#109 over-narrowing) ---
+  # The earlier regex-based guard wrongly rejected "1e6"/"2.5e2"/"1E3" — valid forms
+  # BigDecimal parses and ActiveModel accepted before the guard existed. Parse-based
+  # validation accepts exactly what casting accepts losslessly.
+
+  test "scientific-notation decimal input is accepted and cast exactly" do
+    {
+      "1e6" => BigDecimal("1000000"),
+      "2.5e2" => BigDecimal("250"),
+      "1E3" => BigDecimal("1000"),
+      "-1.5e-2" => BigDecimal("-0.015")
+    }.each do |raw, expected|
+      calc = Calculators::NumericGuardDouble.new(amount: raw, count: 1)
+      assert calc.valid?, "expected amount=#{raw.inspect} to pass: #{calc.errors.full_messages}"
+      assert_equal expected, calc.amount, "amount=#{raw.inspect} cast wrong"
+    end
+  end
+
+  test "whole scientific-notation integer input is accepted and cast losslessly (not truncated)" do
+    # The stock :integer cast turns "2e3" into 2 (String#to_i stops at the "e"); the
+    # guarded type routes through BigDecimal so "2e3" → 2000 and "2.5e2" → 250.
+    { "2e3" => 2000, "2.5e2" => 250, "1E3" => 1000 }.each do |raw, expected|
+      calc = Calculators::NumericGuardDouble.new(amount: 1, count: raw)
+      assert calc.valid?, "expected count=#{raw.inspect} to pass: #{calc.errors.full_messages}"
+      assert_equal expected, calc.count, "count=#{raw.inspect} cast wrong"
+    end
+  end
+
+  test "a fractional scientific-notation integer is still rejected as not whole" do
+    # "2.55e1" == 25.5 — a number, but not a whole one → the whole-number error.
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: "2.55e1")
+    assert_not calc.valid?
+    assert_includes calc.errors[:count], "must be a whole number"
+  end
+
+  test "garbage that looks number-ish is still rejected" do
+    %w[Infinity NaN 0x10 1.2.3].each do |garbage|
+      calc = Calculators::NumericGuardDouble.new(amount: garbage, count: 1)
+      assert_not calc.valid?, "expected amount=#{garbage.inspect} to be rejected"
+      assert_includes calc.errors[:amount], "is not a number"
+    end
+  end
+
+  test "a non-blank raw value that is neither String nor Numeric is rejected" do
+    # A Symbol/Array assigned to a numeric attribute is not blank, not a number, and
+    # not a string — the guard rejects it as "is not a number" rather than coercing.
+    [ :foo, [ 1, 2 ] ].each do |weird|
+      calc = Calculators::NumericGuardDouble.new(amount: weird, count: 1)
+      assert_not calc.valid?, "expected amount=#{weird.inspect} to be rejected"
+      assert_includes calc.errors[:amount], "is not a number"
+    end
+  end
+
+  # --- already-Numeric / BigDecimal raw values are valid by construction (#low) ---
+
+  test "a raw value that is already Numeric or BigDecimal passes the guard" do
+    calc = Calculators::NumericGuardDouble.new(amount: BigDecimal("2.5"), count: 7)
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal BigDecimal("2.5"), calc.amount
+    assert_equal 7, calc.count
+
+    # A Float decimal raw, and an Integer integer raw, both valid by construction.
+    calc2 = Calculators::NumericGuardDouble.new(amount: 1.5, count: 4)
+    assert calc2.valid?, calc2.errors.full_messages.to_sentence
+  end
+
+  test "a non-whole Numeric raw value for an integer attribute is rejected" do
+    # BigDecimal("2.5") is a number but not whole — rejected by the integer guard,
+    # exercising the Numeric-raw path of the whole-number check.
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: BigDecimal("2.5"))
+    assert_not calc.valid?
+    assert_includes calc.errors[:count], "must be a whole number"
+  end
+
+  # --- the guard is assignment-path-independent (#medium: writer-bypass) ----------
+  # Raw capture happens at the cast seam (#_write_attribute), not in assign_attributes,
+  # so the per-attribute writer path is guarded too — and a corrective writer clears
+  # the captured raw rather than leaving a stale false 422.
+
+  test "the per-attribute writer path is guarded (not just .new / assign_attributes)" do
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: 1)
+    assert calc.valid?
+
+    calc.amount = "abc"
+    assert_not calc.valid?, "writer-assigned garbage must be guarded"
+    assert_includes calc.errors[:amount], "is not a number"
+
+    calc.count = "2.5"
+    assert_not calc.valid?
+    assert_includes calc.errors[:count], "must be a whole number"
+  end
+
+  test "a corrective writer assignment clears a stale raw (no false 422)" do
+    calc = Calculators::NumericGuardDouble.new(amount: "abc", count: 1)
+    assert_not calc.valid?
+
+    calc.amount = "10"
+    assert calc.valid?, "a corrective writer must clear the prior bad raw: #{calc.errors.full_messages}"
+    assert_equal BigDecimal("10"), calc.amount
+  end
+
+  test "update assigns through the guard too" do
+    calc = Calculators::NumericGuardDouble.new(amount: 1, count: 1)
+    calc.assign_attributes(amount: "xyz")
+    assert_not calc.valid?
+    assert_includes calc.errors[:amount], "is not a number"
+  end
 end

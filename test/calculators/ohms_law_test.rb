@@ -117,14 +117,14 @@ class Calculators::OhmsLawTest < ActiveSupport::TestCase
     assert_includes calc.errors[:voltage], "can't be blank"
   end
 
-  test "a non-numeric required input coerces to 0 (ActiveModel :decimal behavior)" do
-    # ActiveModel's :decimal type coerces an unparseable string to BigDecimal(0),
-    # not nil — so it passes presence. Here vi's voltage isn't a divisor, so
-    # voltage = 0 is a valid circuit (R = 0/2 = 0, P = 0).
+  test "a non-numeric required input is rejected (Base coercion guard #110)" do
+    # ActiveModel's :decimal cast would turn an unparseable string into BigDecimal(0),
+    # not nil — so presence alone never catches it. Base's coercion guard inspects the
+    # RAW "lots" before the cast and rejects it with a label-led "is not a number".
     calc = Calculators::OhmsLaw.new(mode: "vi", voltage: "lots", current: 2)
-    assert calc.valid?, calc.errors.full_messages.to_sentence
-    assert_equal BigDecimal("0"), calc.result[:voltage]
-    assert_equal BigDecimal("0"), calc.result[:resistance]
+    assert_not calc.valid?
+    assert_includes calc.errors[:voltage], "is not a number"
+    assert_nil calc.result
   end
 
   # --- a valid zero where there is no division ---

@@ -103,4 +103,47 @@ class AmortizationEnvelopeTest < ActionDispatch::IntegrationTest
     assert_equal BigDecimal("10000"), BigDecimal(record.inputs["principal"].to_s)
     assert_equal 60, record.result["schedule"].length
   end
+
+  test "a fractional years value returns 422 and records nothing (#109)" do
+    # Integer-attribute coercion guard over the wire on a SECOND calculator: "2.5"
+    # years must not silently truncate to a 2-year term — it is a label-led 422 with
+    # no Calculation recorded. (The Tip envelope test covers the integer guard via
+    # `people`; this proves it is a Base-level guarantee, not a per-calculator fix.)
+    assert_no_difference "Calculation.count" do
+      post "/calculators/amortization",
+        params: { inputs: { principal: "200000", annual_rate: "5", years: "2.5" } }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(@response.body)
+    assert_not body["ok"]
+    assert_equal "amortization", body["calculator"]
+    assert_includes body.dig("errors", "years"), "must be a whole number"
+  end
+
+  test "scientific-notation decimal input is accepted, not rejected as garbage (#109)" do
+    # Lock-in: "2e5" principal must compute as 200000, not 422. The earlier regex
+    # guard wrongly rejected scientific notation; parse-based validation accepts it.
+    post "/calculators/amortization",
+      params: { inputs: { principal: "2e5", annual_rate: "5", years: "15" } }, as: :json
+
+    assert_response :success
+    body = JSON.parse(@response.body)
+    assert body["ok"]
+    assert_equal BigDecimal("200000"), BigDecimal(body.dig("inputs", "principal"))
+    # identical to the principal: "200000" reference case above.
+    assert_equal "1581.59", body.dig("result", "monthly_payment")
+  end
+
+  test "whole scientific-notation years is accepted and not truncated (#109)" do
+    # "1.2e1" == 12 years (144 payments). The stock :integer cast would parse "1.2e1"
+    # as 1; the guarded type routes through BigDecimal so the term is the full 12 years.
+    post "/calculators/amortization",
+      params: { inputs: { principal: "12000", annual_rate: "0", years: "1.2e1" } }, as: :json
+
+    assert_response :success
+    body = JSON.parse(@response.body)
+    assert body["ok"]
+    assert_equal 144, body.dig("result", "number_of_payments")
+  end
 end

@@ -54,6 +54,34 @@ class TipEnvelopeTest < ActionDispatch::IntegrationTest
     assert body.dig("errors", "people").present?
   end
 
+  test "a fractional people count returns 422 and records nothing (#109)" do
+    # Integer-attribute coercion guard over the wire: "2.5" must not silently
+    # truncate to a 2-person split — it is a label-led 422, no Calculation recorded.
+    assert_no_difference "Calculation.count" do
+      post "/calculators/tip",
+        params: { inputs: { bill: "50.00", tip_percent: "15", people: "2.5" } }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(@response.body)
+    assert_not body["ok"]
+    assert_includes body.dig("errors", "people"), "must be a whole number"
+  end
+
+  test "a non-numeric bill returns 422 and records nothing (#110)" do
+    # Decimal-attribute coercion guard over the wire: "abc" must not become a
+    # silent zero-cost bill — it is a label-led 422, no Calculation recorded.
+    assert_no_difference "Calculation.count" do
+      post "/calculators/tip",
+        params: { inputs: { bill: "abc", tip_percent: "15", people: "1" } }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(@response.body)
+    assert_not body["ok"]
+    assert_includes body.dig("errors", "bill"), "is not a number"
+  end
+
   test "a missing bill returns the 422 error envelope" do
     post "/calculators/tip",
       params: { inputs: { tip_percent: "15", people: "1" } }, as: :json

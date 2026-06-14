@@ -15,4 +15,18 @@ module Calculators
 
     def compute = { doubled: x * 2 }
   end
+
+  # Exercises Base's numeric coercion guard (#109, #110) directly at the contract
+  # level: a :decimal, an :integer, and a non-numeric :string attribute so all the
+  # guard's branches are reachable without leaning on any one real calculator. No
+  # presence rules — the guard alone owns "non-numeric / non-integer raw input".
+  class NumericGuardDouble < Base
+    attribute :amount, :decimal
+    attribute :count, :integer
+    attribute :label, :string
+
+    private
+
+    def compute = { amount: amount, count: count, label: label }
+  end
 end

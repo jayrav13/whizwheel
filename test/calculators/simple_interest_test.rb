@@ -85,11 +85,12 @@ class Calculators::SimpleInterestTest < ActiveSupport::TestCase
   end
 
   test "a non-numeric principal is rejected" do
-    # ActiveModel's :decimal type coerces a non-numeric string to BigDecimal(0),
-    # which passes >= 0; presence still holds, so the value is treated as 0.
+    # Base's coercion guard (#110) catches the raw "lots" before the :decimal cast
+    # turns it into BigDecimal(0) — so it is a hard validation error, not a silent 0.
     calc = Calculators::SimpleInterest.new(principal: "lots", rate: 5, time: 3, unit: "years")
-    assert calc.valid?, calc.errors.full_messages.to_sentence
-    assert_equal BigDecimal("0.00"), calc.result[:interest]
+    assert_not calc.valid?
+    assert_includes calc.errors[:principal], "is not a number"
+    assert_nil calc.result
   end
 
   # --- rate validation ---

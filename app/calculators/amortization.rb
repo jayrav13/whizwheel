@@ -26,8 +26,11 @@ module Calculators
 
     validates :principal, presence: true, numericality: { greater_than: 0 }
     validates :annual_rate, presence: true, numericality: { greater_than_or_equal_to: 0 }
-    validates :years, presence: true,
-      numericality: { only_integer: true, greater_than: 0 }
+    # `years` is an :integer attribute; the spec's "only integer" intent is
+    # enforced by Base's coercion guard (#109) — a fractional raw value is rejected
+    # before validation, never truncated — so `only_integer` here would be an
+    # unreachable branch (the cast is already whole). We keep just `greater_than: 0`.
+    validates :years, presence: true, numericality: { greater_than: 0 }
 
     private
 

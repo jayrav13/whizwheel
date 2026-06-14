@@ -83,13 +83,12 @@ class Calculators::TipTest < ActiveSupport::TestCase
   end
 
   test "a non-numeric bill is rejected" do
-    # ActiveModel's :decimal type coerces a non-numeric string to BigDecimal(0),
-    # so it passes >= 0 — but the blank guard catches an empty string. A garbage
-    # token like "abc" coerces to 0 and is accepted as a zero bill, which is a
-    # valid zero-cost scenario; assert that behaviour explicitly.
+    # Base's coercion guard (#110) catches the raw "abc" before the :decimal cast
+    # turns it into BigDecimal(0) — so a garbage bill is a hard 422, never a silent 0.
     calc = Calculators::Tip.new(bill: "abc", tip_percent: 15, people: 1)
-    assert calc.valid?, calc.errors.full_messages.to_sentence
-    assert_equal BigDecimal("0.00"), calc.result[:tip_amount]
+    assert_not calc.valid?
+    assert_includes calc.errors[:bill], "is not a number"
+    assert_nil calc.result
   end
 
   test "a zero bill is valid" do
@@ -132,20 +131,22 @@ class Calculators::TipTest < ActiveSupport::TestCase
     assert_includes calc.errors[:people], "must be greater than or equal to 1"
   end
 
-  test "a fractional people count is truncated to an integer by the type" do
-    # The :integer attribute carries the spec's "only integer" intent: it coerces
-    # "2.5" to 2 on assignment, so the value is always whole by the time validation
-    # and #compute run. (A coerced 2 is valid; the divisor stays a clean integer.)
+  test "a fractional people count is rejected, not silently truncated" do
+    # The :integer attribute carries the spec's "only integer" intent: Base's
+    # coercion guard (#109) catches the raw "2.5" before the :integer cast truncates
+    # it to 2, so a fractional headcount is a hard 422 rather than a silent floor.
     calc = Calculators::Tip.new(bill: "50.00", tip_percent: 15, people: "2.5")
-    assert calc.valid?, calc.errors.full_messages.to_sentence
-    assert_equal 2, calc.people
-    assert_equal BigDecimal("3.75"), calc.result[:tip_per_person]
+    assert_not calc.valid?
+    assert_includes calc.errors[:people], "must be a whole number"
+    assert_nil calc.result
   end
 
-  test "a non-numeric people count coerces to 0 and is rejected as below 1" do
+  test "a non-numeric people count is rejected as not a number" do
+    # Base's coercion guard (#109/#110) catches the raw "abc" before the :integer
+    # cast turns it into 0 — so it is a label-led "is not a number", not a coerced 0.
     calc = Calculators::Tip.new(bill: "50", tip_percent: 15, people: "abc")
     assert_not calc.valid?
-    assert_includes calc.errors[:people], "must be greater than or equal to 1"
+    assert_includes calc.errors[:people], "is not a number"
     assert_nil calc.result
   end
 
