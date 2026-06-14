@@ -205,8 +205,13 @@ miss suggests. For a regenerated calculator, capture the **delta from its previo
 feedback/discussion here. These files are **disjoint** (fan-out-safe).
 
 **Close an iteration:** when the user decides to change the agents, set the iteration's
-`INDEX.md` row to `closed`, fill the closed date and headline outcome. The subsequent agent
-edit + commit opens the next iteration.
+`INDEX.md` row to `closed`, fill the closed date and headline outcome, and **regenerate
+`docs/inventory.md` as part of the same close.** An iteration's built calculators and the
+inventory's `Built (PRs)` build-coverage column are the same fact — "these calculators
+shipped" — so closing must recompute that column from live GitHub state (per the Inventory
+capability above) and float the newly-completed calculators into the completed block. A
+close must never leave the inventory stale; do it in the same close PR — it is `docs/` work
+you already own. The subsequent agent edit + commit opens the next iteration.
 
 **Dates:** never fabricate a date — obtain it with `date +%F` via Bash, or ask.
 `logs/INDEX.md` is a serial aggregate; update it in one pass.
