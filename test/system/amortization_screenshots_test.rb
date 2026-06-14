@@ -31,6 +31,17 @@ class AmortizationScreenshotsTest < ApplicationSystemTestCase
       # The chart eyebrows are uppercased by CSS, so the rendered text is upper-case.
       assert_text "WHERE YOUR MONEY GOES"
       assert_text "BALANCE OVER TIME"
+      # The interactive JS charts (DESIGN.md §4) draw on connect: the Chart.js donut and
+      # the lightweight-charts curve libraries paint into their canvases, and the controller
+      # then hides the no-JS fallbacks (swap()). The "fallback hidden" signal is the robust
+      # browser-side proof the chart actually drew (a JS-painted <canvas> is unreliable for
+      # Capybara's own visibility check); both libraries inject a <canvas> we also assert is
+      # present. This exercises the chart-rendering path the headless integration test can't
+      # (it asserts markup; only the browser runs the chart libraries).
+      assert_no_selector "[data-amortization-target=donutFallback]", visible: true
+      assert_no_selector "[data-amortization-target=curveFallback]", visible: true
+      assert_selector "[data-amortization-target=donutCanvas] canvas", visible: :all
+      assert_selector "[data-amortization-target=curveCanvas] canvas", visible: :all
       # Stimulus paginates: the first page of rows shows; the rest are hidden until
       # "Show all". Month 1 is visible; a far-out month (e.g. 200) is not, yet.
       assert_selector "tbody tr:not([hidden])", count: 12

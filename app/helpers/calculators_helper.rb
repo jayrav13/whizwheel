@@ -239,6 +239,24 @@ module CalculatorsHelper
     "conic-gradient(var(--color-#{first[:color]}) 0 #{stop}%, var(--color-#{slices.last[:color]}) #{stop}% 100%)"
   end
 
+  # The donut series as the flat object the Stimulus chart controller reads from a data
+  # attribute (DESIGN.md §4 "Charts" — the Chart.js doughnut). It carries each slice's
+  # numeric amount, its visible label, and which token paints it (the colour decision —
+  # larger slice green, smaller coral — already made in `amortization_donut`, so the JS
+  # never re-derives it). Amounts are the backend's money strings as plain numbers (no
+  # delimiters) so Chart.js can size the arcs; the FE does no math (ARCHITECTURE.md §4).
+  def amortization_donut_data(slices)
+    principal, interest = slices
+    {
+      principal:      principal[:amount],
+      principalLabel: principal[:label],
+      principalColor: principal[:color],
+      interest:       interest[:amount],
+      interestLabel:  interest[:label],
+      interestColor:  interest[:color]
+    }
+  end
+
   # The balance-over-time curve as SVG polyline/area points in a unit viewBox
   # (0..100 × 0..100), derived from the backend's `balance_curve` samples (month →
   # remaining balance). The FE does no math beyond mapping the supplied points into the
