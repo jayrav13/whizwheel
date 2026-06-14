@@ -1,0 +1,28 @@
+# The calculator registry is normally populated by Registry::Ingest from
+# docs/INVENTORY.md (via seeds). db:test:prepare runs neither migrations nor seeds,
+# so tests get registry data from these fixtures instead.
+percentage:
+  slug: percentage
+  name: Percentage Calculator
+  category: Math
+  complexity: 3
+  tags: multi-mode, multi-input
+  description: Five percentage operations.
+  source: "[percent-calculator](https://www.calculator.net/percent-calculator.html)"
+
+tip:
+  slug: tip
+  name: Tip Calculator
+  category: Other
+  complexity: 2
+  tags: multi-input
+  description: The tip and grand total on a bill.
+  source: "[tip-calculator](https://www.calculator.net/tip-calculator.html)"
+
+retired_thing:
+  slug: retired_thing
+  name: Retired Calculator
+  category: Math
+  complexity: 1
+  description: A calculator that was dropped from the catalog.
+  deprecated_at: 2026-06-12 00:00:00
