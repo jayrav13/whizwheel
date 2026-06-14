@@ -95,6 +95,21 @@ class MeanMedianModeRangePageTest < ActionDispatch::IntegrationTest
     assert_select "section#result", text: /No mode/
   end
 
+  # The responsive auto-fit stat grid (DESIGN.md §4) must hold large (6+ digit) figures in
+  # full, never clipping or truncating them — the worst case the frontend agent is required
+  # to exercise. Two seven-figure values give a 7-digit sum and a delimited-into-the-millions
+  # smallest/largest; we assert each renders complete (delimited, no ellipsis).
+  test "the stat grid renders large 6+ digit figures in full without clipping" do
+    post "/calculators/mean_median_mode_range",
+      params: { inputs: { numbers: "1234567, 7654321" } }, headers: TURBO
+    assert_response :success
+    within = "section#result"
+    assert_select within, text: /8,888,888/   # sum (1,234,567 + 7,654,321)
+    assert_select within, text: /6,419,754/   # range (7,654,321 − 1,234,567)
+    assert_select within, text: /7,654,321/   # largest, delimited in full
+    assert_select within, text: /1,234,567/   # smallest, delimited in full
+  end
+
   # ── POST — Turbo Stream 422 (invalid) ───────────────────────────────────
 
   test "a blank list renders the error fragment with 422" do
