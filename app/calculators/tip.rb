@@ -20,10 +20,10 @@ module Calculators
 
     validates :bill, presence: true, numericality: { greater_than_or_equal_to: 0 }
     validates :tip_percent, presence: true, numericality: { greater_than_or_equal_to: 0 }
-    # `people` is an :integer attribute, so ActiveModel already coerces it to a
-    # whole number (truncating any fraction) before validation — the "only
-    # integer" intent of the spec is carried by the type. We only need to reject
-    # < 1 to keep the per-person divisor positive (no division by zero).
+    # `people` is an :integer attribute. The spec's "only integer" intent is
+    # enforced by Base's coercion guard (#109): a fractional raw value like "2.5"
+    # is rejected before validation, not silently truncated. Here we only need to
+    # reject < 1 to keep the per-person divisor positive (no division by zero).
     validates :people, numericality: { greater_than_or_equal_to: 1 }
 
     private

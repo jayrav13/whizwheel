@@ -195,21 +195,22 @@ class Calculators::AmortizationTest < ActiveSupport::TestCase
     assert_includes zero.errors[:years], "must be greater than 0"
   end
 
-  test "a fractional years value is coerced to a whole year by the :integer type" do
-    # The spec declares years as :integer; ActiveModel truncates a fractional value
-    # to a whole number on assignment, so "2.5" becomes 2 (a valid 24-month term)
-    # rather than a validation error. The term field is an integer count of years.
+  test "a fractional years value is rejected, not silently truncated" do
+    # The spec declares years as :integer; Base's coercion guard (#109) catches the
+    # raw "2.5" before the :integer cast truncates it to 2, so a fractional term is a
+    # hard 422 rather than a silent 2-year (24-month) loan. The term is whole years.
     calc = Calculators::Amortization.new(principal: 100000, annual_rate: 5, years: "2.5")
-    assert calc.valid?, calc.errors.full_messages.to_sentence
-    assert_equal 2, calc.years
-    assert_equal 24, calc.result[:number_of_payments]
+    assert_not calc.valid?
+    assert_includes calc.errors[:years], "must be a whole number"
+    assert_nil calc.result
   end
 
   test "a non-numeric principal fails validation" do
-    # :decimal coerces "abc" to nil; numericality then rejects it (no allow_nil).
+    # Base's coercion guard (#110) catches the raw "abc" before the :decimal cast
+    # turns it into BigDecimal(0) — a label-led "is not a number", not a coerced 0.
     calc = Calculators::Amortization.new(principal: "abc", annual_rate: 5, years: 15)
     assert_not calc.valid?
-    assert_includes calc.errors[:principal], "must be greater than 0"
+    assert_includes calc.errors[:principal], "is not a number"
     assert_nil calc.result
   end
 
