@@ -12,33 +12,59 @@ module Calculators
   # ## Numeric coercion guard (issues #109, #110)
   #
   # ActiveModel casts an attribute to its declared type BEFORE validations run, and
-  # the numeric casts silently swallow bad input:
+  # the stock numeric casts silently swallow bad input:
   #   - `:decimal` turns "abc" into BigDecimal(0) (NOT nil) — so a plain
   #     numericality check passes and the calculator computes on garbage (#110).
-  #   - `:integer` truncates "2.5" to 2 — so an `only_integer` numericality check is
-  #     unreachable and fractional input is silently accepted (#109).
+  #   - `:integer` truncates "2.5" to 2, and parses "2e3" as 2 (String#to_i stops
+  #     at the "e") — so fractional/scientific input is silently mangled (#109).
   #
-  # Base fixes this once for every calculator: it captures the RAW (pre-cast) value
-  # of each `:decimal`/`:integer` attribute and, in a validation that runs before
-  # #compute, rejects a non-blank raw value that is not a valid number (decimal) or
-  # not a whole number (integer) — a label-led "is not a number" / "must be an
-  # integer" error → 422 via the §4 envelope, never a silent coercion. A blank or
-  # omitted raw value is left alone, so each calculator's own presence rules still
-  # own "missing input".
+  # Base fixes this once for every calculator, in two cooperating pieces:
+  #
+  #   1. **Correct casting** — declaring an attribute `:decimal`/`:integer`
+  #      transparently installs a `Calculators::Type` subclass (see ::attribute)
+  #      that routes string casting through BigDecimal, so every numeric form the
+  #      guard accepts casts *losslessly*: "2.5e2" → 250, "2e3" → 2000 (not 2),
+  #      decimals stay exact (§10).
+  #   2. **A pre-compute guard** — Base captures the RAW (pre-cast) value of each
+  #      numeric attribute at the cast seam (#_write_attribute, the one method every
+  #      assignment path funnels through — .new, assign_attributes, update, AND the
+  #      per-attribute writer `calc.foo = …`) and, in a validation that runs before
+  #      #compute, rejects any non-blank raw value the type deems invalid: a label-
+  #      led "is not a number" / "must be a whole number" error → 422 via the §4
+  #      envelope, never a silent coercion.
+  #
+  # Validity is decided by *parsing*, not a regex: the accepted set equals what the
+  # corrected cast accepts losslessly — every BigDecimal-parseable finite number,
+  # including scientific notation ("1e6", "2.5e2", "1E3"), signed and bare-
+  # fractional forms ("-.5", "2."), with integers additionally required to be whole.
+  # Genuine garbage ("abc", "5 0", "3a", "Infinity", "NaN") is rejected; a raw value
+  # that is already Numeric/BigDecimal is valid by construction. A blank or omitted
+  # raw value is left alone, so each calculator's own presence rules still own
+  # "missing input".
   class Base
     include ActiveModel::Model
     include ActiveModel::Attributes
 
-    # A signed decimal: optional sign, digits with an optional fractional part, or a
-    # bare/trailing fractional like ".5" / "2." / "-.5", with optional surrounding
-    # whitespace. (BigDecimal accepts all of these; this is the pre-cast gate.)
-    NUMERIC = /\A\s*[-+]?(\d+\.?\d*|\.\d+)\s*\z/
+    # The `:decimal`/`:integer` symbols a calculator declares are mapped to these
+    # BigDecimal-backed subclasses (see ::attribute), which both cast losslessly and
+    # expose #valid_raw? for the coercion guard.
+    NUMERIC_TYPES = { decimal: Calculators::Type::Decimal, integer: Calculators::Type::Integer }.freeze
 
     validate :numeric_attributes_parse
 
     def initialize(...)
       @raw_numeric_inputs = {}
       super
+    end
+
+    # Install the guarded numeric type whenever a calculator declares `:decimal` or
+    # `:integer` — so calculators keep writing the plain symbols and automatically
+    # get lossless casting + the coercion guard, with no per-calculator change. Any
+    # macro options (e.g. `default:`) pass straight through to ActiveModel; our
+    # numeric types take no type-specific options today, so the type is built bare.
+    def self.attribute(name, type = nil, **options)
+      type = NUMERIC_TYPES.fetch(type).new if NUMERIC_TYPES.key?(type)
+      super(name, type, **options)
     end
 
     # Calculators::Percentage => "percentage"
@@ -48,25 +74,13 @@ module Calculators
     # The controller's only lookup path — keeps routing registration-free (§3).
     def self.lookup(slug) = "Calculators::#{slug.to_s.camelize}".safe_constantize
 
-    # The names (as strings) of attributes declared with a numeric cast
-    # (:decimal / :integer) — the ones whose raw input the coercion guard inspects.
-    # Memoized per class.
+    # The names (as strings) of attributes whose declared type is one of our guarded
+    # numeric types — the ones whose raw input the coercion guard inspects. Memoized
+    # per class.
     def self.numeric_attribute_names
       @numeric_attribute_names ||= attribute_types.filter_map do |name, type|
-        name if %i[decimal integer].include?(type.type)
+        name if type.is_a?(Calculators::Type::NumericGuard)
       end
-    end
-
-    # Capture the raw, pre-cast value of every numeric attribute as it is assigned,
-    # BEFORE ActiveModel casts it (and loses "abc" → 0 / "2.5" → 2). The captured
-    # values are what #numeric_attributes_parse validates. This intercepts the
-    # assignment path every calculator uses (.new / assign_attributes / update).
-    def assign_attributes(attributes)
-      attributes.to_h.each do |name, value|
-        key = name.to_s
-        @raw_numeric_inputs[key] = value if self.class.numeric_attribute_names.include?(key)
-      end
-      super
     end
 
     # The computed result Hash, or nil when the inputs are invalid. Memoized.
@@ -82,19 +96,34 @@ module Calculators
 
     private
 
+    # The single seam every assignment path funnels through — .new, assign_attributes,
+    # update, AND the per-attribute writer (`calc.foo = …`). Capturing the RAW value
+    # here (before ActiveModel casts it and loses "abc" → 0 / "2.5" → 2) makes the
+    # guard assignment-path-independent: it fires however the attribute was set, and a
+    # corrective re-assignment overwrites the captured raw (no stale false 422).
+    def _write_attribute(name, value)
+      key = name.to_s
+      @raw_numeric_inputs[key] = value if self.class.numeric_attribute_names.include?(key)
+      super
+    end
+
     # The coercion guard (#109, #110). For each numeric attribute given a non-blank
-    # raw value, require that the raw value parses cleanly — as a number for
-    # `:decimal`, as a WHOLE number for `:integer`. A blank/omitted raw value is
-    # skipped so each calculator's presence rules still report missing input.
+    # raw value, ask its type whether the raw value is valid — a finite number for
+    # `:decimal`, a finite WHOLE number for `:integer`. A blank/omitted raw value is
+    # skipped so each calculator's presence rules still report missing input. When an
+    # integer's raw value parses as a number but is not whole (e.g. "2.5"), the error
+    # is the more specific "must be a whole number"; otherwise it is "is not a number".
     def numeric_attributes_parse
       @raw_numeric_inputs.each do |name, raw|
         next if blank_raw?(raw)
 
-        string = raw.to_s
-        if !NUMERIC.match?(string)
-          errors.add(name, :not_a_number)
-        elsif integer_attribute?(name) && fractional?(string)
+        type = self.class.attribute_types[name]
+        next if type.valid_raw?(raw)
+
+        if type.numeric_raw?(raw)
           errors.add(name, :not_an_integer, message: "must be a whole number")
+        else
+          errors.add(name, :not_a_number)
         end
       end
     end
@@ -103,16 +132,6 @@ module Calculators
     # string — exactly the cases a calculator's presence validation owns.
     def blank_raw?(raw)
       raw.nil? || (raw.is_a?(String) && raw.strip.empty?)
-    end
-
-    def integer_attribute?(name)
-      self.class.attribute_types[name].type == :integer
-    end
-
-    # True when a numeric string carries a non-zero fractional part (e.g. "2.5"),
-    # i.e. it is not a whole number. "2" / "2.0" / "2." are whole and allowed.
-    def fractional?(string)
-      !BigDecimal(string.strip).frac.zero?
     end
 
     def compute = raise(NotImplementedError)
