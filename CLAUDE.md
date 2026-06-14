@@ -43,6 +43,21 @@ Concretely, this means you **default to backgrounding dispatched agents** (`run_
 - **Iterations** are pinned to a committed agent set and tagged `iteration-NNNN`.
 - **Everything lands via PR — never push directly to `main`.** This includes `docs/` and iteration bookkeeping by the PM and `JOURNEY.md` by the historian: branch → commit → PR → human merge. `main` is protected; no agent (or the main thread) pushes to it directly.
 
+## Iteration delivery lifecycle
+
+An **iteration** (`iteration-NNNN`) is the unit of delivery. Every iteration runs the same six phases, in order:
+
+1. **Open** — Tag `iteration-NNNN` at the current agent SHA (pin-at-open). Define scope: the **regen set** (which already-built calculators to rebuild, and which **layer(s)** — see "Layer-scoped regen") plus the **new-build set** (new calculators — **may be empty**). The PM opens the iteration log.
+2. **Build (fan out)** — In parallel, via worktree → PR → CI + visual gate → human merge: regenerate the in-scope priors from their specs with the pinned agents, and build any new calculators (a calculator's backend lands before its frontend).
+3. **Evaluate** — Review what was delivered against intent: UI against `DESIGN.md`/BLEND (operator + the visual review), output correctness, and parity. This phase produces the feedback.
+4. **Harvest** — Apply the agent / process / design changes the evaluation surfaced: edit `.claude/agents/*`, `DESIGN.md`, `CLAUDE.md`, and specs; file issues for the larger items. This is the experiment's core loop — **fix the agent, not the code** — and it is an explicit phase **before close**, not an afterthought. The harvest lands on `main` and becomes the agent set the next iteration pins at.
+5. **Journal** — The historian journals the iteration, **including its harvest**.
+6. **Close** — The PM updates `docs/inventory.md` and closes the iteration log (which now records the harvest).
+
+The **next iteration** opens pinned at the post-harvest agents; its regen sweep is what **propagates** the previous harvest across the catalog. Its new-build set is the operator's call and **may be empty — a regen-only iteration** — when the prior harvest is substantial enough to warrant a round on its own (or for any reason the operator chooses).
+
+**Layer-scoped regen.** A regen sweep rebuilds only the **layer(s) whose agents/conventions changed** — frontend-only, backend-only, or both. A harvest that only touched the frontend agent / `DESIGN.md` needs only a frontend regen.
+
 ## Commit & git conventions (all agents)
 
 - Branch off `main` for feature work.
@@ -148,7 +163,7 @@ Run this checklist before a session closes. The user will try to prompt you ("en
 
 ## The rules that matter most
 
-1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: every iteration rebuilds *all* prior calculators from their specs with the latest agents (a fan-out, one agent per calculator), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `project-manager-agent.md` (iterations).
+1. **Agent-first** — encode decisions in the agent definition, not ad-hoc code. Enforced by the **regeneration sweep**: an iteration rebuilds the in-scope prior calculators from their specs with the latest agents (a fan-out, one agent per calculator — scope and layer set by the iteration, see "Iteration delivery lifecycle"; a sweep may be layer-scoped or even regen-only), so any fix living only in calculator code is erased — which forces every durable decision up into the agent/spec/test layer. See `ARCHITECTURE.md` (the build model) and `project-manager-agent.md` (iterations).
 2. **Calculators are code, append-only** — deprecate, never delete (preserves historical comparability).
 3. **No central registration** — add a calculator by adding a file; never edit a shared registry/route/table (keeps parallel builds conflict-free).
 4. **Soft-delete, never hard-delete** user-facing data.
