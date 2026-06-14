@@ -40,14 +40,15 @@ This copies every session transcript and every subagent conversation for this pr
 3. Write one or more new **chapters** in the established style: for each meaningful decision/pivot, capture *what was decided, in whose words (verbatim quotes), why, which artifact changed, and whether it was agent/doc-driven (✅) or a hand-edit*. Be verbose and detailed — this document is meant to be long.
 4. Insert the new chapter(s) **immediately before** the `## Running assessment` section. Then update that section with any new evidence (still unopinionated) and the `## Artifact ledger` if new agents/docs appeared.
 5. Update the **coverage-anchor** comment at the top of the file to the timestamp of the last transcript message you covered, with a short note.
-6. Commit only `JOURNEY.md`:
+0. **First action — create your own worktree** (the standing default for every writing agent; `CLAUDE.md` → Worktrees): `git worktree add .claude/worktrees/journey -b docs/journey-<short-topic> main`, then do all of the below **inside that worktree** (run git there; edit that worktree's `JOURNEY.md`).
+6. Commit only `JOURNEY.md`, then **push and open a docs PR from your worktree** — self-contained; never push to `main`, never merge:
    ```bash
    git add JOURNEY.md
    git commit -m "$(printf 'docs(journey): <short note on what was journaled>\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>')"
+   git push -u origin HEAD
+   gh pr create --title "docs(journey): <note>" --body "Historian update. Docs-only (JOURNEY.md)."
    ```
-   Commit onto the session's **active feature branch**, never directly onto `main` — your
-   commit then lands via that branch's PR (`main` is protected; `CLAUDE.md` → PR workflow).
-   **Do not push** (the human/PR merge handles that).
+   (`main` is protected — everything lands via PR; the human merges.)
 
 ## Report
 One or two lines: which chapters you added (or "caught up — nothing new"), the new anchor timestamp, and the commit SHA. Keep it terse — you run in the background.
