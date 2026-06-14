@@ -146,15 +146,6 @@ module CalculatorsHelper
     "years"       => "Loan term"
   }.freeze
 
-  # Format an already-rounded money STRING from the envelope (e.g. "215838.45") for
-  # display: delimit thousands, keep the two decimal places. The Amortization calculator
-  # emits money as 2dp strings (it owns all rounding — ARCHITECTURE.md §4/§10); the FE
-  # does no math, only presentation. "0.00" → "0.00"; "599.55" → "599.55".
-  def money_display(string)
-    whole, frac = string.to_s.split(".")
-    "#{number_with_delimiter(whole)}.#{frac}"
-  end
-
   # The donut series for the Amortization result (DESIGN.md §4 "Charts — donut via CSS
   # conic-gradient; largest slice green, then coral"). The donut compares principal vs.
   # total interest. Returns each slice with its share (0–100, for the conic stops) and
@@ -201,14 +192,83 @@ module CalculatorsHelper
     end.join(" ")
   end
 
+  # The visible label for each Age input (issue #82) — same single-source-of-truth role
+  # as the other maps: the page renders these AND the error phrasing maps an attribute
+  # key back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  AGE_FIELD_LABELS = {
+    "birth_date" => "Date of birth",
+    "end_date"   => "Age at the date of"
+  }.freeze
+
+  # The four total-unit conversions the Age result reports beneath the Y/M/D breakdown,
+  # in coarse-to-fine order, each with its result key and a human label. Drives the
+  # Age result stat grid (DESIGN.md §4 "Stat grid") so the same interval reads four ways.
+  AGE_TOTAL_UNITS = [
+    { key: :total_months, label: "Months" },
+    { key: :total_weeks,  label: "Weeks" },
+    { key: :total_days,   label: "Days" },
+    { key: :total_hours,  label: "Hours" }
+  ].freeze
+
+  # The four Age total-unit conversions, coarse-to-fine, for the result render — a helper
+  # so the view reaches the constant without qualifying it (templates see the module's
+  # methods, not its constants).
+  def age_total_units = AGE_TOTAL_UNITS
+
+  # A whole-integer count for display (the Age outputs are all integers — ARCHITECTURE.md
+  # §10, no rounding) with thousands delimiters so large spans (12,418 days) stay readable
+  # and align under tabular-nums.
+  def integer_display(value)
+    number_with_delimiter(value.to_i)
+  end
+
+  # The "33 years · 11 months · 30 days" breakdown phrase from an Age result, dropping any
+  # leading zero units so a 24y-0m-0d age reads "24 years", not "24 years 0 months 0 days"
+  # — but never empty: a same-day age (all zeros) still reads "0 days". Each unit is
+  # singular/plural correct ("1 year", "2 years").
+  def age_breakdown_phrase(result)
+    parts = [ [ :years, result[:years] ], [ :months, result[:months] ], [ :days, result[:days] ] ]
+      .reject { |_unit, count| count.zero? }
+      .map { |unit, count| "#{count} #{count == 1 ? unit.to_s.singularize : unit}" }
+    parts.empty? ? "0 days" : parts.join(" · ")
+  end
+
+  # The visible label for each Simple Interest input (issue #78) — same single-source-of-
+  # truth role as the other maps: the page renders these AND the error phrasing maps a key
+  # back to them (DESIGN.md §4 — phrase against the visible label, never the raw key).
+  SIMPLE_INTEREST_FIELD_LABELS = {
+    "principal" => "Principal",
+    "rate"      => "Annual rate",
+    "time"      => "Time",
+    "unit"      => "Time unit"
+  }.freeze
+
+  # Money for display (ARCHITECTURE.md §10 — round only for display): a fixed two decimal
+  # places, half-up, thousands-delimited — so money always reads with cents ("150.00",
+  # "1,150.00"). Accepts either a numeric/BigDecimal (Simple Interest passes raw values,
+  # which this rounds half-up to 2dp) OR an already-rounded 2dp String from the envelope
+  # (Amortization owns its rounding and emits "215838.45"/"0.00" — the FE does no math,
+  # only delimits the whole part and keeps the supplied cents).
+  def money_display(value)
+    if value.is_a?(String)
+      whole, frac = value.split(".")
+      "#{number_with_delimiter(whole)}.#{frac}"
+    else
+      rounded = value.round(2, BigDecimal::ROUND_HALF_UP)
+      number_with_delimiter(format("%.2f", rounded))
+    end
+  end
+
   # The label map for a calculator instance — each built calculator has a bespoke map;
   # anything else gets none (error phrasing then falls back to a humanized attribute).
   def field_labels_for(calc)
     case calc
-    when Calculators::Percentage   then PERCENTAGE_FIELD_LABELS
-    when Calculators::OhmsLaw      then OHMS_LAW_FIELD_LABELS
-    when Calculators::Bmi          then BMI_FIELD_LABELS
-    when Calculators::Amortization then AMORTIZATION_FIELD_LABELS
+    when Calculators::Percentage     then PERCENTAGE_FIELD_LABELS
+    when Calculators::OhmsLaw        then OHMS_LAW_FIELD_LABELS
+    when Calculators::Bmi            then BMI_FIELD_LABELS
+    when Calculators::Age            then AGE_FIELD_LABELS
+    when Calculators::SimpleInterest then SIMPLE_INTEREST_FIELD_LABELS
+    when Calculators::Amortization   then AMORTIZATION_FIELD_LABELS
     else {}
     end
   end

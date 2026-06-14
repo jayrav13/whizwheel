@@ -57,6 +57,22 @@
         Body Mass Index from weight and height, in US or metric units, with the WHO classification band.
       </p>
     <% end %>
+    <%= link_to "/calculators/age",
+          class: "group rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" do %>
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Other</p>
+      <h2 class="mt-2 text-lg font-extrabold tracking-[-0.02em] text-ink group-hover:text-primary">Age</h2>
+      <p class="mt-1.5 text-[15px] leading-relaxed text-muted">
+        Your exact age between two dates — years, months and days, plus total months, weeks, days and hours.
+      </p>
+    <% end %>
+    <%= link_to "/calculators/simple_interest",
+          class: "group rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" do %>
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Financial</p>
+      <h2 class="mt-2 text-lg font-extrabold tracking-[-0.02em] text-ink group-hover:text-primary">Simple Interest</h2>
+      <p class="mt-1.5 text-[15px] leading-relaxed text-muted">
+        Interest on the original principal only — never compounded. Enter a principal, rate, and term in years or months.
+      </p>
+    <% end %>
     <%= link_to "/calculators/amortization",
           class: "group rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)] transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" do %>
       <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Financial</p>

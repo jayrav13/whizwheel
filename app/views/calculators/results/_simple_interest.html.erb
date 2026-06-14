@@ -1,0 +1,43 @@
+<%# Simple Interest result (spec issue #78, DESIGN.md §4 Hero-result + Data table). The
+    ending balance (total) is the headline answer — a big tabular-nums figure on the coral-
+    ruled hero card — with the interest accrued as a green accent eyebrow stat beside it.
+    Below, a thin-ruled breakdown reads the arithmetic: principal + interest = total, the
+    total row a hard ink-topped total row (DESIGN.md §4 "Data table"). `calc:` is a valid
+    Calculators::SimpleInterest; result keys are `interest` + `total` (ARCHITECTURE.md §4). %>
+<% interest = calc.result[:interest] %>
+<% total = calc.result[:total] %>
+<% unit_label = calc.unit == "months" ? "months" : "years" %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="flex gap-5 p-7">
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Ending balance</p>
+      <p class="mt-2 flex items-baseline gap-1.5">
+        <span class="text-sm font-bold text-faint">$</span>
+        <span class="text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= money_display(total) %></span>
+      </p>
+      <p class="mt-3 text-[15px] leading-relaxed text-muted">
+        <span class="font-semibold text-accent">$<%= money_display(interest) %></span>
+        in simple interest on a $<%= money_display(calc.principal) %> principal at
+        <%= decimal_display(calc.rate) %>% over <%= decimal_display(calc.time) %> <%= unit_label %>.
+      </p>
+
+      <%# Breakdown — a thin-ruled data table: principal + interest, then a hard total row
+          (top border ink, DESIGN.md §4). Figures right-aligned tabular-nums so they line up. %>
+      <dl class="mt-6 space-y-2.5 text-[15px]">
+        <div class="flex items-baseline justify-between">
+          <dt class="text-muted">Principal</dt>
+          <dd class="font-semibold tabular-nums text-ink">$<%= money_display(calc.principal) %></dd>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <dt class="text-muted">Interest</dt>
+          <dd class="font-semibold tabular-nums text-accent">+ $<%= money_display(interest) %></dd>
+        </div>
+        <div class="flex items-baseline justify-between border-t border-ink pt-2.5">
+          <dt class="font-bold text-ink">Total</dt>
+          <dd class="font-extrabold tabular-nums text-ink">$<%= money_display(total) %></dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</div>
