@@ -112,9 +112,30 @@ truth for the *what* — build to it.** Two process points are specifically your
   `<div>` instead of the `<canvas>`), and only the human visual gate caught it. The durable guard
   belongs **in the test**, so a chart that fails to paint fails CI on its own — never relying on a
   human to notice. (Reference: `test/system/amortization_screenshots_test.rb`.)
-- **Test the worst case.** When you build a responsive stat grid, add a render/state test that
-  exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip a
-  large one.
+- **Stat grids use the shared `.stat-grid`/`.stat-card` component — never an inline
+  `grid-cols-[repeat(auto-fit,…)]` width.** The responsive stat grid is ONE BLEND component
+  (`DESIGN.md §4`): the `.stat-grid` track (default **9.5rem** min) + `.stat-card`, with a
+  **bounded set of sanctioned modifiers** — `.stat-grid--wide` (**13rem** min, for a grid whose
+  realistic worst-case value is **high-magnitude — whether unit-bearing, money, OR a plain large
+  unit-less number** — that the 9.5rem track would wrap or clip in the narrow (~489px) result
+  panel: e.g. Ohm's Law `998,001,000 W`, Simple Interest `$1,000,000.00`, MMR's 7-digit statistics
+  `6,419,754`, Age's Total-hours), `.stat-card--surface` (grid sitting on the page background rather
+  than nested in a hero card), and `.stat-card--solved` (accent-tinted state card). **Reach for a
+  modifier, never a per-page inline width** — the whole point of the component (#143) is one
+  definition + a small variant set, so the regen sweep *converges* instead of re-diverging into N
+  ad-hoc widths. Use `--wide` for any grid whose worst-case figure is long enough to wrap on the
+  default track (currently Ohm's Law, Simple Interest, MMR, Age); keep genuinely short/plain grids
+  (BMI ranges, ordinary small money like Tip / Amortization) on the default 9.5rem. **Never-clip
+  floor:** the card value `<dd>` carries `overflow-wrap: anywhere`, so a value exceeding even
+  `--wide` *wraps* rather than clips — single-line is preferred (what `--wide` buys), wrapping is the
+  floor, and **clipping (data loss) is never allowed**. Per-page value color/size stays a utility on
+  the inner `<dd>` — never fork the card shell. `DESIGN.md §4` is the source of truth.
+- **Test the worst case.** When you build or use a stat grid, add a render/state test that
+  exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip or
+  wrap a large one — assertions a markup/text test cannot make. For a `--wide` grid assert the
+  worst-case value does **not wrap mid-number** (`assert_no_mid_value_wrap` — laid-out height vs.
+  line-height); and assert no value **clips** (`assert_no_value_clip` — `scrollWidth <= clientWidth`
+  on the value element).
 
 ## Quality bar
 
