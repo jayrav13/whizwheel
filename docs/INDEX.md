@@ -13,7 +13,7 @@ logs reference issue numbers, so the repo tells the whole story on its own.
 
 | Path | What it holds |
 |---|---|
-| `inventory.md` | The full catalog of calculators on calculator.net, with complexity (1–5) and tags. Refreshed idempotently from the site. |
+| `INVENTORY.md` | The full catalog of calculators on calculator.net, with complexity (1–5) and tags. Refreshed idempotently from the site. |
 | `logs/` | One folder per iteration plus `logs/INDEX.md`. |
 | `superpowers/specs/` | Design specs. |
 | `superpowers/plans/` | Implementation plans. |

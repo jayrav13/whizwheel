@@ -54,13 +54,13 @@ trigger. Sequencing is advisory.
 
 | File | Purpose |
 |---|---|
-| `docs/inventory.md` | Full calculator catalog + complexity + tags. |
+| `docs/INVENTORY.md` | Full calculator catalog + complexity + tags. |
 | `docs/logs/INDEX.md` | Registry of iterations. |
 | `docs/logs/iteration-NNNN/<calculator>.md` | Per-calculator build + feedback. |
 | `docs/INDEX.md` | Explains the structure (rarely changes). |
 | `docs/PRODUCT.md` | The product vision. You **steward** it — keep it current as decisions land — but you do **not decide** direction; the user does. Reflect confirmed decisions into it; never invent product scope. |
 
-## Capability — Inventory (`docs/inventory.md`)
+## Capability — Inventory (`docs/INVENTORY.md`)
 
 Maintain the full catalog of calculator.net calculators, idempotently.
 
@@ -75,7 +75,7 @@ Maintain the full catalog of calculator.net calculators, idempotently.
    alone is only the highlighted subset.
 2. Fetch each category index page and extract **every** calculator linked, with name and
    absolute URL.
-3. For each calculator, assign **complexity (1–5)** per the scale in `inventory.md` and
+3. For each calculator, assign **complexity (1–5)** per the scale in `INVENTORY.md` and
    **tags** from its vocabulary (add new tags when warranted, noting them in the legend).
 
 **Catalog table — columns & rendering (exact):** the table has these columns, in order:
@@ -98,7 +98,7 @@ Maintain the full catalog of calculator.net calculators, idempotently.
   Leave the cell **blank** when no build PR has merged yet — a blank cell *is* the "still
   backlog / not yet migrated" signal, so the column doubles as the build-coverage view.
 
-**Idempotent merge (critical):** before writing, read the existing `inventory.md`.
+**Idempotent merge (critical):** before writing, read the existing `INVENTORY.md`.
 - Keep existing rows and **preserve their current complexity and tags** (these may have
   been empirically corrected — do not overwrite with fresh hypotheses).
 - **Source** and **Built (PRs)** are **derived, not preserved** — always (re)render Source
@@ -137,7 +137,7 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
   spec (modes, inputs, output keys) to render the UI against the §4 envelope. Create with:
   `gh issue create --title "<calculator name>" --label backend  --body-file <spec>` and
   `gh issue create --title "<calculator name>" --label frontend --body-file <spec>`.
-  Do **not** pre-seed the whole inventory — `docs/inventory.md` is the full backlog; an open
+  Do **not** pre-seed the whole inventory — `docs/INVENTORY.md` is the full backlog; an open
   issue means a calculator is actually queued or in flight. **Dedup by name *and* layer**
   (a calculator may legitimately have one issue per layer; skip only an exact name+label
   match).
@@ -146,7 +146,7 @@ issues and **read** them for reporting; you **never close** them (PR merges do).
   body, the format defined in **`ARCHITECTURE.md §3.2`** (read it; match it exactly — the
   marker, the section headings, the table shapes). The body must carry:
   - **Header lines** — `Category`, `Source` (the calculator.net page), `Complexity` (1–5),
-    `Tags` — drawn from `docs/inventory.md`.
+    `Tags` — drawn from `docs/INVENTORY.md`.
   - **Intent** — the prose definition of the math.
   - **Inputs** — a table: `name` / `type` (the ActiveModel type, `:decimal` for money &
     quantities per §10) / `rules` (validations).
@@ -209,7 +209,7 @@ feedback/discussion here. These files are **disjoint** (fan-out-safe).
 
 **Close an iteration:** when the user decides to change the agents, set the iteration's
 `INDEX.md` row to `closed`, fill the closed date and headline outcome, and **regenerate
-`docs/inventory.md` as part of the same close.** An iteration's built calculators and the
+`docs/INVENTORY.md` as part of the same close.** An iteration's built calculators and the
 inventory's `Built (PRs)` build-coverage column are the same fact — "these calculators
 shipped" — so closing must recompute that column from live GitHub state (per the Inventory
 capability above) and float the newly-completed calculators into the completed block. A
@@ -221,7 +221,7 @@ you already own. The subsequent agent edit + commit opens the next iteration.
 
 ## Capability — Synthesis (three lengths)
 
-On request, synthesize current state by reading `inventory.md`, the iteration logs, and
+On request, synthesize current state by reading `INVENTORY.md`, the iteration logs, and
 issue state. Voice: first-person ("we"), technical reader. Whole-project by default;
 scopeable to an iteration or date range on request.
 

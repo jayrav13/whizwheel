@@ -10,7 +10,7 @@
 
 | Term | Means | Lives as |
 |---|---|---|
-| **Calculator** | A *type* — the page, the math, the engineering artifact. e.g. "Percentage". | Code: `Calculators::Percentage`. Catalogued in the PM's `docs/inventory.md`. Keyed by a **slug** (`"percentage"`). |
+| **Calculator** | A *type* — the page, the math, the engineering artifact. e.g. "Percentage". | Code: `Calculators::Percentage`. Catalogued in the PM's `docs/INVENTORY.md`. Keyed by a **slug** (`"percentage"`). |
 | **Spec** | The durable *intent* of a calculator — what it must do, its inputs/outputs, reference values — that the agents regenerate the implementation **from** (see §3.1). The code is a *production of* the spec, not the reverse. | The calculator's GitHub issue bodies — a **`backend`** and a **`frontend`** issue, both carrying the identical `spec:v1` format (see §3.2). PM-authored; the build agents read it and regenerate code from it, never the reverse. |
 | **Calculation** | A single *run* of a calculator — one invocation, with its inputs and result. | A DB row: `Calculation` (ActiveRecord). |
 | **calculation_logs** | A denormalized read model for reporting/stats. | A DB **view** over `calculations`. |
@@ -190,7 +190,7 @@ _From the Source above — these pin correctness; the backend agent must reprodu
 ```
 
 **Section contract** (what each part means to the build):
-- **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `inventory.md` echo.
+- **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `INVENTORY.md` echo.
 - **Intent** — the prose definition of the math; the single source of "what it must do."
 - **Inputs** — one row per attribute: `name` → a `Calculators::Base` `attribute`; `type` → the ActiveModel type (`:decimal` for money/quantities, per §10); `rules` → the validations.
 - **Outputs** — one row per key in the `#compute` result Hash; these keys are the JSON envelope's `result` shape (§4) the frontend renders.
