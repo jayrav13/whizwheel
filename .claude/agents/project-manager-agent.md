@@ -78,14 +78,44 @@ Maintain the full catalog of calculator.net calculators, idempotently.
 3. For each calculator, assign **complexity (1–5)** per the scale in `inventory.md` and
    **tags** from its vocabulary (add new tags when warranted, noting them in the legend).
 
+**Catalog table — columns & rendering (exact):** the table has these columns, in order:
+
+`| Calculator | Category | Complexity | Tags | Source | Built (PRs) |`
+
+- **Source** — a markdown link whose **display text is just the page slug** (the `*` in
+  `https://www.calculator.net/*.html` — i.e. the URL's filename with `.html` stripped),
+  linking to the **full** URL. E.g. `https://www.calculator.net/percentage-calculator.html`
+  renders as `[percentage-calculator](https://www.calculator.net/percentage-calculator.html)`.
+  This keeps the column narrow and the table readable while preserving click-through to the
+  real page. (Store the full URL in the link target — never lose it.)
+- **Built (PRs)** — the **merged** PR(s) that completed this calculator, **derived from
+  GitHub on every refresh** (not a hand-maintained field). For each calculator: find its
+  `backend` and `frontend` issues (title = calculator name; see C2), then the **merged** PRs
+  that closed them (`Closes #N`). Render as layer-labeled links, e.g.
+  `BE [#33](https://github.com/jayrav13/whizwheel/pull/33) · FE [#35](…/pull/35)`. If a
+  calculator was regenerated across iterations and has multiple completing PRs per layer,
+  list the **most recent merged** PR per layer (the one reflecting current built state).
+  Leave the cell **blank** when no build PR has merged yet — a blank cell *is* the "still
+  backlog / not yet migrated" signal, so the column doubles as the build-coverage view.
+
 **Idempotent merge (critical):** before writing, read the existing `inventory.md`.
 - Keep existing rows and **preserve their current complexity and tags** (these may have
   been empirically corrected — do not overwrite with fresh hypotheses).
-- **Add** newly-found calculators with hypothesis complexity/tags.
+- **Source** and **Built (PRs)** are **derived, not preserved** — always (re)render Source
+  from the row's URL per the rule above, and always recompute Built (PRs) from live GitHub
+  state. The preserve rule protects only the *judgment* columns (complexity, tags).
+- **Add** newly-found calculators with hypothesis complexity/tags and a blank Built (PRs).
 - **Mark** calculators no longer found as `removed` in the Tags column (keep the row).
 
-Write the table sorted by Category then Calculator. Report the delta in your commit
-message (e.g. `+3 / −1`).
+**Sort order:** group **completed first** — every row with a non-blank Built (PRs) cell goes
+at the **top** of the table, then all **pending** (blank Built (PRs)) rows below. **Within
+each group**, keep the existing alphabetical order — **by Category, then Calculator** (the
+ordering the catalog uses today). So the primary key is built-vs-pending, the secondary is
+Category, the tertiary is Calculator. This floats migrated calculators to the top as a
+running coverage view while leaving the untouched backlog in its familiar order.
+
+Report the delta in your commit message (e.g. `+3 / −1`), and note any newly-populated Built
+(PRs) cells (calculators that floated up to the completed block this refresh).
 
 ## Capability — Task tracking via GitHub Issues (C2)
 
