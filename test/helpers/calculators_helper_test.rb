@@ -250,4 +250,46 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes messages, "Weight can't be blank"
     assert_includes messages, "Height can't be blank"
   end
+
+  # ── Simple Interest (issue #78) ─────────────────────────────────────────
+
+  def simple_interest(attrs)
+    Calculators::SimpleInterest.new(attrs)
+  end
+
+  # money_display — fixed 2dp, half-up, thousands-delimited (Simple Interest's outputs
+  # are money, so they always read with cents).
+  test "money_display renders an integer-valued amount with two decimals" do
+    assert_equal "150.00", money_display(BigDecimal("150"))
+  end
+
+  test "money_display keeps two decimals and delimits thousands" do
+    assert_equal "1,150.00", money_display(BigDecimal("1150.0"))
+  end
+
+  test "money_display rounds half-up to two decimals" do
+    assert_equal "2.35", money_display(BigDecimal("2.345"))
+  end
+
+  test "money_display renders a plain zero with cents" do
+    assert_equal "0.00", money_display(BigDecimal("0"))
+  end
+
+  test "field_labels_for returns the Simple Interest label map for a SimpleInterest instance" do
+    labels = field_labels_for(simple_interest({}))
+    assert_equal CalculatorsHelper::SIMPLE_INTEREST_FIELD_LABELS, labels
+    assert_equal "Principal", labels["principal"]
+    assert_equal "Annual rate", labels["rate"]
+    assert_equal "Time", labels["time"]
+    assert_equal "Time unit", labels["unit"]
+  end
+
+  test "Simple Interest errors are phrased against the visible labels, not the raw keys" do
+    c = simple_interest(principal: "", rate: "", time: "", unit: "years")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Principal can't be blank"
+    assert_includes messages, "Annual rate can't be blank"
+    assert_includes messages, "Time can't be blank"
+  end
 end
