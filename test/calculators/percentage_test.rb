@@ -71,6 +71,23 @@ class Calculators::PercentageTest < ActiveSupport::TestCase
     end
   end
 
+  # --- result carries only the selected mode's key(s) (the §4 result shape) ---
+  {
+    "percent_of" => { v1: 50, percent: 20 },
+    "what_percent" => { v1: 10, v2: 50 },
+    "percent_of_what" => { v1: 10, percent: 20 },
+    "difference" => { v1: 10, v2: 6 },
+    "change" => { v1: 500, percent: 10, direction: "increase" }
+  }.each do |mode, inputs|
+    expected_key = { "percent_of" => :value, "what_percent" => :percent,
+                     "percent_of_what" => :base, "difference" => :percent,
+                     "change" => :value }.fetch(mode)
+    test "#{mode} result carries exactly the #{expected_key} key" do
+      result = Calculators::Percentage.new(mode: mode, **inputs).result
+      assert_equal [ expected_key ], result.keys
+    end
+  end
+
   # --- Full BigDecimal precision (no float drift) ---
   test "computes at full precision (1/3 of a percent)" do
     calc = Calculators::Percentage.new(mode: "what_percent", v1: 1, v2: 3)
@@ -130,6 +147,13 @@ class Calculators::PercentageTest < ActiveSupport::TestCase
     assert_includes calc.errors[:direction], "can't be blank"
   end
 
+  test "inputs not named by the mode are ignored, not required" do
+    # percent_of needs only v1 + percent; v2/direction left blank is fine.
+    calc = Calculators::Percentage.new(mode: "percent_of", v1: 50, percent: 20)
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal BigDecimal("10.0"), calc.result[:value]
+  end
+
   test "numeric strings are accepted and coerced to exact BigDecimal" do
     calc = Calculators::Percentage.new(mode: "percent_of", v1: "50", percent: "20")
     assert calc.valid?, calc.errors.full_messages.to_sentence
@@ -147,6 +171,13 @@ class Calculators::PercentageTest < ActiveSupport::TestCase
     calc = Calculators::Percentage.new(mode: "change", v1: 100, percent: 10, direction: "sideways")
     assert_not calc.valid?
     assert_includes calc.errors[:direction], "is not included in the list"
+    assert_nil calc.result
+  end
+
+  test "change rejects a blank direction" do
+    calc = Calculators::Percentage.new(mode: "change", v1: 100, percent: 10, direction: "")
+    assert_not calc.valid?
+    assert_includes calc.errors[:direction], "can't be blank"
   end
 
   test "direction is ignored outside change mode" do
@@ -170,11 +201,18 @@ class Calculators::PercentageTest < ActiveSupport::TestCase
     assert_nil calc.result
   end
 
-  test "difference rejects v1 + v2 = 0" do
+  test "difference rejects v1 + v2 = 0 (a whole-record :base error)" do
     calc = Calculators::Percentage.new(mode: "difference", v1: 5, v2: -5)
     assert_not calc.valid?
     assert_includes calc.errors[:base], "must be other than 0"
     assert_nil calc.result
+  end
+
+  test "difference allows a nonzero sum (e.g. opposite signs that don't cancel)" do
+    calc = Calculators::Percentage.new(mode: "difference", v1: 10, v2: -6)
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    # |10 − (−6)| / ((10 + (−6))/2) × 100 = 16 / 2 × 100 = 800
+    assert_equal BigDecimal("800"), calc.result[:percent]
   end
 
   # --- envelope/contract surface ---
