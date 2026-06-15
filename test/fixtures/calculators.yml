@@ -69,6 +69,15 @@ mean_median_mode_range:
   description: The central tendency and spread of a list of numbers — mean, median, mode, range, sum, count and more.
   source: "[mean-median-mode-range-calculator](https://www.calculator.net/mean-median-mode-range-calculator.html)"
 
+standard_deviation:
+  slug: standard_deviation
+  name: Standard Deviation Calculator
+  category: Math
+  complexity: 3
+  tags: statistical, multi-mode, text-output
+  description: Standard deviation, variance and mean of a data set — choose population or sample.
+  source: "[standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html)"
+
 tip:
   slug: tip
   name: Tip Calculator
