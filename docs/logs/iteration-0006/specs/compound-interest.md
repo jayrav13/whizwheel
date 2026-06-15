@@ -58,7 +58,7 @@ full precision._
 ```jsonc
 [
   { "year": 0,  "balance": "20000.00" },
-  { "year": 1,  "balance": "21023.49" },
+  { "year": 1,  "balance": "21023.24" },
   /* … one row per whole year … */
   { "year": 10, "balance": "32940.19" }
 ]

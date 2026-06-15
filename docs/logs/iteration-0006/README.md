@@ -1,7 +1,8 @@
 # Iteration 0006
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-14
+**Closed:** 2026-06-14
 **Pinned agent SHA:** iteration-0006 is pinned at the **post-harvest `main` SHA** (the iteration-0006
 tag is applied by the main thread at `main` HEAD after PR #182 — the QA-output-format change —
 merged, so the pin captures the full post-iteration-0005 harvest agent set). The PM does not create
@@ -11,7 +12,11 @@ the tag; this log references "iteration-0006, pinned at post-harvest main."
 Standard Deviation (BE/FE), Right Triangle (BE/FE), Date (BE/FE). **Regen set: EMPTY** (rationale
 below).
 
-**Headline outcome:** — (open)
+**Headline outcome:** **6/6 new builds shipped, every PR gated PASS — catalog 8 → 14 calculators.** The
+operator hand-reviewed all six and returned **"no notes"** (clean UI, no `DESIGN.md` changes needed); the
+hardest cluster yet (the loan family + four fresh multi-mode calculators) landed with the harvest confined
+to convention/process tightening rather than visual correction. Mode-picker, charts, and the in-`Base`
+numeric guard all generalized to never-seen calculators unprompted.
 
 ---
 
@@ -185,3 +190,129 @@ intended **build sequence** (see "Scope" above): Loan BE #184 → FE #185, then 
 on Loan's amortized core) → FE #187, with Compound Interest (#188/#189), Standard Deviation
 (#190/#191), Right Triangle (#192/#193), and Date (#194/#195) fanning out in parallel (each
 calculator's FE unblocks once its BE PR merges).
+
+---
+
+## Build outcome
+
+All six calculators shipped — **both layers each, backend before frontend, every PR gated PASS** by the
+`quality-assurance-agent`. The catalog moved **8 → 14 built calculators**.
+
+| Calculator | Slug | Backend PR | Frontend PR |
+|---|---|---|---|
+| Loan | `loan` | [#201](https://github.com/jayrav13/whizwheel/pull/201) | [#207](https://github.com/jayrav13/whizwheel/pull/207) |
+| Mortgage | `mortgage` | [#203](https://github.com/jayrav13/whizwheel/pull/203) | [#210](https://github.com/jayrav13/whizwheel/pull/210) |
+| Compound Interest | `compound_interest` | [#199](https://github.com/jayrav13/whizwheel/pull/199) | [#208](https://github.com/jayrav13/whizwheel/pull/208) |
+| Standard Deviation | `standard_deviation` | [#197](https://github.com/jayrav13/whizwheel/pull/197) | [#206](https://github.com/jayrav13/whizwheel/pull/206) |
+| Right Triangle | `right_triangle` | [#196](https://github.com/jayrav13/whizwheel/pull/196) | [#211](https://github.com/jayrav13/whizwheel/pull/211) |
+| Date | `date` | [#198](https://github.com/jayrav13/whizwheel/pull/198) | [#209](https://github.com/jayrav13/whizwheel/pull/209) |
+
+---
+
+## Evaluate verdict
+
+**The operator reviewed all six new calculators by hand and returned "no notes."** The UI was clean
+across the board — no `DESIGN.md` changes were needed, and no visual correction was required on any of
+the six pages. The four experimental questions this iteration carried (see above) all resolved in the
+affirmative on never-seen calculators, *unprompted*:
+
+1. **The mode-picker rule generalized to five fresh multi-mode calculators at once.** Each picked the
+   right control for its mode set (segmented for the short N≤3 sets — Std Dev population/sample, Date
+   difference/add-subtract; the `.mode-option` option list for Compound Interest's five multi-word
+   frequencies) without per-calc prompting.
+2. **The loan primitive transferred Loan → Mortgage cleanly.** Mortgage's backend reused the amortized
+   payment core, and its FE reached for the §4 charts convention (payment-component donut + balance curve)
+   the way Amortization did in 0005.
+3. **The numeric guard (now in `Calculators::Base`) held on fresh `:integer` inputs** with no per-calc
+   `only_integer` workaround — the harvest "took."
+4. **The shared stat-grid component was used, not re-inlined,** on the new stat pages (Std Dev, Right
+   Triangle, Compound Interest).
+
+The evaluation surfaced no UI defects; the harvest below is therefore **convention/process tightening and
+follow-up filing**, not visual correction.
+
+---
+
+## Harvest
+
+The evaluation produced one durable spec-authoring convention, one math correction, and a set of
+process/agent and follow-up landings. Per the lifecycle, the harvest lands on `main` and becomes the
+agent set iteration-0007 pins at.
+
+### Agent-definition conventions (PR [#216](https://github.com/jayrav13/whizwheel/pull/216))
+
+The build surfaced refinements to `backend.md` / `frontend.md` conventions, harvested into the agent
+definitions on a **separate branch** (`docs/iter0006-harvest-agents`) — agent files are not the PM's to
+edit, so they ride their own PR (#216), not this log PR.
+
+### Spec-authoring convention (this PR — `ARCHITECTURE.md §3.2`)
+
+A new durable rule on the **Reference values** bullet: choose reference inputs whose result is
+**unambiguous under the stated rounding rule** — never an example on a `ceil`/`floor`/`round`-boundary
+razor's edge. **Origin:** the **Loan term-mode** reference had to be **re-pinned mid-build** — the chosen
+example's raw term landed a hair from a whole-month boundary, so the `ceil`-to-whole-month expected value
+was precision-sensitive (≈60.0001 vs. ≈59.9999 → 61 vs. 60). Generalized in §3.2 to any rounding-boundary
+output (see commit `77a3b5e` for the original mid-build re-pin).
+
+### Math correction (this PR — `specs/compound-interest.md`)
+
+The illustrative `growth_series` year-1 balance was corrected **`21023.49` → `21023.24`** — the spec's own
+`A = P(1 + r/m)^(m·t)` yields `20000 × (1 + 0.05/12)^12 = 21023.24` (year-0 and year-10 already matched). A
+transcription slip in the illustrative series only; the **Reference values** table was already correct, so
+the shipped backend was unaffected.
+
+### Derived built-calculator count (PR [#202](https://github.com/jayrav13/whizwheel/pull/202))
+
+The registry rake-task test was changed to **derive** the built-calculator count rather than hard-code a
+per-build bump — so adding a calculator no longer requires editing the test's expected count, removing a
+recurring per-build edit point (and a class of merge friction across parallel builds).
+
+### QA verdict-table format (PR [#182](https://github.com/jayrav13/whizwheel/pull/182))
+
+The `quality-assurance-agent` now returns a fixed-width verdict table (the #169 refinement). This landed
+into the **pin** at iteration open, so it shaped this iteration's gating from the start.
+
+### Age date-boundary test fix (PR [#212](https://github.com/jayrav13/whizwheel/pull/212))
+
+The Age calculator's "Today" quick-fill **system test** was made date-boundary safe — it could flake when
+run across a midnight rollover. A test-robustness fix on a prior calculator surfaced while gating this
+iteration's work.
+
+### Follow-up issues filed (deferred work)
+
+Three larger items the evaluation surfaced were **filed rather than fixed in-iteration**, so they are
+visible and queued without blocking close:
+
+| Issue | Label | What |
+|---|---|---|
+| [#213](https://github.com/jayrav13/whizwheel/issues/213) | `engineering` | Harden optional numeric fields — a blank string defeats `default: 0` and crashes / under-validates `compute`. |
+| [#214](https://github.com/jayrav13/whizwheel/issues/214) | `engineering` | A registry-active calculator with no frontend page 500s (MissingTemplate) — add a generic show-page fallback. |
+| [#215](https://github.com/jayrav13/whizwheel/issues/215) | `frontend` | Right Triangle SVG figure clips edge labels on extreme large-value inputs. |
+
+### Process observations (for the journey / next iteration)
+
+Three things the *process* surfaced this round, recorded so the next iteration can act on them:
+
+- **The registry-coordination collision.** With six calculators building in parallel, a shared
+  expected-count assertion in the registry rake-task test became a coordination point — each new build
+  wanted to bump the same number. #202 (deriving the count) is the structural fix; the observation is that
+  **any hand-maintained "how many are built" constant is a fan-out collision waiting to happen** and should
+  be derived, consistent with rule #3 (no hand-edited central registration).
+- **Two #140 agent deaths.** Two dispatched agents died mid-run without returning a verdict (the #140
+  failure mode) and were re-dispatched fresh per the death-recovery rule. The orchestration absorbed them,
+  but they cost a retry each — worth watching whether a specific phase (long CI waits) correlates.
+- **The fixture ↔ page coupling.** Frontend builds needed shared fixtures / derived-helper includes
+  pre-scaffolded (PR #205) before the per-calculator FE pages could land cleanly — a coupling between a
+  calculator's page and shared frontend test scaffolding that the fan-out had to sequence around. Worth a
+  convention so a fresh FE build doesn't trip on missing shared scaffolding.
+
+---
+
+## Close
+
+This iteration **closed 2026-06-14**. Per the lifecycle Close phase, `docs/INVENTORY.md` was updated in
+this same PR: the six calculators were marked **BUILT** with their `Built (PRs)` cells (BE/FE per layer,
+most-recent merged PR), and floated into the completed block in backend-PR-ascending order. Their `Slug`
+and `Description` build-time columns were authored at backend-build time (PR #200, the inventory backfill);
+this close confirms them against the shipped slugs. The agent set the next iteration (0007) pins at is the
+post-harvest `main` — i.e. main after #216 (agent conventions) merges alongside this log/close PR.
