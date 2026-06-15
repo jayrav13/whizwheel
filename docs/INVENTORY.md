@@ -80,7 +80,7 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Cash Back or Low Interest Calculator |  | Financial | 3 | multi-input, multi-mode |  | [cash-back-or-low-interest-calculator](https://www.calculator.net/cash-back-or-low-interest-calculator.html) |  |
 | College Cost Calculator |  | Financial | 4 | multi-input, tabular-output, charts |  | [college-cost-calculator](https://www.calculator.net/college-cost-calculator.html) |  |
 | Commission Calculator |  | Financial | 2 | multi-input |  | [commission-calculator](https://www.calculator.net/commission-calculator.html) |  |
-| Compound Interest Calculator |  | Financial | 4 | multi-input, iterative-solve, charts |  | [compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html) |  |
+| Compound Interest Calculator | compound_interest | Financial | 4 | multi-input, iterative-solve, charts | Grow a principal with compound interest — pick how often it compounds (annually to daily) and see the future value, total interest, and a growth curve. | [compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html) |  |
 | Credit Card Calculator |  | Financial | 4 | multi-input, tabular-output |  | [credit-card-calculator](https://www.calculator.net/credit-card-calculator.html) |  |
 | Credit Cards Payoff Calculator |  | Financial | 4 | multi-input, tabular-output |  | [credit-card-payoff-calculator](https://www.calculator.net/credit-card-payoff-calculator.html) |  |
 | Currency Calculator |  | Financial | 2 | currency, unit-conversion |  | [currency-calculator](https://www.calculator.net/currency-calculator.html) |  |
@@ -105,10 +105,10 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Interest Rate Calculator |  | Financial | 3 | multi-input, iterative-solve |  | [interest-rate-calculator](https://www.calculator.net/interest-rate-calculator.html) |  |
 | Investment Calculator |  | Financial | 5 | multi-input, multi-mode, iterative-solve, charts |  | [investment-calculator](https://www.calculator.net/investment-calculator.html) |  |
 | Lease Calculator |  | Financial | 3 | multi-input |  | [lease-calculator](https://www.calculator.net/lease-calculator.html) |  |
-| Loan Calculator |  | Financial | 4 | multi-input, multi-mode, tabular-output |  | [loan-calculator](https://www.calculator.net/loan-calculator.html) |  |
+| Loan Calculator | loan | Financial | 4 | multi-input, multi-mode, tabular-output | An amortized fixed-rate loan — solve for the monthly payment, the loan amount you can afford, or the term, and see the full repayment schedule. | [loan-calculator](https://www.calculator.net/loan-calculator.html) |  |
 | Margin Calculator |  | Financial | 2 | multi-input |  | [margin-calculator](https://www.calculator.net/margin-calculator.html) |  |
 | Marriage Tax Calculator |  | Financial | 4 | multi-input, multi-mode |  | [marriage-calculator](https://www.calculator.net/marriage-calculator.html) |  |
-| Mortgage Calculator |  | Financial | 5 | multi-input, iterative-solve, tabular-output, charts |  | [mortgage-calculator](https://www.calculator.net/mortgage-calculator.html) |  |
+| Mortgage Calculator | mortgage | Financial | 5 | multi-input, iterative-solve, tabular-output, charts | A full home mortgage — monthly payment with taxes, insurance and PMI, total interest, and the complete amortization schedule. | [mortgage-calculator](https://www.calculator.net/mortgage-calculator.html) |  |
 | Mortgage Payoff Calculator |  | Financial | 4 | multi-input, tabular-output |  | [mortgage-payoff-calculator](https://www.calculator.net/mortgage-payoff-calculator.html) |  |
 | Mutual Fund Calculator |  | Financial | 3 | multi-input |  | [mutual-fund-calculator](https://www.calculator.net/mutual-fund-calculator.html) |  |
 | Payback Period Calculator |  | Financial | 3 | multi-input |  | [payback-period-calculator](https://www.calculator.net/payback-period-calculator.html) |  |
@@ -184,14 +184,14 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Quadratic Formula Calculator |  | Math | 3 | text-output |  | [quadratic-formula-calculator](https://www.calculator.net/quadratic-formula-calculator.html) |  |
 | Random Number Generator |  | Math | 2 | randomness, multi-mode |  | [random-number-generator](https://www.calculator.net/random-number-generator.html) |  |
 | Ratio Calculator |  | Math | 2 | multi-mode |  | [ratio-calculator](https://www.calculator.net/ratio-calculator.html) |  |
-| Right Triangle Calculator |  | Math | 3 | geometry, charts |  | [right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html) |  |
+| Right Triangle Calculator | right_triangle | Math | 3 | geometry, charts | Solve a right triangle from two known sides — get the third side, both acute angles, area, perimeter, and altitude. | [right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html) |  |
 | Root Calculator |  | Math | 2 | multi-mode, text-output |  | [root-calculator](https://www.calculator.net/root-calculator.html) |  |
 | Rounding Calculator |  | Math | 2 | multi-mode |  | [rounding-calculator](https://www.calculator.net/rounding-calculator.html) |  |
 | Sample Size Calculator |  | Math | 3 | multi-input, statistical |  | [sample-size-calculator](https://www.calculator.net/sample-size-calculator.html) |  |
 | Scientific Calculator |  | Math | 5 | multi-mode, text-output |  | [scientific-calculator](https://www.calculator.net/scientific-calculator.html) |  |
 | Scientific Notation Calculator |  | Math | 2 | text-output |  | [scientific-notation-calculator](https://www.calculator.net/scientific-notation-calculator.html) |  |
 | Slope Calculator |  | Math | 3 | geometry, charts |  | [slope-calculator](https://www.calculator.net/slope-calculator.html) |  |
-| Standard Deviation Calculator |  | Math | 3 | statistical, text-output |  | [standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html) |  |
+| Standard Deviation Calculator | standard_deviation | Math | 3 | statistical, text-output | Standard deviation, variance and mean of a data set — choose population or sample. | [standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html) |  |
 | Statistics Calculator |  | Math | 4 | statistical, text-output |  | [statistics-calculator](https://www.calculator.net/statistics-calculator.html) |  |
 | Surface Area Calculator |  | Math | 4 | multi-mode, geometry |  | [surface-area-calculator](https://www.calculator.net/surface-area-calculator.html) |  |
 | Triangle Calculator |  | Math | 4 | multi-mode, geometry, charts |  | [triangle-calculator](https://www.calculator.net/triangle-calculator.html) |  |
@@ -203,7 +203,7 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Bra Size Calculator |  | Other | 2 | multi-input, unit-conversion |  | [bra-size-calculator](https://www.calculator.net/bra-size-calculator.html) |  |
 | Concrete Calculator |  | Other | 4 | multi-mode, multi-input, unit-conversion |  | [concrete-calculator](https://www.calculator.net/concrete-calculator.html) |  |
 | Conversion Calculator |  | Other | 3 | multi-mode, unit-conversion |  | [conversion-calculator](https://www.calculator.net/conversion-calculator.html) |  |
-| Date Calculator |  | Other | 3 | date-math, multi-mode |  | [date-calculator](https://www.calculator.net/date-calculator.html) |  |
+| Date Calculator | date | Other | 3 | date-math, multi-mode | Days between two dates, or add/subtract years, months, weeks and days from a date. | [date-calculator](https://www.calculator.net/date-calculator.html) |  |
 | Day Counter |  | Other | 2 | date-math |  | [day-counter](https://www.calculator.net/day-counter.html) |  |
 | Day of the Week Calculator |  | Other | 2 | date-math, text-output |  | [day-of-the-week-calculator](https://www.calculator.net/day-of-the-week-calculator.html) |  |
 | Density Calculator |  | Other | 2 | multi-input, physics, unit-conversion |  | [density-calculator](https://www.calculator.net/density-calculator.html) |  |
