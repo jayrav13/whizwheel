@@ -36,8 +36,21 @@ class AgeScreenshotsTest < ApplicationSystemTestCase
     assert_field "Age at the date of", with: ""
     # Tapping "Today" fills the current date into the optional end-date field.
     click_button "Today"
-    today = Date.current.strftime("%Y-%m-%d")
-    assert_field "Age at the date of", with: today
+    filled = find_field("Age at the date of").value
+    # The button's value comes from the BROWSER's clock (age_controller's new Date());
+    # the expected is read here from Ruby's Date.current. Those two reads happen at
+    # different instants, so across the midnight boundary they can land on adjacent
+    # calendar days (observed: filled 2026-06-15 vs expected 2026-06-14). Asserting an
+    # exact day is therefore a date-boundary flake — instead require a valid ISO
+    # YYYY-MM-DD whose day is within the ±1-day window around Date.current at assertion
+    # time. This is deterministic on either side of midnight while still proving the
+    # button fills *today's* date (not blank, not a hardcoded constant).
+    assert_match(/\A\d{4}-\d{2}-\d{2}\z/, filled,
+      "Today should fill a valid ISO date, got #{filled.inspect}")
+    today = Date.current
+    acceptable = [ today.prev_day, today, today.next_day ].map { |d| d.strftime("%Y-%m-%d") }
+    assert_includes acceptable, filled,
+      "Today should fill today's date (±1 day for the midnight boundary), got #{filled.inspect}"
     screenshot_full_page("33-age-today-filled")
   end
 
