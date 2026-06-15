@@ -40,6 +40,12 @@
         <div class="flex items-center gap-5 text-sm font-semibold">
           <%= link_to "Calculators", root_path, class: "text-muted transition-colors hover:text-ink" %>
           <%= link_to "History", root_path, class: "text-muted transition-colors hover:text-ink" %>
+          <%# Admin-only link to the site-wide stats dashboard (#221), shown only to admins
+              (the admin area is otherwise invisible — ARCHITECTURE.md §8). Matches the
+              sibling nav links' styling. %>
+          <% if current_user&.admin? %>
+            <%= link_to "Admin", admin_stats_path, class: "text-muted transition-colors hover:text-ink" %>
+          <% end %>
           <% if current_user %>
             <span class="hidden text-muted sm:inline">Signed in as <span class="font-bold text-ink"><%= current_user.username %></span></span>
             <%= button_to "Sign out", session_path, method: :delete, class: "rounded-[13px] border border-border-input px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
