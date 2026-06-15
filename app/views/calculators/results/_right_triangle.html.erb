@@ -1,0 +1,97 @@
+<%# Right Triangle result (spec issue #193, DESIGN.md §4 Hero-result + Stat grid + the
+    visualisation vocabulary, extended to a static labeled SVG diagram). The headline answer
+    is the solved third side; below it a clean SVG figure of the solved triangle (scaled to
+    the real side ratios, sides + angles labeled) gives the geometry at a glance, and a stat
+    grid carries every figure — the three sides, both acute angles, area, perimeter and
+    altitude. The SVG is a visual ENHANCEMENT: the stat grid is the complete, no-JS-free data
+    fallback (DESIGN.md §4 — a visual never gates access to the numbers). `calc:` is a valid
+    Calculators::RightTriangle. %>
+<% result = calc.result %>
+<% points = right_triangle_points(result) %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="flex gap-5 p-7">
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Solved triangle</p>
+
+      <%# Figure + headline. The SVG draws the solved right triangle to scale — right angle
+          at the bottom-left, leg a up the left, leg b along the bottom, hypotenuse c across.
+          Sides and the two acute angles are labeled so the picture reads on its own; it has
+          role="img" + a descriptive title/aria-label for assistive tech (the figure conveys
+          shape, the grid below conveys every exact value). Tokens only — fills/strokes use
+          the @theme colours via Tailwind utilities on the SVG elements. %>
+      <figure class="mt-4 rounded-[13px] border border-border bg-bg/60 p-4">
+        <svg viewBox="0 0 <%= points[:width] %> <%= points[:height] %>"
+             class="mx-auto block h-auto w-full max-w-[300px]"
+             role="img"
+             aria-label="A right triangle with legs a and b and hypotenuse c, drawn to scale.">
+          <title>Solved right triangle, drawn to scale</title>
+          <%# The triangle body — accent-tinted fill, ink stroke. %>
+          <polygon points="<%= right_triangle_polygon(points) %>"
+                   class="fill-accent/10 stroke-ink" stroke-width="2"
+                   stroke-linejoin="round" />
+          <%# Right-angle marker — a small square at the right-angle vertex (bottom-left). %>
+          <% rx, ry = points[:right] %>
+          <rect x="<%= rx %>" y="<%= ry - 16 %>" width="16" height="16"
+                class="fill-none stroke-ink" stroke-width="1.5" />
+          <%# Side labels (symbol + value), each off its edge midpoint. tabular-nums + ink. %>
+          <% [
+               [points[:mid_a], "a", result[:a], "end"],    # left of the vertical leg → grow left
+               [points[:mid_b], "b", result[:b], "middle"], # below the horizontal leg
+               [points[:mid_c], "c", result[:c], "start"]   # over the hypotenuse → grow right
+             ].each do |(lx, ly), sym, val, anchor| %>
+            <text x="<%= lx %>" y="<%= ly %>"
+                  text-anchor="<%= anchor %>" dominant-baseline="middle"
+                  class="fill-ink tabular-nums [font-size:11px] [font-weight:700]">
+              <%= sym %> = <%= right_triangle_value(val) %>
+            </text>
+          <% end %>
+          <%# Angle labels at the two acute vertices — α opposite a (at the bottom vertex),
+              β opposite b (at the top vertex). accent green, matching the eyebrow. %>
+          <% bx, by = points[:bottom] %>
+          <text x="<%= bx - 16 %>" y="<%= by - 6 %>" text-anchor="end"
+                class="fill-accent tabular-nums [font-size:10px] [font-weight:700]">
+            α <%= right_triangle_value(result[:alpha]) %>°
+          </text>
+          <% tx, ty = points[:top] %>
+          <text x="<%= tx + 14 %>" y="<%= ty + 26 %>"
+                class="fill-accent tabular-nums [font-size:10px] [font-weight:700]">
+            β <%= right_triangle_value(result[:beta]) %>°
+          </text>
+        </svg>
+      </figure>
+
+      <%# All figures — the shared responsive stat grid (DESIGN.md §4 "Stat grid", issue
+          #143): `.stat-grid` sizes each card to a min and lets the grid flow. The `--wide`
+          (13rem) track is used because the realistic worst-case figures here are LONG: the
+          two acute angles display to six decimal places (e.g. "53.130102°"), and large legs
+          drive the sides/area/perimeter into delimited high-magnitude numbers — both wrap
+          mid-number on the default 9.5rem track at this value size (DESIGN.md §4: single-line
+          is preferred for long figures; the never-clip overflow-wrap net on `.stat-card dd`
+          is the wrapping floor below that). Each card is a `.stat-card`; the three SIDES are
+          lifted to accent green (the solved geometry), angles/derived stay ink. Fixed read
+          order: a, b, c, α, β, area, perimeter, altitude. %>
+      <dl class="mt-5 stat-grid stat-grid--wide">
+        <% right_triangle_figures.each do |fig| %>
+          <% side = fig[:kind] == :side %>
+          <div class="stat-card">
+            <dt class="flex items-center gap-1.5 text-xs font-bold text-label">
+              <span><%= fig[:label] %></span>
+              <% if fig[:symbol].present? %>
+                <span class="font-semibold text-faint">(<%= fig[:symbol] %>)</span>
+              <% end %>
+            </dt>
+            <dd class="mt-2 flex items-baseline gap-1">
+              <span class="text-2xl font-extrabold tracking-[-0.03em] tabular-nums <%= side ? "text-accent" : "text-ink" %>">
+                <%= right_triangle_value(result[fig[:key]]) %>
+              </span>
+              <% if fig[:unit].present? %>
+                <span class="shrink-0 text-sm font-semibold text-label"><%= fig[:unit] %></span>
+              <% end %>
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+</div>

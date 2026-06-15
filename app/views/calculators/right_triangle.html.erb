@@ -1,0 +1,115 @@
+<% content_for :title, "Right Triangle Calculator — whizwheel" %>
+
+<%#
+  Right Triangle calculator page (spec issue #193, DESIGN.md BLEND). A multi-mode
+  geometry calculator: the picker selects WHICH TWO SIDES are known (the `mode`) — both
+  legs (a, b), or one leg and the hypotenuse (a, c) — and the page solves the third side,
+  both acute angles, area, perimeter and altitude. The form posts over Turbo and re-renders
+  the #result region in place; it works WITHOUT JS — the server validates exactly the
+  selected mode's two sides and re-renders the result fragment. Stimulus is pure polish: it
+  reveals the side fields the chosen mode needs and lifts the active option row.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): TWO modes, each a MULTI-WORD label
+  ("Two legs (a, b)" / "Leg & hypotenuse (a, c)"). N ≤ 3 but multi-word → the selectable
+  option list (.mode-option), NOT a segmented control (reserved for N ≤ 3 SHORT labels) and
+  not a raw <select> (only N > ~8). It stays a native radio <fieldset>/<legend> posting a
+  single-select inputs[mode].
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing ("targets not minimums"): stacked fields → space-y-5; major
+  blocks within the card → mt-8 (Section tier); column gutters / card padding → gap-8 / p-7–p-8.
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Math · Geometry</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Right Triangle Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    A right triangle is fixed by any two of its sides. Enter the two you know — either both
+    legs, or one leg and the hypotenuse — and the third side, both acute angles, the
+    <span class="font-semibold text-ink">area</span>, <span class="font-semibold text-ink">perimeter</span>,
+    and <span class="font-semibold text-ink">altitude</span> are computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/right_triangle", scope: :inputs, method: :post,
+          data: { controller: "right-triangle" } do |f| %>
+
+      <%# Mode picker — selectable option list (.mode-option), per DESIGN.md §4: two
+          multi-word solve-from modes → one bordered, divided container of full-width rows.
+          The accessible control is a native radio <fieldset>/<legend> posting inputs[mode];
+          each radio is visually-hidden (peer sr-only) and paired to a styled <label for>.
+          The active row paints with no JS via peer:checked, and the .mode-option::before
+          radio glyph is the non-colour active cue (DESIGN.md §6). Each row names the two
+          GIVEN sides (label) and, on a helper line, the side that mode solves. %>
+      <fieldset>
+        <legend class="text-xs font-bold text-label">Solve from…</legend>
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
+          <% right_triangle_modes.each_with_index do |m, i| %>
+            <div>
+              <%= f.radio_button :mode, m[:value],
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { right_triangle_target: "modeInput", action: "right-triangle#select" } %>
+              <%= f.label :mode, value: m[:value],
+                    class: "mode-option",
+                    data: { right_triangle_target: "pill", mode: m[:value] } do %>
+                <span class="text-sm font-semibold text-ink"><%= m[:label] %></span>
+                <span class="text-xs text-muted"><%= m[:solves] %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# Side fields. Each block declares the modes it serves via data-right-triangle-modes;
+          Stimulus shows only the active mode's blocks and disables the rest so they aren't
+          submitted (the no-JS baseline shows all three — the server reads only the mode's
+          two given sides). Leg a is shared by both modes. Stacked tier: space-y-5 down the
+          column (DESIGN.md §3); each input carries its side-symbol affix on the Affix tier
+          (gap-2). %>
+      <div class="mt-8 space-y-5">
+        <%# Leg a — given in BOTH modes. %>
+        <div data-right-triangle-target="field" data-right-triangle-modes="legs leg_hyp">
+          <%= f.label :a, "Leg a", class: "field-label", for: "inputs_a" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :a, id: "inputs_a", step: "any", inputmode: "decimal", min: "0",
+                  placeholder: "0", class: "field-input" %>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">a</span>
+          </div>
+        </div>
+
+        <%# Leg b — given only in `legs` mode. %>
+        <div data-right-triangle-target="field" data-right-triangle-modes="legs">
+          <%= f.label :b, "Leg b", class: "field-label", for: "inputs_b" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :b, id: "inputs_b", step: "any", inputmode: "decimal", min: "0",
+                  placeholder: "0", class: "field-input" %>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">b</span>
+          </div>
+        </div>
+
+        <%# Hypotenuse c — given only in `leg_hyp` mode; must exceed leg a. %>
+        <div data-right-triangle-target="field" data-right-triangle-modes="leg_hyp">
+          <%= f.label :c, "Hypotenuse (c)", class: "field-label", for: "inputs_c" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :c, id: "inputs_c", step: "any", inputmode: "decimal", min: "0",
+                  placeholder: "0", class: "field-input" %>
+            <span class="w-7 text-sm font-bold text-label" aria-hidden="true">c</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
