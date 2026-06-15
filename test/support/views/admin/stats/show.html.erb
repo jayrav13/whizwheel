@@ -1,0 +1,6 @@
+<%# Test-only stub for Admin::StatsController#show. The real dashboard view is the
+    frontend's (issue #221, not yet built); this minimal stub lets the controller
+    test exercise the admin->200 render branch without crossing the FE/BE seam,
+    mirroring test/support/views/calculators/*. It touches @stats so the controller
+    assignment is verified end-to-end. %>
+admin stats page — all-time: <%= @stats.volume[:all_time] %>

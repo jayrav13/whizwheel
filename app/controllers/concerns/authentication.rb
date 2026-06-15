@@ -11,6 +11,14 @@ module Authentication
   def authenticated? = Current.session.present?
   def current_user = Current.user
 
+  # Admin-area gate (ARCHITECTURE.md §8). Halts with 404 — NOT 403 — unless the
+  # current user is an admin, so the admin area is invisible to anonymous and
+  # non-admin visitors alike (no "this exists but you can't see it" signal).
+  # `head :not_found` matches CalculatorsController's unknown-slug behaviour.
+  def require_admin!
+    head :not_found unless current_user&.admin?
+  end
+
   def resume_session
     Current.session ||= find_session_by_cookie
   end

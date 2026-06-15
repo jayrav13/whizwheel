@@ -1,9 +1,68 @@
+# Calculation fixtures.
+#
+# anon_pct / alice_pct are the original two rows other tests reference
+# (calculation_test.rb). They have no explicit created_at/deleted_at, so Rails
+# loads them at "now", kept (not deleted) — i.e. they count as TODAY.
+#
+# The remaining rows are the controlled dataset CalculationStats unit tests assert
+# against. Timestamps are relative to "now" via ERB so window math (today / 7d /
+# 30d) is stable regardless of when the suite runs. The exact tallies they produce
+# are documented in test/lib/calculation_stats_test.rb.
+
+# --- original rows (counted as TODAY, kept) -----------------------------------
 anon_pct:
   calculator: percentage
   inputs: "{}"
   result: "{}"
+
 alice_pct:
   calculator: percentage
   user: alice
   inputs: "{}"
   result: "{}"
+
+# --- TODAY ---------------------------------------------------------------------
+today_bmi_alice:
+  calculator: bmi
+  user: alice
+  inputs: { weight: "70" }
+  result: { bmi: "22.9" }
+  created_at: <%= Time.current %>
+
+today_bmi_anon:
+  calculator: bmi
+  inputs: { weight: "80" }
+  result: { bmi: "24.7" }
+  created_at: <%= Time.current %>
+
+# --- a kept row 3 days ago (inside 7d & 30d, outside today) --------------------
+three_days_ago_tip_bob:
+  calculator: tip
+  user: bob
+  inputs: { bill: "40" }
+  result: { tip: "8.0" }
+  created_at: <%= 3.days.ago %>
+
+# --- a kept row 10 days ago (inside 30d, outside 7d) --------------------------
+ten_days_ago_loan_alice:
+  calculator: loan
+  user: alice
+  inputs: { amount: "1000" }
+  result: { payment: "90" }
+  created_at: <%= 10.days.ago %>
+
+# --- a kept row 100 days ago (only all_time) ----------------------------------
+old_mortgage_anon:
+  calculator: mortgage
+  inputs: { price: "300000" }
+  result: { monthly: "2000" }
+  created_at: <%= 100.days.ago %>
+
+# --- a SOFT-DELETED row today (must be excluded everywhere) --------------------
+deleted_today_bmi_alice:
+  calculator: bmi
+  user: alice
+  inputs: { weight: "99" }
+  result: { bmi: "30" }
+  created_at: <%= Time.current %>
+  deleted_at: <%= Time.current %>
