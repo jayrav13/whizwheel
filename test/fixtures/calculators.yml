@@ -114,6 +114,15 @@ mortgage:
   description: A full home-mortgage estimate — principal & interest plus property tax, insurance and HOA — with the monthly payment breakdown, total cost, and amortization schedule.
   source: "[mortgage-calculator](https://www.calculator.net/mortgage-calculator.html)"
 
+right_triangle:
+  slug: right_triangle
+  name: Right Triangle Calculator
+  category: Math
+  complexity: 3
+  tags: geometry, multi-mode
+  description: Solve a right triangle from two known sides — get the third side, both acute angles, area, perimeter, and altitude.
+  source: "[right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html)"
+
 tip:
   slug: tip
   name: Tip Calculator
