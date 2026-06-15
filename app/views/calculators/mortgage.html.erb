@@ -1,0 +1,141 @@
+<% content_for :title, "Mortgage Calculator — whizwheel" %>
+
+<%#
+  Mortgage calculator page (spec issue #187, DESIGN.md BLEND) — a full home-mortgage
+  estimate: principal & interest plus the recurring ownership costs (property tax, home
+  insurance, HOA) rolled into the monthly payment, with the total cost, a payment-component
+  donut, a balance-over-time curve, and the full amortization schedule.
+
+  Single-mode (fixed-rate, full breakdown) — the inputs don't depend on a chosen mode, so
+  there is NO mode picker (DESIGN.md §4 "Mode picker" applies only when inputs vary by mode).
+  The form posts over Turbo and re-renders the #result region in place, and works WITHOUT JS
+  (server validates). With JS, the mortgage_controller draws the hover charts and paginates
+  the long schedule; the no-JS baseline keeps the data table + chart fallbacks reachable.
+
+  Inputs split into two groups by relationship (DESIGN.md §3 — spacing encodes relationship):
+    • The LOAN basis (home price, down payment, rate, term) — required.
+    • The recurring OWNERSHIP COSTS (property tax, insurance, HOA) — optional, default 0.
+  A thin labelled divider separates the groups so the optional costs read as a distinct set,
+  not more required fields.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to one
+  column on mobile. Spacing scale ("targets not minimums"): stacked fields → space-y-5;
+  group → group / fields → submit (Section tier) → mt-7/mt-8; column gutters / card padding →
+  gap-8 / p-7–p-8 (Layout tier).
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Mortgage Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    A full home-mortgage estimate — principal &amp; interest plus property tax, insurance and HOA —
+    with the monthly payment breakdown, total cost, and the month-by-month amortization schedule.
+    Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/mortgage", scope: :inputs, method: :post do |f| %>
+
+      <%# ── Loan basis (required) — Stacked tier (space-y-5) down the column. ── %>
+      <div class="space-y-5">
+        <%# Home price — $ affix leading the field. %>
+        <div>
+          <%= f.label :home_price, "Home price", class: "field-label", for: "inputs_home_price" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :home_price, id: "inputs_home_price", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Down payment — $ affix leading the field. %>
+        <div>
+          <%= f.label :down_payment, "Down payment", class: "field-label", for: "inputs_down_payment" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :down_payment, id: "inputs_down_payment", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual interest rate — % affix trailing the field. %>
+        <div>
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Loan term — whole years. A "years" unit trails the field. %>
+        <div>
+          <%= f.label :loan_term_years, "Loan term", class: "field-label", for: "inputs_loan_term_years" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :loan_term_years, id: "inputs_loan_term_years", step: "1", inputmode: "numeric",
+                  min: "1", placeholder: "0", class: "field-input" %>
+            <span class="w-12 text-sm font-bold text-label" aria-hidden="true">years</span>
+          </div>
+        </div>
+      </div>
+
+      <%# ── Recurring ownership costs (optional, default 0) — a labelled divider
+          (Section tier, mt-7) sets these apart from the required loan basis above.
+
+          Each optional field carries an explicit value="0", not just a placeholder: an HTML
+          form always POSTs its keys, and the backend's `default: 0` applies only when a key
+          is ABSENT — a blank string would cast to nil and fail numericality. Pre-filling 0
+          (the spec's "treated as 0" default) keeps a blank-cost submission valid with no JS,
+          and the user simply types over the 0 when they have a figure. %>
+      <div class="mt-7 border-t border-rule pt-6">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Recurring costs (optional)</p>
+        <div class="mt-4 space-y-5">
+          <%# Annual property tax — $ affix leading, "/ yr" unit trailing. %>
+          <div>
+            <%= f.label :annual_property_tax, "Annual property tax", class: "field-label", for: "inputs_annual_property_tax" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :annual_property_tax, id: "inputs_annual_property_tax", step: "any", inputmode: "decimal",
+                    min: "0", value: "0", class: "field-input" %>
+              <span class="w-10 text-sm font-bold text-label" aria-hidden="true">/ yr</span>
+            </div>
+          </div>
+
+          <%# Annual home insurance — $ affix leading, "/ yr" unit trailing. %>
+          <div>
+            <%= f.label :annual_home_insurance, "Annual home insurance", class: "field-label", for: "inputs_annual_home_insurance" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :annual_home_insurance, id: "inputs_annual_home_insurance", step: "any", inputmode: "decimal",
+                    min: "0", value: "0", class: "field-input" %>
+              <span class="w-10 text-sm font-bold text-label" aria-hidden="true">/ yr</span>
+            </div>
+          </div>
+
+          <%# Monthly HOA fee — $ affix leading, "/ mo" unit trailing (already monthly). %>
+          <div>
+            <%= f.label :monthly_hoa, "Monthly HOA fee", class: "field-label", for: "inputs_monthly_hoa" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :monthly_hoa, id: "inputs_monthly_hoa", step: "any", inputmode: "decimal",
+                    min: "0", value: "0", class: "field-input" %>
+              <span class="w-10 text-sm font-bold text-label" aria-hidden="true">/ mo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

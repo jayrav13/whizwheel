@@ -105,6 +105,15 @@ standard_deviation:
   description: Standard deviation, variance and mean of a data set — choose population or sample.
   source: "[standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html)"
 
+mortgage:
+  slug: mortgage
+  name: Mortgage Calculator
+  category: Financial
+  complexity: 5
+  tags: multi-input, tabular-output, charts
+  description: A full home-mortgage estimate — principal & interest plus property tax, insurance and HOA — with the monthly payment breakdown, total cost, and amortization schedule.
+  source: "[mortgage-calculator](https://www.calculator.net/mortgage-calculator.html)"
+
 tip:
   slug: tip
   name: Tip Calculator
