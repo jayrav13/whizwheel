@@ -91,9 +91,18 @@ Operator review of iteration-0004 added three UI patterns to the BLEND system in
 builds *and* every calculator the regeneration sweep rebuilds. **`DESIGN.md` is the source of
 truth for the *what* — build to it.** Two process points are specifically yours:
 
+- **EVERY chart uses the house JS library — never a hand-rolled SVG/`<canvas>` chart, not even
+  a "simple" bar chart or a dashboard chart.** This applies to calculator result charts **and**
+  admin/dashboard charts alike (e.g. the admin stats volume trend). **TradingView lightweight-charts
+  is the default house library** — including its **`Histogram` series for bar / count-over-time
+  charts** (the admin stats 30-day volume trend is a histogram, *not* a hand-drawn SVG bar chart).
+  Reach past lightweight-charts only for a shape it lacks (donut → the complementary library).
+  Hand-drawn `<rect>`/`<path>` markup is **only** the no-JS fallback table/legend, never the actual
+  chart. (This rule exists because the first admin stats page shipped a hand-rolled inline-SVG bar
+  chart instead of the library — `DESIGN.md §4` is now explicit; build to it.)
 - **You install the charting library — and it must be a self-contained, single-file bundle (or
   vendored).** Charts use a hover-capable JS library via importmap (per `DESIGN.md §4`:
-  lightweight-charts for line/time-series, a complementary library for donut). It won't be pinned
+  lightweight-charts for line/time-series **and bar/histogram**, a complementary library for donut). It won't be pinned
   yet — **detect and install it yourself**: `bin/importmap pin lightweight-charts` or pin its ESM
   CDN URL in `config/importmap.rb`. That config file is within your remit (a JS-dependency pin for
   your UI), **not** a backend hand-off. **Importmap has no Node build step, so a split-chunk dist
@@ -130,6 +139,12 @@ truth for the *what* — build to it.** Two process points are specifically your
   `--wide` *wraps* rather than clips — single-line is preferred (what `--wide` buys), wrapping is the
   floor, and **clipping (data loss) is never allowed**. Per-page value color/size stays a utility on
   the inner `<dd>` — never fork the card shell. `DESIGN.md §4` is the source of truth.
+- **Raw / echoed data renders in monospace `<code>` (`DESIGN.md §2`).** Any block of **verbatim
+  quantitative or structured data quoted back to the user** — canonically the **admin stats
+  recent-activity feed's input → result summaries**, plus raw key/value or JSON-ish dumps and IDs —
+  goes in a real `<code>` element with Tailwind `font-mono`, not plain prose. Scoped to *raw echoed
+  values* only: **formatted presentation figures** (stat-card values, hero results, data-table cells)
+  stay `tabular-nums` grotesk. Presented answer → grotesk; raw data quoted back → `<code>`.
 - **Test the worst case.** When you build or use a stat grid, add a render/state test that
   exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip or
   wrap a large one — assertions a markup/text test cannot make. For a `--wide` grid assert the
