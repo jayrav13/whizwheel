@@ -172,11 +172,16 @@ PRs per layer.
 
 | Calculator | Backend issue | Frontend issue | Notes file |
 |---|---|---|---|
-| Loan | (to be filed) | (to be filed) | `loan.md` |
-| Mortgage | (to be filed) | (to be filed) | `mortgage.md` |
-| Compound Interest | (to be filed) | (to be filed) | `compound-interest.md` |
-| Standard Deviation | (to be filed) | (to be filed) | `standard-deviation.md` |
-| Right Triangle | (to be filed) | (to be filed) | `right-triangle.md` |
-| Date | (to be filed) | (to be filed) | `date.md` |
+| Loan | [#184](https://github.com/jayrav13/whizwheel/issues/184) | [#185](https://github.com/jayrav13/whizwheel/issues/185) | `loan.md` |
+| Mortgage | [#186](https://github.com/jayrav13/whizwheel/issues/186) | [#187](https://github.com/jayrav13/whizwheel/issues/187) | `mortgage.md` |
+| Compound Interest | [#188](https://github.com/jayrav13/whizwheel/issues/188) | [#189](https://github.com/jayrav13/whizwheel/issues/189) | `compound-interest.md` |
+| Standard Deviation | [#190](https://github.com/jayrav13/whizwheel/issues/190) | [#191](https://github.com/jayrav13/whizwheel/issues/191) | `standard-deviation.md` |
+| Right Triangle | [#192](https://github.com/jayrav13/whizwheel/issues/192) | [#193](https://github.com/jayrav13/whizwheel/issues/193) | `right-triangle.md` |
+| Date | [#194](https://github.com/jayrav13/whizwheel/issues/194) | [#195](https://github.com/jayrav13/whizwheel/issues/195) | `date.md` |
 
-(Issue numbers are filled in once the `github-agent` files the 12 issues — two per calculator.)
+The `github-agent` filed all 12 issues — two per calculator (`backend` + `frontend`), both carrying
+the identical full `spec:v1` body; its dedupe scan found **no prior issues** for any of the six. The
+intended **build sequence** (see "Scope" above): Loan BE #184 → FE #185, then Mortgage BE #186 (built
+on Loan's amortized core) → FE #187, with Compound Interest (#188/#189), Standard Deviation
+(#190/#191), Right Triangle (#192/#193), and Date (#194/#195) fanning out in parallel (each
+calculator's FE unblocks once its BE PR merges).
