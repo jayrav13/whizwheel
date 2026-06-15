@@ -50,9 +50,8 @@
 
 <%# ── 30-day trend — a dependency-free inline-SVG bar chart drawn by bar_chart_controller
     from the `series` JSON value (NO charting library). DESIGN.md §4 "Charts": the underlying
-    data is ALWAYS reachable without JS, so the same series is rendered as a no-JS data table
-    (visually hidden once JS connects via the controller is unnecessary — we keep it as a
-    collapsible details fallback so the numbers are reachable, never gating on JS). %>
+    data is ALWAYS reachable without JS, so the same series is also rendered as a collapsible
+    <details> data table — always present, so the numbers never gate on JS. %>
 <section class="mt-8" aria-labelledby="trend-heading">
   <div class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
     <h2 id="trend-heading" class="text-xs font-bold uppercase tracking-[0.12em] text-faint">Volume trend · last 30 days</h2>

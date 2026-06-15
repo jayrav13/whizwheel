@@ -36,6 +36,11 @@ export default class extends Controller {
     svg.setAttribute("preserveAspectRatio", "none")
     svg.setAttribute("role", "img")
     svg.setAttribute("aria-label", "Daily calculation volume over the last 30 days")
+    // The SVG ships aria-hidden (it's empty until JS connects — the <details> data table
+    // carries the numbers for AT). Now that it has painted with a label, expose it as a
+    // labelled image; otherwise aria-hidden would win and the labelled chart would stay
+    // hidden from assistive tech (the role=img/aria-label vs. aria-hidden contradiction).
+    svg.removeAttribute("aria-hidden")
 
     const max = Math.max(1, ...data.map((d) => d.count))
     const n = data.length
