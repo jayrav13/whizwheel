@@ -15,6 +15,12 @@ Rails.application.routes.draw do
   root "home#index"
   resource :session, only: %i[new create destroy]
 
+  # ADMIN-gated site-wide usage dashboard (ARCHITECTURE.md §8). The whole namespace
+  # is gated behind the ADMIN role by Admin::BaseController (404 for non-admins).
+  namespace :admin do
+    resource :stats, only: [ :show ]
+  end
+
   # Two dynamic routes for every calculator — the slug resolves to a `Calculators::X`
   # class by auto-discovery. Adding a calculator never edits this file (ARCHITECTURE.md §3).
   # GET renders the calculator page; POST runs it (JSON envelope §4 or a Turbo Stream).
