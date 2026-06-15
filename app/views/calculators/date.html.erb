@@ -1,0 +1,157 @@
+<% content_for :title, "Date Calculator — whizwheel" %>
+
+<%#
+  Date calculator page (spec issue #195, DESIGN.md BLEND). A two-mode date-math calculator:
+    • difference   — the span between two dates (a calendar-aware Y/M/D breakdown, the exact
+                     total day count, and a weeks-and-days view).
+    • add_subtract — a start date shifted by a signed offset of years / months / weeks / days.
+
+  The form posts over Turbo and re-renders the #result region in place; it works WITHOUT JS
+  (the server validates exactly the chosen mode's fields). Native <input type="date"> gives
+  every browser its own date picker — no client framework, consistent with the importmap
+  ethos (DESIGN.md §0 progressive enhancement). Layout per DESIGN.md §3 — an input column
+  + a results panel (≈380px 1fr), collapsing to one column on mobile.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): TWO modes, both MULTI-WORD labels
+  ("Difference between dates" / "Add to or subtract from a date") → the SELECTABLE OPTION
+  LIST (.mode-option), NOT a segmented control (reserved for N ≤ 3 SHORT labels). It stays a
+  native radio <fieldset>/<legend> posting a single-select inputs[mode]; the .peer:checked
+  baseline paints the active row with no JS. Inside add_subtract, the `operation`
+  (Add / Subtract — N=2, short) is itself a sub-picker → SEGMENTED CONTROL (.direction-pill,
+  the same vocabulary as BMI's US|Metric and Percentage's Increase|Decrease).
+
+  Mode-gating (Stimulus, pure polish): the date_controller shows only the chosen mode's
+  fields and disables the rest so they aren't submitted. The no-JS baseline shows all fields;
+  the server reads only the mode's fields. start_date and end_date are REQUIRED primary
+  inputs (DESIGN.md §4 — a primary date carries no "today" meaning), so they get NO "Today"
+  quick-fill and are never auto-defaulted.
+
+  Spacing scale (DESIGN.md §3, "targets not minimums"):
+    • stacked fields → space-y-5; wrapping offset grid → gap-x-3 gap-y-4 (Grouped-wrapping)
+    • segmented halves → gap-1 (Affix); major blocks (mode → fields → submit) → mt-8 (Section)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Other</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Date Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Count the days between two dates — with a years, months and days breakdown — or add and
+    subtract years, months, weeks and days from a date. Calendar-aware and leap-year exact,
+    computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/date", scope: :inputs, method: :post,
+          data: { controller: "date" } do |f| %>
+
+      <%# Mode picker — selectable option list (.mode-option), per DESIGN.md §4: two
+          multi-word modes → one bordered, divided container of full-width rows. The
+          accessible control is a native radio <fieldset>/<legend> posting inputs[mode];
+          each radio is visually-hidden (peer sr-only) and paired to a styled <label for>.
+          The active row is painted with no JS via peer:checked, and the .mode-option::before
+          radio glyph is the non-colour active cue (DESIGN.md §6). Each row names the mode
+          and, on a helper line, what it does. %>
+      <fieldset>
+        <legend class="text-xs font-bold text-label">What do you want to calculate?</legend>
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
+          <% date_modes.each_with_index do |m, i| %>
+            <div>
+              <%= f.radio_button :mode, m[:value],
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { date_target: "modeInput", action: "date#select" } %>
+              <%= f.label :mode, value: m[:value],
+                    class: "mode-option",
+                    data: { date_target: "pill", mode: m[:value] } do %>
+                <span class="text-sm font-semibold text-ink"><%= m[:label] %></span>
+                <span class="text-xs text-muted"><%= m[:helper] %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# ── Difference fields — two dates ─────────────────────────────────── %>
+      <%# Shown only in `difference` mode. Both dates are REQUIRED primary inputs, so no
+          "Today" quick-fill (DESIGN.md §4). Stacked tier: space-y-5. %>
+      <div class="mt-8 space-y-5" data-date-target="field" data-date-modes="difference">
+        <div>
+          <%= f.label :start_date, "Start date", class: "field-label", for: "inputs_start_date_diff" %>
+          <%= f.date_field :start_date, id: "inputs_start_date_diff", class: "field-input mt-1.5",
+                data: { date_target: "startDate" } %>
+        </div>
+        <div>
+          <%= f.label :end_date, "End date", class: "field-label", for: "inputs_end_date" %>
+          <%= f.date_field :end_date, id: "inputs_end_date", class: "field-input mt-1.5" %>
+        </div>
+      </div>
+
+      <%# ── Add / subtract fields — a start date + operation + offsets ─────── %>
+      <%# Hidden by default in the markup so the no-JS baseline's start_date isn't duplicated
+          across two visible blocks (both name inputs[start_date]); the controller toggles
+          which mode's block shows and disables the hidden one's inputs so only one
+          start_date ever posts. Default mode is `difference` (first option), so this block
+          starts hidden. %>
+      <div class="mt-8 space-y-5" data-date-target="field" data-date-modes="add_subtract" hidden>
+        <div>
+          <%= f.label :start_date, "Start date", class: "field-label", for: "inputs_start_date_add" %>
+          <%= f.date_field :start_date, id: "inputs_start_date_add", class: "field-input mt-1.5" %>
+        </div>
+
+        <%# Operation — SEGMENTED CONTROL (DESIGN.md §4 picker rule: N=2, short labels). One
+            connected, bg-tinted, bordered track; the two operations are halves
+            (.direction-pill) tight on the Affix tier (gap-1). The active half lifts to
+            surface white via .peer:checked (no-JS baseline) and .is-active (the controller's
+            paintOps hook). Native radio posting inputs[operation], defaulting to Add. %>
+        <fieldset>
+          <legend class="text-xs font-bold text-label">Operation</legend>
+          <div class="mt-1.5 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
+            <% [ [ "add", "Add" ], [ "subtract", "Subtract" ] ].each_with_index do |(value, text), i| %>
+              <%= f.radio_button :operation, value,
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { date_target: "opInput", action: "date#selectOp" } %>
+              <%= f.label :operation, text, value: value,
+                    class: "direction-pill",
+                    data: { date_target: "opPill", operation: value } %>
+            <% end %>
+          </div>
+        </fieldset>
+
+        <%# Offset amounts — four unsigned integer magnitudes (the operation supplies the
+            sign). A wrapping pair-grid on the Grouped-wrapping tier (gap-x-3 gap-y-4, row-gap
+            one step larger than column-gap — DESIGN.md §3). Each has its own <label>
+            (DESIGN.md §6). min=0 + inputmode=numeric since they're non-negative integers.
+            Each defaults to "0" (the spec's offset default) so an untouched field posts 0,
+            never an empty string — keeping the no-JS path safe too (a blank :integer would
+            cast to nil). The user edits from 0; the operation supplies the sign. %>
+        <div>
+          <span class="field-label">Amount to <span data-date-target="opWord">add</span></span>
+          <div class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-4">
+            <% date_offset_fields.each do |field| %>
+              <div>
+                <%= f.label field[:key], field[:label], class: "field-label font-normal text-faint",
+                      for: "inputs_#{field[:key]}" %>
+                <%= f.number_field field[:key], id: "inputs_#{field[:key]}", step: "1", min: "0",
+                      inputmode: "numeric", value: "0", class: "field-input mt-1" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

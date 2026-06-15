@@ -42,6 +42,15 @@ compound_interest:
   description: Grow a principal with compound interest — pick how often it compounds (annually to daily) and see the future value, total interest, and a growth curve.
   source: "[compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html)"
 
+date:
+  slug: date
+  name: Date Calculator
+  category: Other
+  complexity: 3
+  tags: date-math, multi-mode
+  description: Days between two dates, or add/subtract years, months, weeks and days from a date.
+  source: "[date-calculator](https://www.calculator.net/date-calculator.html)"
+
 age:
   slug: age
   name: Age Calculator
