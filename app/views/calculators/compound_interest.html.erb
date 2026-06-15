@@ -1,0 +1,115 @@
+<% content_for :title, "Compound Interest Calculator — whizwheel" %>
+
+<%#
+  Compound Interest calculator page (spec issue #188, DESIGN.md BLEND). A multi-mode
+  financial calculator: a starting principal, an annual rate, and a term in years grow
+  under compound interest A = P × (1 + r/m)^(m·t), where the COMPOUNDING-FREQUENCY mode
+  picks m (annually=1 … daily=365). The result is the future value, the total interest,
+  and a year-by-year growth curve.
+
+  The form posts over Turbo and re-renders the #result region in place; it works WITHOUT
+  JS — the server validates the inputs and the checked inputs[compounding] radio and
+  re-renders the result fragment. (No field depends on the chosen mode, so there is no
+  Stimulus on the form — the no-JS baseline IS the form; peer:checked paints the active
+  option row before any JS.)
+
+  Mode picker (DESIGN.md §4 "Mode picker"): FIVE compounding modes, several multi-word
+  (Semiannually, Quarterly) → N ≥ 4 / multi-word labels means the SELECTABLE OPTION LIST
+  (.mode-option), not a segmented control (N ≤ 3 short labels) and not a raw <select>
+  (only N > ~8). It stays a native radio <fieldset>/<legend> posting inputs[compounding];
+  each row's helper names how often that mode adds interest.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • mode → fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Compound Interest Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Grow a principal with compound interest — interest earns interest. Enter a starting
+    amount, an annual rate, and a term, then pick how often it compounds. The future value,
+    total interest, and a year-by-year growth curve are computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/compound_interest", scope: :inputs, method: :post do |f| %>
+
+      <%# Fields. Principal carries a leading $ affix, the rate a trailing % affix, and the
+          term a trailing "years" unit (Affix tier — gap-2, the symbol/unit next to its
+          field, DESIGN.md §3). Stacked tier: space-y-5 down the column. years is :decimal
+          (fractional terms like 2.5 are valid), so step="any". %>
+      <div class="space-y-5">
+        <%# Principal — money, with a leading $ affix. %>
+        <div>
+          <%= f.label :principal, "Principal", class: "field-label", for: "inputs_principal" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :principal, id: "inputs_principal", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual interest rate — percent, with a trailing % affix. %>
+        <div>
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Time — fractional years allowed (step="any"); a "years" unit trails the field. %>
+        <div>
+          <%= f.label :years, "Time", class: "field-label", for: "inputs_years" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :years, id: "inputs_years", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="w-12 text-sm font-bold text-label" aria-hidden="true">years</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Mode picker — the selectable option list (.mode-option), per DESIGN.md §4: five
+          compounding-frequency modes, several multi-word → one bordered, divided container
+          of full-width rows, NOT N wrapping chips. The accessible control is a native radio
+          <fieldset>/<legend> posting inputs[compounding]; each radio is visually-hidden
+          (peer sr-only) and paired to a styled <label for>. The active row is painted with
+          no JS via peer:checked, and the .mode-option::before radio glyph is the non-colour
+          active cue (DESIGN.md §6). Each row names the frequency and, on a helper line, how
+          often it adds interest. Defaults to Annually (the first option checked). %>
+      <fieldset class="mt-8">
+        <legend class="text-xs font-bold text-label">Compounding frequency</legend>
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
+          <% compound_interest_modes.each_with_index do |(value, text, helper), i| %>
+            <div>
+              <%= f.radio_button :compounding, value,
+                    checked: i.zero?,
+                    class: "peer sr-only" %>
+              <%= f.label :compounding, value: value, class: "mode-option" do %>
+                <span class="text-sm font-semibold text-ink"><%= text %></span>
+                <span class="text-xs text-muted"><%= helper %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
