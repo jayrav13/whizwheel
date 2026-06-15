@@ -78,60 +78,6 @@ tip:
   description: The tip and grand total on a bill, split evenly across your party for the per-person amount.
   source: "[tip-calculator](https://www.calculator.net/tip-calculator.html)"
 
-loan:
-  slug: loan
-  name: Loan Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input, multi-mode, tabular-output
-  description: An amortized fixed-rate loan — solve for the monthly payment, the loan amount you can afford, or the term, and see the full repayment schedule.
-  source: "[loan-calculator](https://www.calculator.net/loan-calculator.html)"
-
-mortgage:
-  slug: mortgage
-  name: Mortgage Calculator
-  category: Financial
-  complexity: 5
-  tags: multi-input, iterative-solve, tabular-output, charts
-  description: A full home mortgage — monthly payment with taxes, insurance and PMI, total interest, and the complete amortization schedule.
-  source: "[mortgage-calculator](https://www.calculator.net/mortgage-calculator.html)"
-
-compound_interest:
-  slug: compound_interest
-  name: Compound Interest Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input, iterative-solve, charts
-  description: Grow a principal with compound interest — pick how often it compounds (annually to daily) and see the future value, total interest, and a growth curve.
-  source: "[compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html)"
-
-standard_deviation:
-  slug: standard_deviation
-  name: Standard Deviation Calculator
-  category: Math
-  complexity: 3
-  tags: statistical, text-output
-  description: Standard deviation, variance and mean of a data set — choose population or sample.
-  source: "[standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html)"
-
-right_triangle:
-  slug: right_triangle
-  name: Right Triangle Calculator
-  category: Math
-  complexity: 3
-  tags: geometry, charts
-  description: Solve a right triangle from two known sides — get the third side, both acute angles, area, perimeter, and altitude.
-  source: "[right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html)"
-
-date:
-  slug: date
-  name: Date Calculator
-  category: Other
-  complexity: 3
-  tags: date-math, multi-mode
-  description: Days between two dates, or add/subtract years, months, weeks and days from a date.
-  source: "[date-calculator](https://www.calculator.net/date-calculator.html)"
-
 retired_thing:
   slug: retired_thing
   name: Retired Calculator
