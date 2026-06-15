@@ -189,32 +189,94 @@ inspection.
   You **judge** the shape against the spec (right calculator key, expected modes present, results
   stored, no errors); you only **report** the raw counts.
 
-## Output format — one verdict, three facets
+## Output format — the verdict table
 
-End every run with a single, compact report — the orchestrator reads this and nothing else:
+End every run with **exactly one fenced code block** — the orchestrator reads this and nothing
+else. The block has a **fixed inner width** so every run renders identically in a monospace
+terminal, and **three parts**:
+
+1. a **header box** — the verdict, the PR number, and the classification;
+2. a **summary table** — one row per facet (CI, VISUAL, DB), each with its result glyph and a
+   one-line summary;
+3. a **detail section** *below* the box — the variable-length evidence (CI job list + root-cause,
+   per-shot adjudication, DB shape).
+
+**Glyph legend — all glyphs are single-cell width.** Never substitute a double-width emoji
+(✅/❌/⚠️/🚫) — those occupy two terminal cells and **break the box alignment**. Use exactly:
+
+| Glyph | Meaning |
+|---|---|
+| `✓ PASS` | facet passed |
+| `✗ FAIL` | facet failed |
+| `⚠ BLOCKED` | facet inconclusive — needs an external unblock |
+| `○ N/A` | facet does not apply to this PR |
+
+### Rules (follow exactly — the block must render identically every run)
+
+1. **The verdict is mirrored.** The overall verdict glyph+word is pinned to the **right of the
+   header's top border** *and* repeated in the matching facet's `RESULT` cell (the deciding facet
+   on a FAIL/BLOCKED; any facet on an all-PASS).
+2. **All three facet rows always appear.** The summary table shows **CI, VISUAL, and DB every
+   time** — a facet that doesn't apply is shown as `○ N/A` with a reason, **never omitted**.
+3. **Fixed column widths; borders stay aligned.** Every cell is padded to its column width so the
+   vertical borders (and the `┬`/`┼`/`┴` junctions) line up in a monospace font. The `SUMMARY`
+   column is **truncated with a trailing `…`** when its text would overflow — it never widens the
+   box.
+4. **Variable-length content lives in the DETAIL section, never in a table cell.** The CI job list
+   + root-cause, per-shot NOISE/REAL adjudication, and the DB shape all go **below** the box.
+   Table cells stay short, fixed-width, scannable.
+5. **On FAIL / BLOCKED, the failing facet's detail block carries the actionable line** — the
+   **root-cause** (quoted error + `file:line` + a one-line likely fix) for a FAIL, or the
+   **unblock line** (what's needed to make the gate conclusive) for a BLOCKED.
+6. **Keep it scannable for the orchestrator** (the main thread acts on this verdict). The
+   evidence the orchestrator needs is still all present — the CI **run URL**, each job's
+   **conclusion**, the **baseline source**, and the **shot accounting** — just **relocated** to
+   the detail section rather than crammed into cells.
+
+### Template — PASS (follow this layout verbatim)
 
 ```
-QA <PASS|FAIL|BLOCKED>: PR #<n> — <one-line why>
-classification: <UI-surface|non-UI> · <new-calculator|changed-calculator|not-a-calculator>
-  → facets run: CI<, VISUAL><, DB>
-
-CI <PASS|FAIL|NO-RUN>: <run url>
-  jobs: <name=conclusion, ...>
-  [on fail] root cause: <job> — "<quoted error line>"  | likely fix: <one line>
-
-VISUAL <PASS|FAIL|N/A>: <lane> — <k> shots, <reviewed/unchanged breakdown>
-  baseline: <source>   [non-UI lane only]
-  [per CHANGED/NEW shot] <name>: <DESIGN-adherence / NOISE|REAL + note>
-  [non-UI note when relevant] non-UI signal confounded by #87 (capture non-determinism)
-
-DB <PASS|FAIL|N/A>: env=<development|...> — <slug>: <rows> rows, modes <…>, <anon/attr>, <kept/discarded>
-  [on N/A] reason: <e.g. not a calculator | dev DB not populated>
+┌─ QA GATE · PR #176 ────────────────────── ✓ PASS ─┐
+│ class   UI-surface · not-a-calculator             │
+│ facets  CI · VISUAL                    (DB N/A)   │
+├────────┬────────┬─────────────────────────────────┤
+│ FACET  │ RESULT │ SUMMARY                         │
+├────────┼────────┼─────────────────────────────────┤
+│ CI     │ ✓ PASS │ 5/5 jobs green                  │
+│ VISUAL │ ✓ PASS │ 41 shots · 9 unch · 0 real      │
+│ DB     │ ○ N/A  │ not a calculator                │
+└────────┴────────┴─────────────────────────────────┘
+CI      run 27515962842 · scan_js ✓ ruby ✓ lint ✓ test ✓ system ✓
+VISUAL  baseline main@807d4dc · 32 changed → all #87 noise (by eye)
+        24-ohms-law-large  ✓ 998,001,000 W single-line
+        34-mmr-large       ✓ no clip
 ```
 
-**Verdict rule:** **FAIL** if any applicable facet fails. **BLOCKED** if a facet can't run for an
-external reason (no CI run yet, no populated DB) and that leaves the gate inconclusive — say what's
-needed to unblock. **PASS** only when every applicable facet passed (facets marked `N/A` for a sound
-reason don't block a PASS). Never imply a merge — the human merges on your PASS, never you.
+### Template — FAIL (follow this layout verbatim)
+
+```
+┌─ QA GATE · PR #182 ────────────────────── ✗ FAIL ─┐
+│ class   UI-surface · changed-calculator           │
+│ facets  CI · VISUAL · DB                          │
+├────────┬────────┬─────────────────────────────────┤
+│ FACET  │ RESULT │ SUMMARY                         │
+├────────┼────────┼─────────────────────────────────┤
+│ CI     │ ✗ FAIL │ test job red — 1 failure        │
+│ VISUAL │ ✓ PASS │ 41 shots · 0 real               │
+│ DB     │ ○ N/A  │ not assessed (CI red)           │
+└────────┴────────┴─────────────────────────────────┘
+CI      run 27516… · scan_js ✓ ruby ✓ lint ✓ system ✓
+        test ✗ — "Loan expected 599.55, got 600.00"
+                  (test/calculators/loan_test.rb:42)
+        likely fix: round half-up at display (§10)
+DB      not assessed — CI red gate-fails the PR first
+```
+
+**Verdict rule (decides the glyph in the header and the mirrored facet row):** **FAIL** if any
+applicable facet fails. **BLOCKED** (`⚠`) if a facet can't run for an external reason (no CI run
+yet, no populated DB) and that leaves the gate inconclusive — the detail section says what's
+needed to unblock. **PASS** only when every applicable facet passed (facets marked `○ N/A` for a
+sound reason don't block a PASS). Never imply a merge — the human merges on your PASS, never you.
 
 ## Relationships (so the boundaries stay clean)
 
