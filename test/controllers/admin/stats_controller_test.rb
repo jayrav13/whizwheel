@@ -39,7 +39,8 @@ class Admin::StatsControllerTest < ActionController::TestCase
     # The stub view renders "@stats.volume[:all_time]" — proves the action assigned
     # a working CalculationStats and the page rendered for an admin.
     assert_includes @response.body, "admin stats page"
-    assert_includes @response.body, "all-time: 7"
+    # all_time counts the FULL table (§6): 7 kept + 1 discarded = 8.
+    assert_includes @response.body, "all-time: 8"
   end
 
   private

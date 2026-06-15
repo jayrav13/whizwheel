@@ -6,10 +6,12 @@
 # fixed.
 #
 # Invariants:
-#   * Soft-delete is ALWAYS respected — every query filters `deleted_at IS NULL`
-#     (the `kept` scope), so discarded calculations never count (ARCHITECTURE.md §6).
-#   * Site-wide totals count ALL users' kept rows; a user hiding their own history
-#     does not erode site-wide truth (§6).
+#   * Site-wide totals count the FULL view — discarded rows INCLUDED. Per
+#     ARCHITECTURE.md §6, "usage is usage": a user soft-deleting their own history
+#     hides it from THEIR view but must not erode site-wide totals. So none of the
+#     aggregate methods filter `deleted_at` — they count every row.
+#   * `recent` likewise returns ALL recent rows (discarded included) and tags each
+#     with a `discarded:` boolean so the admin view can flag soft-deleted rows.
 #   * Time math runs in the app timezone (`Time.zone`), so "today" / the daily
 #     series line up with the configured zone, not raw UTC.
 #
@@ -21,18 +23,20 @@ class CalculationStats
   DEFAULT_RECENT_LIMIT = 50
 
   # Counts over rolling windows, anchored to "now" in the app timezone.
+  # Counts the full view — discarded rows included (§6).
   #   => { today:, last_7d:, last_30d:, all_time: }
   def volume
     {
-      today:    kept.where(created_at: today_range).count,
-      last_7d:  kept.where(created_at: days_ago_range(7)).count,
-      last_30d: kept.where(created_at: days_ago_range(30)).count,
-      all_time: kept.count
+      today:    all_rows.where(created_at: today_range).count,
+      last_7d:  all_rows.where(created_at: days_ago_range(7)).count,
+      last_30d: all_rows.where(created_at: days_ago_range(30)).count,
+      all_time: all_rows.count
     }
   end
 
   # Chart-ready daily counts for the last `days` days, oldest → newest, with
-  # zero-filled gaps so every day in the window has a row.
+  # zero-filled gaps so every day in the window has a row. Counts the full view —
+  # discarded rows included (§6).
   #   => [{ date: Date, count: Integer }, ...]
   def daily_series(days: DEFAULT_DAILY_DAYS)
     start_date = (today - (days - 1))
@@ -43,65 +47,69 @@ class CalculationStats
     end
   end
 
-  # The most-run calculators, by kept-calculation count, descending.
+  # The most-run calculators, by total calculation count (discarded included, §6),
+  # descending.
   #   => [{ calculator: String, count: Integer }, ...]
   def top_calculators(limit: DEFAULT_TOP_LIMIT)
-    kept.group(:calculator)
-        .order(count_all: :desc, calculator: :asc)
-        .limit(limit)
-        .count
-        .map { |calculator, count| { calculator: calculator, count: count } }
+    all_rows.group(:calculator)
+            .order(count_all: :desc, calculator: :asc)
+            .limit(limit)
+            .count
+            .map { |calculator, count| { calculator: calculator, count: count } }
   end
 
-  # Anonymous (no user) vs. attributed (has a user) kept calculations.
+  # Anonymous (no user) vs. attributed (has a user) calculations, full view (§6).
   #   => { anonymous: Integer, attributed: Integer }
   def attribution
     {
-      anonymous:  kept.where(user_id: nil).count,
-      attributed: kept.where.not(user_id: nil).count
+      anonymous:  all_rows.where(user_id: nil).count,
+      attributed: all_rows.where.not(user_id: nil).count
     }
   end
 
-  # The most-active signed-in users, by kept-calculation count, descending.
-  # Anonymous calculations (no user) are excluded.
+  # The most-active signed-in users, by total calculation count (discarded
+  # included, §6), descending. Anonymous calculations (no user) are excluded.
   #   => [{ username: String, count: Integer }, ...]
   def top_users(limit: DEFAULT_TOP_LIMIT)
-    kept.where.not(user_id: nil)
-        .group(:username)
-        .order(count_all: :desc, username: :asc)
-        .limit(limit)
-        .count
-        .map { |username, count| { username: username, count: count } }
+    all_rows.where.not(user_id: nil)
+            .group(:username)
+            .order(count_all: :desc, username: :asc)
+            .limit(limit)
+            .count
+            .map { |username, count| { username: username, count: count } }
   end
 
-  # The most-recent kept calculations, newest first.
-  #   => [{ calculator:, username: (nil=anonymous), created_at:, inputs:, result: }, ...]
+  # The most-recent calculations, newest first — discarded rows INCLUDED (§6),
+  # each tagged with a `discarded:` boolean so the admin view can flag them.
+  #   => [{ calculator:, username: (nil=anonymous), created_at:, inputs:, result:, discarded: }, ...]
   def recent(limit: DEFAULT_RECENT_LIMIT)
-    kept.order(created_at: :desc, id: :desc)
-        .limit(limit)
-        .map do |row|
-          {
-            calculator: row.calculator,
-            username:   row.username,
-            created_at: row.created_at,
-            inputs:     row.inputs,
-            result:     row.result
-          }
-        end
+    all_rows.order(created_at: :desc, id: :desc)
+            .limit(limit)
+            .map do |row|
+              {
+                calculator: row.calculator,
+                username:   row.username,
+                created_at: row.created_at,
+                inputs:     row.inputs,
+                result:     row.result,
+                discarded:  row.deleted_at.present?
+              }
+            end
   end
 
   private
 
-  # The soft-delete-respecting base relation every query starts from.
-  def kept = CalculationLog.where(deleted_at: nil)
+  # The base relation every query starts from: the FULL view, discarded rows
+  # included (§6 — site-wide usage counts every calculation).
+  def all_rows = CalculationLog.all
 
-  # Kept counts grouped by calendar date (app TZ) from `start_date` forward.
-  # Grouped in Ruby so the date bucketing matches `Time.zone` exactly rather
-  # than relying on the DB session timezone.
+  # Counts grouped by calendar date (app TZ) from `start_date` forward — full
+  # view, discarded included (§6). Grouped in Ruby so the date bucketing matches
+  # `Time.zone` exactly rather than relying on the DB session timezone.
   def counts_by_date(start_date)
-    kept.where(created_at: start_date.beginning_of_day..)
-        .pluck(:created_at)
-        .each_with_object(Hash.new(0)) { |ts, acc| acc[ts.in_time_zone.to_date] += 1 }
+    all_rows.where(created_at: start_date.beginning_of_day..)
+            .pluck(:created_at)
+            .each_with_object(Hash.new(0)) { |ts, acc| acc[ts.in_time_zone.to_date] += 1 }
   end
 
   def today = Time.zone.today
