@@ -8,14 +8,13 @@ require "test_helper"
 # via Rails' app/helpers auto-inclusion — are included explicitly here so the test view
 # context exercises their methods too.
 class CalculatorsHelperTest < ActionView::TestCase
-  helper Calculators::PercentageHelper
-  helper Calculators::OhmsLawHelper
-  helper Calculators::BmiHelper
-  helper Calculators::TipHelper
-  helper Calculators::MeanMedianModeRangeHelper
-  helper Calculators::AmortizationHelper
-  helper Calculators::AgeHelper
-  helper Calculators::SimpleInterestHelper
+  # Derive the per-calculator helper includes from the files on disk rather than
+  # listing each one — so adding app/helpers/calculators/<slug>_helper.rb picks it up
+  # with NO edit here (no shared-file collision when the frontend builds fan out).
+  # Mirrors how Registry::IngestTest derives all_built_rows from Dir[app/calculators/*.rb].
+  Dir[Rails.root.join("app/helpers/calculators/*_helper.rb")].sort.each do |path|
+    helper "Calculators::#{File.basename(path, '.rb').camelize}".constantize
+  end
 
   # ── percentage_display ──────────────────────────────────────────────────
 
