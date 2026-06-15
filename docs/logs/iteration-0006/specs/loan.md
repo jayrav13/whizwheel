@@ -109,13 +109,22 @@ the payment row, off by 18¢ because the input payment was itself rounded to the
 5%/60` → P = **24999.96**, again the cent-rounding inverse of 25000.)_
 
 ### Mode `term` — solve for term in months
-| loan_amount | monthly_payment | annual_rate | term_months | note |
-|-------------|-----------------|-------------|-------------|------|
-| 25000       | 471.78          | 5           | 60          | exact inverse of the payment row |
-| 10000       | 500.00          | 0           | 20          | r = 0 → n = P/M = 20 |
+_`total_paid` / `total_interest` are the schedule-reconciled sums for the solved (ceil'd) term, built
+by the same recurrence as the payment mode from the **given** monthly payment._
+| loan_amount | monthly_payment | annual_rate | term_months | total_paid | total_interest | note |
+|-------------|-----------------|-------------|-------------|------------|----------------|------|
+| 25000       | 600.00          | 5           | 46          | 27516.64   | 2516.64        | raw n ≈ 45.8608 → ceil 46 |
+| 10000       | 500.00          | 0           | 20          | 10000.00   | 0.00           | r = 0 → n = P/M = 20 |
 
-_Worked anchor (`25000, 471.78 @ 5%`): n = ln(M/(M − P·r)) / ln(1+r), r = 0.0041666…, P·r = 104.166…,
-n = 59.99… → rounded **up** to **60** whole months._
+_Worked anchor (`25000, 600.00 @ 5%`): n = ln(M/(M − P·r)) / ln(1+r), with r = 0.0041666…, P·r =
+104.1666…, so M − P·r = 495.8333… and M/(M − P·r) = 1.21008…; n = ln(1.21008…)/ln(1.0041666…) =
+**45.86083…**, which is unambiguously fractional (≈ 0.14 below 46), so it rounds **up** to **46** whole
+months — no precision razor's edge. From the integer n = 46 the schedule is rebuilt with the given
+M = 600.00: month-1 interest = 25000 × 0.0041666… = **104.17**, principal = 600.00 − 104.17 =
+**495.83**, new balance **24504.17**; the final (46th) payment absorbs accumulated rounding, clearing
+the balance to **0.00**. Reconciled sums: `total_interest` = Σ interest = **2516.64**, `total_paid` =
+Σ payments = loan_amount + total_interest = **27516.64**. (The `r = 0` row: n = P/M = 10000/500 = 20
+exactly; total_paid = 10000.00, total_interest = 0.00.)_
 
 ### Edge / validation cases
 | inputs | expected |
