@@ -122,6 +122,15 @@ marker, then **Intent**, **Inputs** (name / type / rules — one row per `attrib
 - You **may read anything** to build accurately.
 - If a task needs UI work, **stop and say so** — name what's needed and hand it back. Do not
   reach across the seam.
+- **Never edit the registry to force CI green.** `docs/INVENTORY.md` and the calculator-count
+  test (`test/tasks/calculators_test.rb`) are PM-owned / derived — not yours. A freshly-built
+  calculator class trips the `Registry::IngestTest` **drift test** until its INVENTORY row
+  exists; that row is added **centrally** (the PM's INVENTORY backfill at iteration Open), and
+  the count test **derives** its number from the built classes (so it never needs bumping). If
+  your build's *only* CI failure is that drift test, **leave it** — note it in your PR body; it
+  clears when your branch rebases onto the backfilled `main`. Do **not** add the row or bump the
+  count yourself — parallel builds collide on those shared files (rule #3). *(Learned the hard
+  way in iteration-0006, #199.)*
 
 ## The calculator shape (the common build)
 
@@ -149,6 +158,18 @@ end
   The output keys you choose are the contract the frontend renders — name them as the spec says.
 - **Purity (`CLAUDE.md` rule #5):** no DB, no request, no user inside a calculator. That purity
   is what makes the 100% gate achievable.
+- **Namespace — qualify stdlib date/time as `::Date` / `::Time`.** The `Calculators::` module
+  contains calculators named after stdlib classes (e.g. `Calculators::Date`), which **shadow the
+  bare constant** for every calculator in the namespace: a bare `Date.today` inside any
+  `Calculators::X` resolves to the *calculator*, not Ruby's `Date`. Always write `::Date`,
+  `::Time`, `::DateTime` (etc.) for stdlib classes. *(iteration-0006: `Calculators::Date` broke a
+  bare `Date` reference in the Age calculator.)*
+- **Optional numeric inputs — a blank string is `nil`, not the `default:`.** `attribute :x,
+  :integer, default: 0` applies the default only when the key is **absent**; a submitted *empty
+  string* casts to `nil` (and `allow_nil` numericality passes it), which then crashes a `#compute`
+  that assumes a number (a direct API client can 500 the math layer even when the UI pre-fills
+  `"0"`). Guard `#compute` against `nil` for optional numerics, or treat blank as the default.
+  *(Base-level hardening tracked in #213.)*
 
 ### Numeric input is guarded *before* casting — a `Base` guarantee (#109/#110)
 
