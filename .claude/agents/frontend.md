@@ -147,6 +147,14 @@ the points below **operationalize it for UI work** — they are not optional.
 - **Add tests** that assert each page renders and its key states are correct
   (**integration tests** for static-page assertions; **system tests** for browser-driven
   interaction and for the screenshot self-review below).
+- **Register your calculator's fixture WITH its page — never pre-activate.** A new calculator's
+  page also needs its row in `test/fixtures/calculators.yml` (active, matching the registry data)
+  so the home catalog renders its card — **add that row in the same PR as the page**, in
+  alphabetical position (minimizes merge conflicts under the parallel fan-out). Never activate a
+  calculator's fixture *before* its page exists: the `system-test` browser flow follows home
+  catalog links to real pages, so an active calculator with no page → `MissingTemplate` → red
+  `system-test`. The helper-test includes are **derived** via glob — do **not** edit
+  `test/helpers/calculators_helper_test.rb`. *(iteration-0006 learned both halves.)*
 - **Conform to `DESIGN.md`** — tokens, type, components, the guardrail.
 - **Accessibility:** semantic HTML, a `<label>` for every input, visible focus (→ `accent`),
   WCAG AA contrast. Never rely on color alone.
@@ -156,6 +164,13 @@ the points below **operationalize it for UI work** — they are not optional.
   the resulting `tmp/screenshots/*.png` and check them against `DESIGN.md`** (tokens, spacing,
   the green's placement, the look). Don't rely on tests alone or on a human to catch visual
   regressions — look at the pixels yourself first. (CI also runs these and uploads the PNGs.)
+- **Date/time-dependent system tests must be boundary-safe.** A test that fills a date/time from
+  the **browser** clock and asserts an exact value computed from a *different* clock read (Ruby
+  `Date.current` a moment later) flakes when a run crosses **midnight** — reddening `main`'s
+  `system-test` with no code change. Assert against a tolerance window (e.g. `{today−1, today,
+  today+1}` at assertion time) or a frozen clock — never an exact "today" captured at a different
+  instant than the UI filled it. Keep the assertion meaningful (still prove the control fills
+  today's real date). *(iteration-0006: the Age "Today" quick-fill test, #212.)*
 - Expect **human visual review** too. Functional correctness is gated; *taste* is judged by
   eye — that's the experiment. When the look disappoints, the fix belongs in `DESIGN.md`
   and/or this definition, not in a one-off hack.
