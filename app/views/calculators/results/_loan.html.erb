@@ -1,0 +1,118 @@
+<%# Loan result (spec issue #185, DESIGN.md §4) — a fixed-rate amortizing loan with a
+    solve-for mode. It composes BLEND components:
+      • Hero-result — the figure the chosen MODE solved for (5px coral left rule, big
+                      tabular-nums): the monthly payment, the loan amount, or the term.
+      • Stat grid   — the full loan picture (every figure, solved or given) + the totals,
+                      built from the shared `.stat-grid` / `.stat-card` component (issue
+                      #143). It uses the `--wide` track: the worst-case money values run
+                      high-magnitude (a 30y mortgage's total of payments is 7-figure,
+                      $431,677.04), which the default 9.5rem track would wrap mid-number.
+      • Data table  — the month-by-month repayment schedule (thin rule borders,
+                      right-aligned tabular-nums, a hard ink total row), scrollable.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope —
+    money strings and the schedule rows. `calc:` is a valid Calculators::Loan. %>
+<% r = calc.result %>
+<% hero = loan_hero(r) %>
+<% schedule = r[:schedule] %>
+
+<div class="space-y-6">
+  <%# ── Hero: the solved-for figure (DESIGN.md §4 "Hero-result") ──────────────
+      The headline answer is whatever the chosen mode solved for — payment, amount, or
+      term — surfaced by loan_hero (the only mode-dependent presentation, kept in the
+      helper so it's coverage-counted). 5px coral left rule + big tabular-nums number. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= hero[:eyebrow] %></p>
+        <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p class="text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= hero[:value] %></p>
+          <% if hero[:suffix] %>
+            <p class="text-sm font-semibold text-faint"><%= hero[:suffix] %></p>
+          <% end %>
+        </div>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          <%= pluralize(r[:number_of_payments], "level payment") %> over the term.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: the full loan picture + totals (DESIGN.md §4 "Stat grid", #143) ──
+      The shared responsive stat grid. Every loan figure appears here (solved or given) so
+      the answer reads in context — e.g. solving for term still shows the loan amount and
+      payment. The `--wide` track (13rem min) keeps the high-magnitude money totals on one
+      line (a 30y mortgage's total of payments is 7-figure); the `.stat-card` never-clip net
+      (overflow-wrap on the value `<dd>`, reinforced by break-words) catches any larger
+      worst case. This grid sits directly on the page background (a top-level block, not
+      nested in the hero card), so the cards use `.stat-card--surface` to stand off the
+      cream. Total interest reads in coral (the cost figure). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Monthly payment</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:monthly_payment]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Loan amount</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:loan_amount]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Loan term</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= pluralize(r[:term_months], "month") %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Total of payments</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:total_paid]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Total interest</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></dd>
+    </div>
+  </dl>
+
+  <%# ── Schedule (DESIGN.md §4 "Data table") ────────────────────────────────
+      The full month-by-month repayment schedule. Long (a 30y loan is 360 rows), so the
+      wrapper scrolls (max-height + overflow-y) with a sticky header — fully usable without
+      JS, no pagination controller needed (the no-JS table baseline is the whole feature
+      here). Thin rule borders, right-aligned tabular-nums, a hard ink total row. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex flex-wrap items-baseline justify-between gap-2 px-6 pt-6">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Payment schedule</p>
+      <p class="text-xs text-muted tabular-nums"><%= pluralize(schedule.length, "month") %></p>
+    </div>
+    <div class="mt-4 max-h-[28rem] overflow-y-auto">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0 z-10 bg-surface">
+          <tr class="border-b border-rule text-left text-[11px] font-bold uppercase tracking-[0.08em] text-faint">
+            <th scope="col" class="px-6 py-2.5 font-bold">Month</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Payment</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Principal</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Interest</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% schedule.each do |row| %>
+            <tr class="border-b border-rule/70 text-ink last:border-0">
+              <td class="px-6 py-2.5 tabular-nums text-muted"><%= row[:month] %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums">$<%= money_display(row[:payment]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums">$<%= money_display(row[:principal]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums text-primary">$<%= money_display(row[:interest]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums font-semibold"><%= row[:balance] == "0.00" ? "Paid off" : "$#{money_display(row[:balance])}" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <%# Hard total row — top border in ink (DESIGN.md §4 "Data table"). %>
+          <tr class="border-t-2 border-ink bg-bg/40 font-bold text-ink">
+            <td class="px-6 py-3">Total</td>
+            <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:total_paid]) %></td>
+            <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:loan_amount]) %></td>
+            <td class="px-6 py-3 text-right tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></td>
+            <td class="px-6 py-3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>

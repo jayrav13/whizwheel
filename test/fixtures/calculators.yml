@@ -60,6 +60,15 @@ amortization:
   description: The monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest breakdown, and the full schedule.
   source: "[amortization-calculator](https://www.calculator.net/amortization-calculator.html)"
 
+loan:
+  slug: loan
+  name: Loan Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input, multi-mode, tabular-output
+  description: An amortized fixed-rate loan — solve for the monthly payment, the loan amount you can afford, or the term, and see the full repayment schedule.
+  source: "[loan-calculator](https://www.calculator.net/loan-calculator.html)"
+
 mean_median_mode_range:
   slug: mean_median_mode_range
   name: Mean, Median, Mode, Range Calculator
