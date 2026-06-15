@@ -1,11 +1,14 @@
 <%# Admin site-wide usage dashboard (#221, ARCHITECTURE.md §8 — ADMIN-gated via
     Admin::BaseController). Renders ONLY the documented `@stats` (CalculationStats)
     methods — no queries here (that's backend turf). Built to docs/DESIGN.md (BLEND):
-    a sweeping page title + green eyebrow, the volume in the shared `.stat-grid`, a
-    dependency-free inline-SVG trend chart (bar_chart_controller) over a no-JS data-table
-    fallback, and thin-ruled BLEND data tables for the breakdowns + recent feed.
-    Site-wide totals count ALL calculations incl. discarded (§6 — usage is usage); the
-    recent feed flags discarded rows with a BLEND-styled badge. %>
+    a sweeping page title + green eyebrow, the volume in the shared `.stat-grid`, the
+    30-day trend as a TradingView lightweight-charts Histogram (volume_trend_chart_controller,
+    DESIGN.md §4 — every chart, dashboard charts included, uses the house JS library) over a
+    no-JS data-table fallback, and thin-ruled BLEND data tables for the breakdowns + recent
+    feed. Site-wide totals count ALL calculations incl. discarded (§6 — usage is usage); the
+    recent feed flags discarded rows with a BLEND-styled badge and renders the raw echoed
+    input → result values in a monospace <code> (DESIGN.md §2 — raw echoed data is <code>,
+    not prose). %>
 <% content_for :title, "Admin stats — whizwheel" %>
 
 <% volume = @stats.volume %>
@@ -48,41 +51,43 @@
   </dl>
 </section>
 
-<%# ── 30-day trend — a dependency-free inline-SVG bar chart drawn by bar_chart_controller
-    from the `series` JSON value (NO charting library). DESIGN.md §4 "Charts": the underlying
-    data is ALWAYS reachable without JS, so the same series is also rendered as a collapsible
-    <details> data table — always present, so the numbers never gate on JS. %>
+<%# ── 30-day trend — a TradingView lightweight-charts Histogram series, drawn by
+    volume_trend_chart_controller from the `series` JSON value (DESIGN.md §4 "Charts": every
+    chart, dashboard charts included, uses the house JS library in its bar/histogram form —
+    crosshair + per-bar tooltip). The underlying data is ALWAYS reachable without JS, so the
+    same series is also rendered as a <details> data table; the controller hides it only
+    after the chart paints, so the numbers never gate on JS (the only place hand-rolled
+    markup is allowed now is this fallback). %>
 <section class="mt-8" aria-labelledby="trend-heading">
-  <div class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)]"
+       data-controller="volume-trend-chart"
+       data-volume-trend-chart-series-value="<%= series.map { |d| { date: d[:date].to_s, count: d[:count] } }.to_json %>">
     <h2 id="trend-heading" class="text-xs font-bold uppercase tracking-[0.12em] text-faint">Volume trend · last 30 days</h2>
-    <div data-controller="bar-chart" data-bar-chart-series-value="<%= series.map { |d| { date: d[:date].to_s, count: d[:count] } }.to_json %>">
-      <%# The SVG canvas the controller paints into; sized responsively (full width, fixed
-          height). Empty until JS connects — the data table below is the no-JS fallback. %>
-      <svg data-bar-chart-target="svg" class="mt-4 h-60 w-full" aria-hidden="true"></svg>
-    </div>
 
-    <%# No-JS / accessible data fallback (DESIGN.md §4 "Charts"): the full series as a table. %>
-    <details class="mt-4 text-sm">
-      <summary class="cursor-pointer font-semibold text-muted transition-colors hover:text-ink">View the daily counts as a table</summary>
-      <div class="mt-3 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-rule text-left text-xs font-bold uppercase tracking-[0.08em] text-faint">
-              <th scope="col" class="py-2 pr-4 font-bold">Date</th>
-              <th scope="col" class="py-2 text-right font-bold">Calculations</th>
+    <%# Live lightweight-charts container — hidden until the controller draws into it (it
+        injects its own <canvas>). Sized responsively (full width, fixed height). %>
+    <div data-volume-trend-chart-target="chart" class="mt-4 h-60 w-full" hidden></div>
+
+    <%# No-JS / accessible data fallback (DESIGN.md §4 "Charts"): the full series as a table.
+        The controller retires this only once the chart paints. %>
+    <div data-volume-trend-chart-target="fallback">
+      <table class="mt-4 w-full text-sm">
+        <thead>
+          <tr class="border-b border-rule text-left text-xs font-bold uppercase tracking-[0.08em] text-faint">
+            <th scope="col" class="py-2 pr-4 font-bold">Date</th>
+            <th scope="col" class="py-2 text-right font-bold">Calculations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% series.each do |day| %>
+            <tr class="border-b border-rule last:border-0">
+              <td class="py-1.5 pr-4 text-muted"><%= day[:date].strftime("%b %-d") %></td>
+              <td class="py-1.5 text-right tabular-nums text-ink"><%= number_with_delimiter(day[:count]) %></td>
             </tr>
-          </thead>
-          <tbody>
-            <% series.each do |day| %>
-              <tr class="border-b border-rule last:border-0">
-                <td class="py-1.5 pr-4 text-muted"><%= day[:date].strftime("%b %-d") %></td>
-                <td class="py-1.5 text-right tabular-nums text-ink"><%= number_with_delimiter(day[:count]) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </details>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -208,7 +213,11 @@
                   <% end %>
                 </td>
                 <td class="py-2.5 pr-4 whitespace-nowrap tabular-nums text-muted"><%= calculation_timestamp(row[:created_at]) %></td>
-                <td class="py-2.5 text-muted"><%= calculation_summary(row[:inputs], row[:result]) %></td>
+                <td class="py-2.5 text-muted">
+                  <%# Raw echoed input → result values are quoted-back data, not a presented
+                      answer — DESIGN.md §2 renders them in a monospace <code>, never plain prose. %>
+                  <code class="font-mono text-sm <%= row[:discarded] ? "text-faint" : "text-muted" %>"><%= calculation_summary(row[:inputs], row[:result]) %></code>
+                </td>
               </tr>
             <% end %>
           </tbody>

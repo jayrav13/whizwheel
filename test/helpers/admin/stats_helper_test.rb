@@ -44,6 +44,15 @@ class Admin::StatsHelperTest < ActionView::TestCase
     assert_includes summary, "…"
   end
 
+  test "returns a plain (non html_safe) string of the raw value so the view escapes it once" do
+    # The summary is raw echoed data the view renders inside a <code> (DESIGN.md §2); the
+    # value must reach the view UNescaped and not html_safe, so `<%= %>` escapes it exactly
+    # once. A SafeBuffer here (or pre-escaped text) would double-escape: "<x>" → "&lt;x&gt;".
+    summary = calculation_summary({ "tag" => "<x>" }, {})
+    assert_equal "tag: <x> → —", summary
+    assert_not summary.html_safe?, "summary must be a plain String so the view owns escaping"
+  end
+
   test "shows all pairs without an ellipsis when within the cap" do
     summary = calculation_summary({ "a" => "1", "b" => "2", "c" => "3" }, {})
     assert_includes summary, "c: 3"

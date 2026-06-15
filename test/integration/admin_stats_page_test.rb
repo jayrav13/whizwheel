@@ -34,23 +34,34 @@ class AdminStatsPageTest < ActionDispatch::IntegrationTest
     assert_select "dd", text: "8"
   end
 
-  test "the trend section renders the SVG chart container wired to bar_chart with a series value" do
+  test "the trend section wires the lightweight-charts controller with a series value over a no-JS table fallback" do
     sign_in_as_admin
     get admin_stats_path
-    # The Stimulus controller + its JSON series value (the chart's data) and the SVG target.
-    assert_select "[data-controller=bar-chart][data-bar-chart-series-value]"
-    assert_select "svg[data-bar-chart-target=svg]"
-    # The no-JS data-table fallback for the daily series (DESIGN.md §4 "Charts").
-    assert_select "details summary", text: /daily counts as a table/i
+    # The Stimulus controller (TradingView lightweight-charts Histogram, DESIGN.md §4) + its
+    # JSON series value (the chart's data) and the container the controller draws into.
+    assert_select "[data-controller=volume-trend-chart][data-volume-trend-chart-series-value]"
+    assert_select "[data-volume-trend-chart-target=chart]"
+    # The no-JS data-table fallback for the daily series (DESIGN.md §4 "Charts") — the only
+    # place hand-rolled chart markup is allowed; the controller retires it once the chart paints.
+    assert_select "[data-volume-trend-chart-target=fallback] table"
+    assert_select "[data-volume-trend-chart-target=fallback] th", text: "Date"
   end
 
   test "the chart's series value is valid JSON of 30 {date,count} points" do
     sign_in_as_admin
     get admin_stats_path
-    value = css_select("[data-bar-chart-series-value]").first["data-bar-chart-series-value"]
+    value = css_select("[data-volume-trend-chart-series-value]").first["data-volume-trend-chart-series-value"]
     series = JSON.parse(value)
     assert_equal 30, series.length
     assert(series.all? { |p| p.key?("date") && p.key?("count") })
+  end
+
+  test "the recent activity feed renders the echoed input -> result values in a monospace code element" do
+    sign_in_as_admin
+    get admin_stats_path
+    # DESIGN.md §2: raw echoed data (the recent-activity input → result summaries) renders in a
+    # real <code> with font-mono, not plain prose. The summary carries the "→" arrow joiner.
+    assert_select "td code.font-mono", text: /→/
   end
 
   test "the breakdown tables render top calculators, top users and the attribution split" do
