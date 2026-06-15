@@ -1,0 +1,132 @@
+<% content_for :title, "Loan Calculator — whizwheel" %>
+
+<%#
+  Loan calculator page (spec issue #185, DESIGN.md BLEND) — a fixed-rate amortizing loan
+  that generalizes Amortization with a solve-for MODE PICKER. The picker selects which of
+  three unknowns to solve for (the monthly payment, the affordable loan amount, or the
+  term); only that mode's two GIVEN figures show, and the page solves the third. The form
+  posts over Turbo and re-renders the #result region in place; it works WITHOUT JS — the
+  server validates exactly the selected mode's required fields and re-renders the result
+  fragment. Stimulus is pure polish: it reveals only the active mode's given fields
+  (disabling the rest so the solved-for field is never posted) and lifts the active row.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): THREE modes, but the labels are
+  multi-word / long ("Monthly payment", "Loan amount"). The §4 rule reserves the segmented
+  control for N ≤ 3 with SHORT labels (≈≤12 chars); a multi-word label routes to the
+  SELECTABLE OPTION LIST (.mode-option) — which also gives each mode a helper line naming
+  the two figures it is GIVEN (spec Notes). It stays a native radio <fieldset>/<legend>
+  posting a single-select inputs[mode].
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • major blocks within the card (mode → fields → submit) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Loan Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    An amortized fixed-rate loan. Choose what to solve for — the
+    <span class="font-semibold text-ink">monthly payment</span>, the
+    <span class="font-semibold text-ink">loan amount</span> you can afford, or the
+    <span class="font-semibold text-ink">term</span> — enter the rest, and see the full
+    repayment schedule. Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/loan", scope: :inputs, method: :post,
+          data: { controller: "loan" } do |f| %>
+
+      <%# Mode picker — selectable option list (.mode-option), per DESIGN.md §4: three
+          multi-word "solve for" modes → one bordered, divided container of full-width rows,
+          NOT a segmented control (reserved for N ≤ 3 short labels). The accessible control
+          is a native radio <fieldset>/<legend> posting inputs[mode]; each radio is
+          visually-hidden (peer sr-only) and paired to a styled <label for>. The active row
+          is painted with no JS via peer:checked, and the .mode-option::before radio glyph is
+          the non-colour active cue (DESIGN.md §6). Each row names what the mode SOLVES (bold
+          label) and, on a helper line, the two figures it is GIVEN (spec Notes). %>
+      <fieldset>
+        <legend class="text-xs font-bold text-label">Solve for…</legend>
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
+          <% loan_modes.each_with_index do |m, i| %>
+            <div>
+              <%= f.radio_button :mode, m[:value],
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { loan_target: "modeInput", action: "loan#select" } %>
+              <%= f.label :mode, value: m[:value],
+                    class: "mode-option",
+                    data: { loan_target: "modeOption", mode: m[:value] } do %>
+                <span class="text-sm font-semibold text-ink"><%= m[:label] %></span>
+                <span class="text-xs text-muted"><%= m[:helper] %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# Given-figure fields. Each block declares the modes it serves (its mode is GIVEN
+          that figure) via data-loan-modes; Stimulus shows only the active mode's blocks and
+          disables the rest so the solved-for field is never submitted (the no-JS baseline
+          shows all four — the server still reads only the mode's required fields). Stacked
+          tier: space-y-5 down the column (DESIGN.md §3). Each input carries its $/%/unit
+          affix on the Affix tier (gap-2 — DESIGN.md §3). %>
+      <div class="mt-8 space-y-5">
+        <%# Loan amount — given by payment + term modes. $ affix leading the field. %>
+        <div data-loan-target="field" data-loan-modes="payment term">
+          <%= f.label :loan_amount, "Loan amount", class: "field-label", for: "inputs_loan_amount" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :loan_amount, id: "inputs_loan_amount", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Monthly payment — given by amount + term modes. $ affix leading the field. %>
+        <div data-loan-target="field" data-loan-modes="amount term">
+          <%= f.label :monthly_payment, "Monthly payment", class: "field-label", for: "inputs_monthly_payment" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :monthly_payment, id: "inputs_monthly_payment", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual interest rate — given by every mode. % affix trailing the field. %>
+        <div data-loan-target="field" data-loan-modes="payment amount term">
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Loan term — given by payment + amount modes. Whole months; a "months" unit
+            trails the field. %>
+        <div data-loan-target="field" data-loan-modes="payment amount">
+          <%= f.label :term_months, "Loan term", class: "field-label", for: "inputs_term_months" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :term_months, id: "inputs_term_months", step: "1", inputmode: "numeric",
+                  min: "1", placeholder: "0", class: "field-input" %>
+            <span class="w-14 text-sm font-bold text-label" aria-hidden="true">months</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
