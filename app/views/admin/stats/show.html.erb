@@ -216,7 +216,7 @@
                 <td class="py-2.5 text-muted">
                   <%# Raw echoed input → result values are quoted-back data, not a presented
                       answer — DESIGN.md §2 renders them in a monospace <code>, never plain prose. %>
-                  <code class="font-mono text-[13px] <%= row[:discarded] ? "text-faint" : "text-muted" %>"><%= calculation_summary(row[:inputs], row[:result]) %></code>
+                  <code class="font-mono text-sm <%= row[:discarded] ? "text-faint" : "text-muted" %>"><%= calculation_summary(row[:inputs], row[:result]) %></code>
                 </td>
               </tr>
             <% end %>

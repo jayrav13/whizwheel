@@ -35,7 +35,12 @@ module Admin
       return "—" if hash.blank?
 
       pairs = hash.first(MAX_PAIRS).map do |key, val|
-        "#{key}: #{truncate(val.to_s, length: VALUE_LIMIT)}"
+        # `escape: false` keeps truncate's return a plain (non-SafeBuffer) String, so the
+        # value is escaped exactly ONCE by the view's `<%= %>`. Without it, truncate returns
+        # an html_safe SafeBuffer with the value already escaped, which the view then escapes
+        # AGAIN — a "<x>" input rendering as the literal "&lt;x&gt;" (double-escape). This is
+        # raw echoed data going into a <code> (DESIGN.md §2), so the view must own escaping.
+        "#{key}: #{truncate(val.to_s, length: VALUE_LIMIT, escape: false)}"
       end
       pairs << "…" if hash.size > MAX_PAIRS
       pairs.join(", ")
