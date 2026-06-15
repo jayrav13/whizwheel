@@ -50,7 +50,7 @@ module Calculators
       return end_date if end_date
       return nil if @end_date_supplied # supplied but unparseable → validation error
 
-      Date.current
+      ::Date.current
     end
 
     private
@@ -123,7 +123,7 @@ module Calculators
     # and -1.day gives its last day, whose .day is the day-count.
     def days_in_preceding_end_month(finish)
       previous = finish.prev_month
-      Date.new(previous.year, previous.month, 1).next_month.prev_day.day
+      ::Date.new(previous.year, previous.month, 1).next_month.prev_day.day
     end
   end
 end
