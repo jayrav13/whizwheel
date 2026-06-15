@@ -1,0 +1,60 @@
+<%# Standard Deviation result (frontend issue #191; spec #190, DESIGN.md §4 Hero-result +
+    Stat grid). The standard deviation is the calculator's namesake answer, so it leads as
+    the big hero figure under a 5px coral left rule (DESIGN.md §4 Hero-result), with an
+    eyebrow naming which data-set mode produced it (Population / Sample) so the answer states
+    its denominator (DESIGN.md §6 — meaning in text, not the picker's position alone).
+
+    Beneath it, the supporting statistics (variance / mean / count / sum) render in the
+    shared responsive auto-fit stat grid (DESIGN.md §4 "Stat grid", issue #143):
+    `.stat-grid` / `.stat-card`, never a per-page inline width. Statistical outputs are
+    PLAIN unit-less numbers and UNBOUNDED (a variance or a sum can run to 7+ digits), so the
+    grid uses `.stat-grid--wide` (the high-magnitude track) to hold a big tabular-nums figure
+    on one line rather than wrapping mid-number — `--wide` is for high-magnitude values
+    whether unit-bearing, money, or plain large numbers (the MMR page needed `--wide` for
+    exactly this). The `.stat-card` never-clip safety net (overflow-wrap on the value `<dd>`)
+    is the floor below that: a figure exceeding even the wide track wraps, never clips
+    (DESIGN.md §4: stats must NEVER clip).
+
+    `calc:` is a valid Calculators::StandardDeviation; the result keys are the six in
+    ARCHITECTURE.md §4 (mode / count / sum / mean / variance / standard_deviation). %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="flex gap-5 p-7">
+    <%# The 5px coral left rule (DESIGN.md §4 Hero-result). %>
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
+        <%= std_dev_mode_label(calc.result[:mode]) %> standard deviation
+      </p>
+
+      <%# Standard deviation — the hero answer (DESIGN.md §4 Hero-result): a big tabular-nums
+          figure. break-words is the never-clip floor for the un-carded hero value (the
+          `.stat-card` shell's safety net doesn't apply here). %>
+      <dl class="mt-2">
+        <dd class="break-words text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+          <%= std_dev_stat_display(calc.result[:standard_deviation]) %>
+        </dd>
+        <dd class="mt-1.5 text-[13px] leading-snug text-muted">
+          <%= std_dev_mode_label(calc.result[:mode]) %> standard deviation of
+          <span class="font-semibold text-ink tabular-nums"><%= std_dev_stat_display(calc.result[:count]) %></span>
+          value<%= "s" unless calc.result[:count] == 1 %>
+        </dd>
+      </dl>
+
+      <%# Supporting statistics — variance / mean / count / sum in the shared responsive stat
+          grid (DESIGN.md §4 "Stat grid", issue #143), on the `--wide` track for the
+          high-magnitude unit-less figures. Per-page value size/colour are utilities on the
+          inner <dd> (never a fork of the card shell). %>
+      <dl class="mt-6 stat-grid stat-grid--wide border-t border-rule pt-6">
+        <% std_dev_supporting_stats.each do |stat| %>
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>
+            <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">
+              <%= std_dev_stat_display(calc.result[stat[:key]]) %>
+            </dd>
+            <p class="mt-1 text-[11px] leading-snug text-faint"><%= stat[:caption] %></p>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+</div>
