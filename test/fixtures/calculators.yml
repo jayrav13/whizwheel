@@ -114,6 +114,15 @@ mortgage:
   description: A full home-mortgage estimate — principal & interest plus property tax, insurance and HOA — with the monthly payment breakdown, total cost, and amortization schedule.
   source: "[mortgage-calculator](https://www.calculator.net/mortgage-calculator.html)"
 
+pythagorean_theorem:
+  slug: pythagorean_theorem
+  name: Pythagorean Theorem Calculator
+  category: Math
+  complexity: 2
+  tags: geometry, multi-mode
+  description: Solve a right triangle's third side with the Pythagorean theorem — give two sides and get the missing one, plus a labeled figure.
+  source: "[pythagorean-theorem-calculator](https://www.calculator.net/pythagorean-theorem-calculator.html)"
+
 right_triangle:
   slug: right_triangle
   name: Right Triangle Calculator
