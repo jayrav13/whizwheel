@@ -1,0 +1,6 @@
+<%# Test-only stub: a REAL, built calculator page (it exists) that itself renders a
+    partial which does NOT exist — so ActionView::MissingTemplate is raised from WITHIN
+    the page's render (a `partial` lookup), not from the page template being absent. This
+    is the #214 guard case: the controller's coming-soon rescue must NOT swallow this — a
+    genuine template bug inside a shipped page must still surface as a 500. %>
+<%= render "calculators/this_partial_does_not_exist" %>

@@ -30,6 +30,22 @@ module Calculators
     def compute = { amount: amount, count: count, label: label }
   end
 
+  # A page-backed calculator whose stub page (test/support/views/calculators/
+  # buggy_page_double.html.erb) renders a partial that does NOT exist — so #show raises
+  # ActionView::MissingTemplate from WITHIN a real, built page's render (#partial == true).
+  # ActionView wraps that in-template error in ActionView::Template::Error (the
+  # MissingTemplate is its #cause), so it bypasses the controller's narrow
+  # `rescue ActionView::MissingTemplate` entirely and propagates — the #214 case the rescue
+  # must NOT swallow. Proves the rescue is tight: a genuine template bug inside a shipped
+  # page still surfaces as a 500, never masked as the coming-soon page.
+  class BuggyPageDouble < Base
+    attribute :x, :decimal
+
+    private
+
+    def compute = { x: x }
+  end
+
   # Exercises Base's blank-defaults-the-default coercion (#213): an optional :decimal
   # and an optional :integer each with a non-zero `default:`, and a REQUIRED numeric
   # attribute with NO default. #compute does arithmetic that would 500 on a nil (the

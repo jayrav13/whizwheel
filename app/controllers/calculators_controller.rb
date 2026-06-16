@@ -8,12 +8,24 @@ class CalculatorsController < ApplicationController
   # GET /calculators/:slug — the calculator's page. The slug must resolve to a real
   # calculator (404 otherwise); the page view itself (calculators/<slug>) is the
   # frontend's (ARCHITECTURE.md §3, issue #31). No math runs here — just serve the page.
+  #
+  # A calculator becomes registry-active (its slug resolves, its catalog row is live) the
+  # moment its BACKEND PR merges — which can precede its frontend page by a full PR. In
+  # that backend-before-frontend window the page view does not exist yet, so the
+  # `render "calculators/<slug>"` below raises ActionView::MissingTemplate. The catalog
+  # gates each card's LINK on the page existing, but a DIRECT URL hit still lands here —
+  # so we degrade that one missing page into the on-brand "coming soon" fallback
+  # (calculators/unavailable, the frontend slice of #214) with a soft 200, instead of a
+  # user-facing 500. The rescue is kept TIGHT (see #render_calculator_page) so it catches
+  # ONLY the missing show template for a valid-but-pageless calculator and never masks a
+  # genuine template bug — e.g. a MissingTemplate raised from a partial inside a real page
+  # still surfaces.
   def show
     klass = Calculators::Base.lookup(params[:slug])
     return head(:not_found) unless klass
 
     @calculator = klass
-    render "calculators/#{klass.slug}"
+    render_calculator_page(klass)
   end
 
   def create
@@ -37,6 +49,34 @@ class CalculatorsController < ApplicationController
   end
 
   private
+
+  # Render the calculator's bespoke page, degrading to the "coming soon" fallback ONLY
+  # when the calculator's OWN show template is the one missing (the backend-before-
+  # frontend window, #214). The rescue is deliberately narrow: it re-raises any
+  # MissingTemplate that is NOT the calculator's own page template — a `partial` lookup
+  # (a `<%= render "..." %>` inside a real, built page) or a different path — so a genuine
+  # template bug inside a shipped page still 500s and is never silently masked. The
+  # fallback is a soft 200: the calculator exists and is registry-active (so 404 would
+  # mislead), its page is merely not built yet, and the catalog links here as a live page.
+  def render_calculator_page(klass)
+    render "calculators/#{klass.slug}"
+  rescue ActionView::MissingTemplate => e
+    raise e unless missing_own_page?(e, klass)
+
+    render "calculators/unavailable"
+  end
+
+  # True only when the MissingTemplate is the calculator's own page template — the
+  # non-partial top-level lookup `render "calculators/<slug>"`. ActionView splits that
+  # into `path == "<slug>"` + `prefixes == ["calculators"]`, so we match exactly that:
+  # the page is the calculator's slug under the calculators/ prefix, and NOT a partial.
+  # Anything else — a `<%= render "…" %>` partial inside a built page (partial == true),
+  # or any other template path — is a genuine bug and must re-raise, never be masked.
+  def missing_own_page?(error, klass)
+    !error.partial &&
+      error.path == klass.slug &&
+      error.prefixes.include?("calculators")
+  end
 
   # Invalid input is 422 in both formats; only the JSON branch carries the error
   # envelope (§4) — the Turbo branch re-renders the calculator's own error fragment.
