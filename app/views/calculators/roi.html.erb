@@ -1,0 +1,105 @@
+<% content_for :title, "ROI Calculator — whizwheel" %>
+
+<%#
+  ROI (return on investment) calculator page (spec issue #258, DESIGN.md BLEND). Given the
+  amount invested and the amount returned, compute the total gain and the ROI %; with an
+  optional investment period (years), also the annualized ROI (CAGR). Single-formula, multi-
+  input (Percentage-shaped) — NO mode picker; the only branch is whether the optional period
+  was supplied (which adds the annualized figure).
+
+  The form posts over Turbo and re-renders the #result region in place; it works WITHOUT JS —
+  the server validates and re-renders the result fragment. No field depends on another, so the
+  Stimulus controller is pure polish: it previews the live total-gain/ROI sign (gain vs. loss
+  tinting) as the user types, mirroring the server result's accent-green/coral treatment. The
+  no-JS baseline is unchanged.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to one
+  column on mobile. Spacing scale ("targets not minimums"):
+    • money/percent affixes → gap-2 (Affix tier — the $/% next to its field)
+    • stacked fields        → space-y-5
+    • fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">ROI Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Return on investment — enter what you put in and what you got back to see your total gain
+    and ROI percentage. Add an optional holding period and we'll also compute the annualized
+    return (the compound annual growth rate). Every answer is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/roi", scope: :inputs, method: :post,
+          data: { controller: "roi" } do |f| %>
+
+      <%# Section eyebrow + a live direction-preview chip (JS-only sugar). The chip reads
+          "Gain"/"Loss"/"Break-even" once both money fields hold a value, mirroring the server
+          result's sign tint (DESIGN.md §1/§6 — word + colour, never colour alone). Hidden
+          until JS connects and both fields are filled; the answer is always the server's. %>
+      <div class="mb-5 flex items-center gap-2">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Your investment</p>
+        <span data-roi-target="preview" hidden
+              class="ml-auto rounded-full bg-current/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-faint"></span>
+      </div>
+
+      <%# Fields. Money fields carry a leading $ affix, the period a trailing "years" unit
+          (Affix tier — gap-2, the symbol next to its field, DESIGN.md §3). Stacked tier:
+          space-y-5 down the column. %>
+      <div class="space-y-5">
+        <%# Amount invested — money, leading $ affix. %>
+        <div>
+          <%= f.label :amount_invested, "Amount invested", class: "field-label", for: "inputs_amount_invested" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :amount_invested, id: "inputs_amount_invested", step: "any",
+                  inputmode: "decimal", min: "0", placeholder: "0",
+                  class: "field-input", data: { roi_target: "invested", action: "roi#preview" } %>
+          </div>
+        </div>
+
+        <%# Amount returned — money, leading $ affix. %>
+        <div>
+          <%= f.label :amount_returned, "Amount returned", class: "field-label", for: "inputs_amount_returned" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :amount_returned, id: "inputs_amount_returned", step: "any",
+                  inputmode: "decimal", min: "0", placeholder: "0",
+                  class: "field-input", data: { roi_target: "returned", action: "roi#preview" } %>
+          </div>
+        </div>
+
+        <%# Investment period — OPTIONAL; supplying it unlocks the annualized ROI. A trailing
+            "years" unit affix, and a one-line helper naming what it adds (so "optional" reads
+            as a feature, not an omission). Blank stays blank — never auto-prefilled. %>
+        <div>
+          <%= f.label :investment_years, class: "field-label", for: "inputs_investment_years" do %>
+            Investment period <span class="font-medium normal-case tracking-normal text-faint">(optional)</span>
+          <% end %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :investment_years, id: "inputs_investment_years", step: "any",
+                  inputmode: "decimal", min: "0", placeholder: "0",
+                  class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">years</span>
+          </div>
+          <p class="mt-1.5 text-[13px] leading-snug text-faint">
+            Add a holding period to also get the annualized ROI.
+          </p>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
