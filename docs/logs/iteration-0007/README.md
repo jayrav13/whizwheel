@@ -1,7 +1,8 @@
 # Iteration 0007
 
-**Status:** open
+**Status:** closed
 **Opened:** 2026-06-16
+**Closed:** 2026-06-16
 **Pinned agent SHA:** iteration-0007 is pinned at the **post-harvest `main` SHA** `e85c47c` (HEAD at
 open). The main thread applied the `iteration-0007` git tag at that SHA; the PM does not create the tag.
 This log references "iteration-0007, pinned at post-harvest `main` (`e85c47c`)."
@@ -10,7 +11,15 @@ This log references "iteration-0007, pinned at post-harvest `main` (`e85c47c`)."
 Pythagorean Theorem (BE/FE), Discount (BE/FE), VAT (BE/FE), Personal Loan (BE/FE), Average Return (BE/FE),
 ROI (BE/FE), House Affordability (BE/FE), Income Tax (BE/FE). **Regen set: EMPTY** (rationale below).
 
-**Headline outcome:** _(filled at close)_ —
+**Headline outcome:** **10/10 calculators shipped (both layers), catalog 14 → 24** — a PROCESS stress test
+at 2× fan-out. All 20 build PRs (10 BE + 10 FE) gated PASS and merged; the registry ingest upserted 24 with
+**drift = 0**. Four of the five up-front predictions HELD; **P4 (no fixture↔page-coupling surprise) was
+FALSIFIED** — the shared `test/fixtures/calculators.yml` caused a merge-conflict cascade across all 7 frontend
+merges (filed #286). One new **process** finding (not a results miss): ~7 concurrent heavy frontend agents
+tripped a transient server-side API rate-limit and died mid-run; recovery was clean with **zero rebuilds**,
+and the lesson was harvested as a **concurrency cap (~3–4)**. Backend results were clean; the operator's UI
+review surfaced **3 nits** (money-2dp, mode-picker pill vertical-centering, table cell overflow), all fixed as
+shared-layer/agent harvest, not per-calculator patches.
 
 ---
 
@@ -220,26 +229,102 @@ Per-calculator build + feedback notes accrue in `docs/logs/iteration-0007/<calcu
 the agent-definition change a miss suggests, and the two consistency metrics (first-pass gate? notes/no-notes?).
 At close they record the build PRs per layer.
 
-| Calculator | Backend issue | Frontend issue | Notes file |
-|---|---|---|---|
-| Auto Loan | _(filed by github-agent)_ | _(filed)_ | `auto-loan.md` |
-| Sales Tax | _(filed)_ | _(filed)_ | `sales-tax.md` |
-| Pythagorean Theorem | _(filed)_ | _(filed)_ | `pythagorean-theorem.md` |
-| Discount | _(filed)_ | _(filed)_ | `discount.md` |
-| VAT | _(filed)_ | _(filed)_ | `vat.md` |
-| Personal Loan | _(filed)_ | _(filed)_ | `personal-loan.md` |
-| Average Return | _(filed)_ | _(filed)_ | `average-return.md` |
-| ROI | _(filed)_ | _(filed)_ | `roi.md` |
-| House Affordability | _(filed)_ | _(filed)_ | `house-affordability.md` |
-| Income Tax | _(filed)_ | _(filed)_ | `income-tax.md` |
+| Calculator | Backend issue → PR | Frontend issue → PR |
+|---|---|---|
+| Auto Loan | #241 → #266 | #251 → #280 |
+| Sales Tax | #242 → #268 | #252 → #281 |
+| Pythagorean Theorem | #243 → #262 | #253 → #272 |
+| Discount | #244 → #263 | #254 → #271 |
+| VAT | #245 → #264 | #255 → #282 |
+| Personal Loan | #246 → #275 | #256 → #277 |
+| Average Return | #247 → #270 | #257 → #273 |
+| ROI | #248 → #265 | #258 → #278 |
+| House Affordability | #249 → #276 | #259 → #279 |
+| Income Tax | #250 → #274 | #260 → #283 |
 
-The `github-agent` will file all 20 issues — two per calculator (`backend` + `frontend`), both carrying the
-identical full `spec:v1` body — reading the spec files from this branch. Its dedupe scan should find **no prior
-issues** for any of the ten (confirmed at open: the only related open issue is #215, a Right Triangle FE
-follow-up, not one of these). Issue numbers will be recorded here once filed.
+The `github-agent` filed all 20 issues (#241–#260) — two per calculator (`backend` + `frontend`), both carrying
+the identical full `spec:v1` body. The dedupe scan found **no prior issues** for any of the ten. All 20 issues
+are **CLOSED** by their merged build PRs above.
 
 ---
 
-_Build outcome, Evaluate verdict, Harvest, and Close sections are filled as the iteration progresses (mirroring
-iteration-0006's structure). The predictions and metrics above are the round's instruments — at close, each
-prediction is marked **held / falsified** and the two consistency metrics are summarized._
+## Close (2026-06-16)
+
+### Prediction scorecard — 4/5 HELD, P4 FALSIFIED
+
+The five predictions were written in **at Open** so any recurrence is a clean falsification, not a post-hoc
+rationalization. Adjudicated against the delivered builds:
+
+| # | Prediction | Verdict | Evidence |
+|---|---|---|---|
+| **P1** | No registry-count collision across the 10 parallel builds — no build edits a shared "how many are built" constant. | **HELD** | No build touched a built-calculator count; #202's derived count absorbed all 10 additions without a per-build edit or a merge conflict on a count assertion. |
+| **P2** | INVENTORY backfilled at Open — all 10 carry slug + description **before** the builds start. | **HELD** | All ten slugs + descriptions were authored into `INVENTORY.md` at open; no build agent had to author or guess an inventory slug/description mid-build. |
+| **P3** | Derived calculator count holds — moves **14 → 24 only on completion**, with **no per-build bumps**. | **HELD (exactly)** | At close the registry ingest reported **upserted = 24, drift = 0** — the count moved 14 → 24 with no intermediate per-build assertion drift. |
+| **P4** | No fixture↔page-coupling surprise — FE builds don't trip on missing shared fixtures / derived scaffolding. | **FALSIFIED** | The shared `test/fixtures/calculators.yml` caused a **merge-conflict cascade across all 7 frontend merges** — each FE PR appended its own fixture row to the same file, so every merge after the first conflicted and had to be rebased. The #205 fix pre-staged scaffolding but did **not** anticipate a *shared append-target* file under 2× fan-out. **Filed as #286.** |
+| **P5** | No cross-seam edits — no build agent writes another layer's turf. | **HELD** | No backend PR diff touched `app/views`/`app/assets`/`app/javascript`; no frontend PR touched `app/calculators`/`routes.rb`/a model. The new **`array_attribute`** primitive (Average Return's list input) landed entirely in the **backend's `Base`/controller turf** — a clean seam-respecting addition, not a cross-seam edit. |
+
+**The one falsification is itself the round's payoff.** P4 is exactly the kind of coordination failure a 2×
+process stress test exists to surface: the #205 harvest hardened *pre-scaffolding* of shared fixtures but
+missed that a **shared append-target file** turns N parallel FE merges into N−1 guaranteed rebase conflicts.
+That it surfaced *only* at doubled fan-out (it didn't bite 0006's 6-wide round on the same file) confirms the
+doubled fan-out did its job as a legibility instrument. The fix is tracked in **#286** (derive the per-calculator
+fixture rows, or otherwise remove the shared append-target, so FE merges stop colliding).
+
+### New process finding — concurrency rate-limit (recovered with zero rebuilds)
+
+Beyond the predictions, the round surfaced a **new infrastructure-level coordination limit**: dispatching ~7
+concurrent heavy frontend agents **simultaneously** tripped a transient **server-side API rate-limit that
+killed them all mid-run**. Recovery was **clean with ZERO rebuilds** — the orchestrator salvaged the
+committed-and-uncommitted work in the dead agents' worktrees and CI-validated each, rather than re-dispatching
+the builds from scratch. The lesson was harvested as a **concurrency cap (~3–4 heavy agents at a time) — wave
+the fan-out**, encoded into `CLAUDE.md` (Orchestration → "Concurrency cap"). This is a **process** finding, not
+a results miss — no calculator was wrong, and nothing had to be rebuilt — but it is the sharpest single learning
+of the round: the harvested machinery scales on correctness, but the *orchestration* has a concurrency ceiling
+the 2× round found.
+
+### Consistency metrics
+
+- **First-pass gate rate — effectively 10/10 BE + 10/10 FE.** Every calculator's backend and frontend passed
+  its `quality-assurance-agent` gate; the frontend PRs recovered from the rate-limit deaths passed CI + QA once
+  re-dispatched/salvaged. The doubled fan-out did **not** degrade the per-PR clean-through rate vs. 0006's 6/6
+  — the gate held at 2×. (One post-gate-push re-gate was needed on #272 — the SHA the gate saw went stale after
+  a fix push — which itself drove the "re-gate after a post-gate push" rule into `CLAUDE.md`.)
+- **Notes / no-notes — backend clean; FE 3 shared-layer nits.** Backend results were **clean across all 10**
+  (reference values reproduced; the one new bracket/piecewise primitive in Income Tax landed correctly from its
+  rigorous spec; the Sales Tax ↔ VAT twin converged to parallel structure; the loan core re-transferred cleanly
+  Auto Loan → Personal Loan → House Affordability). The operator's UI review surfaced **3 nits**, all
+  **shared-layer / agent-level**, none a per-calculator correctness miss: (1) money values not always rendered
+  to 2 decimals; (2) the mode-picker segmented pills not vertically centered when a label wrapped; (3) data-table
+  cells overflowing on narrow viewports. **All three were fixed as shared-component / `DESIGN.md` / agent harvest
+  — not per-calculator patches** — so they propagate to every calculator and survive the next regen sweep.
+
+### Build PRs (all merged)
+
+All 20 build PRs merged green (issue → PR table above). Backends landed before their frontends per the lifecycle
+(a calculator's FE codes against its BE's §4 envelope). BE PR range #262–#276; FE PR range #271–#283.
+
+### Harvest manifest (all merged)
+
+The Evaluate phase's findings were applied as agent / design / process harvest — **fix the agent, not the code**
+— and landed on `main` before close (this is the agent set iteration-0008 will pin at):
+
+| PR / issue | Layer | What |
+|---|---|---|
+| **#284** | frontend (`DESIGN.md §2`) | **Money → always 2 decimals (cents)** rule — every displayed monetary figure renders with exactly two decimal places; addresses UI nit (1). |
+| **#285** | frontend (shared component) | **Equal-height, vertically-centered segmented-control pills** — a wrapping two-line mode label is vertically centered, not top-pinned; addresses UI nit (2). |
+| **#287** | process (`CLAUDE.md`) | **Concurrency cap (~3–4) + post-gate re-gate + `ci-monitor` deprecation + the `array_attribute` pattern** — the concurrency-rate-limit harvest, the stale-gated-SHA re-gate rule (#272), QA proving out so `ci-monitor` is deprecated as the CI watcher, and documenting the registration-free list-input primitive. |
+| **#288** | frontend | **Right Triangle SVG clip propagation** — the figure's leg-label is kept inside the viewBox / leg for large legs (figure-clipping fix swept to the geometry calculators). |
+| **#289** | frontend (`DESIGN.md §4`) | **Data-table no-overflow + the §4 segmented-vs-list mode-picker decision** — numeric/money/range cells never wrap mid-value and tables scroll rather than clip on narrow viewports (addresses UI nit (3)); plus the harvest settling when a segmented control vs. an option list is used. |
+| **#286** | process (filed, not yet fixed) | **Fixture-cascade issue** — the shared `test/fixtures/calculators.yml` append-target that conflicted across the 7 FE merges (the P4 falsification); filed for a future fix. |
+
+**`ci-monitor` is now deprecated** (kept, not deleted, per the deprecate-never-delete ethos): the
+`quality-assurance-agent` proved out across all ~26 of this round's PRs with zero deaths, so its CI facet is the
+sole CI gate (`CLAUDE.md` → "The pre-merge gate", adoption note #169).
+
+### What iteration-0008 inherits
+
+This close updates `docs/INVENTORY.md` (catalog **14 → 24**; the 10 new calculators floated into the
+completed block in BE-PR-ascending ship order, each with its build-time slug + description) and records the
+harvest above. iteration-0008 opens pinned at the post-harvest `main`; its regen sweep — if any — is what would
+propagate the #284/#285/#289 shared-layer fixes across the 14 priors that predate them, and the open **#286**
+fixture-cascade fix should land before the next 2×-scale fan-out.
