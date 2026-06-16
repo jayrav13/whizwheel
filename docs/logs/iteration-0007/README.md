@@ -191,14 +191,17 @@ stated formula; where the Source showed worked numbers (Sales Tax $106, VAT coff
 
 **PM judgment calls flagged for operator review** (so any disagreement is caught before the build):
 
-- **Income Tax — bracket schedule chosen.** The full calculator.net income-tax page (filing status, dependents,
-  many income types, credits) is out of scope; this build implements the **core progressive-bracket primitive
-  against a single pinned schedule: the 2024 US federal single-filer ordinary-income brackets** (10/12/22/24/
-  32/35/37% at the 11,600 / 47,150 / 100,525 / 191,950 / 243,725 / 609,350 thresholds), **stated in the spec**.
-  Reference tax pinned for incomes spanning multiple brackets (10k → $1,000; 50k → $6,053; 100k → $17,053;
-  250k → $57,874.75; 700k → $217,187.75), plus effective and marginal rates, with marginal references chosen
-  **inside** brackets (never at an edge). If the operator prefers a different year/filing status, that is the
-  one knob to change.
+- **Income Tax — bracket schedule chosen (re-pinned to 2025 by operator).** The full calculator.net income-tax
+  page (filing status, dependents, many income types, credits) is out of scope; this build implements the
+  **core progressive-bracket primitive against a single pinned schedule: the 2025 US federal single-filer
+  ordinary-income brackets** (IRS Rev. Proc. 2024-40, tax year 2025 — 10/12/22/24/32/35/37% at the
+  11,925 / 48,475 / 103,350 / 197,300 / 250,525 / 626,350 thresholds), **stated in the spec**. Reference tax
+  pinned for incomes spanning multiple brackets (10k → $1,000; 50k → $5,914; 100k → $16,914; 250k → $57,063;
+  700k → $216,020.25), plus effective and marginal rates, with marginal references chosen **inside** brackets
+  (never at an edge). _Note: under the 2025 schedule the $250,000 worked anchor's last dollar lands in
+  bracket 5 (197,300–250,525), so its marginal rate is **32%** and the breakdown spans **5** brackets (under
+  the prior 2024 pin it was 35% / 6 brackets)._ The operator chose 2025 (superseding the 2024 pin landed in
+  #240); year/filing status remains the one knob to change.
 - **House Affordability — non-iterative model.** Property tax / insurance / HOA are taken as **fixed monthly
   dollar figures** (as the Source's own worked example does for insurance/HOA), so max home price computes in
   **one pass** — no iterating tax-as-%-of-the-unknown-price. Chosen for deterministic reference values; flagged
