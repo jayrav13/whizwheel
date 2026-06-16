@@ -96,6 +96,28 @@ module Calculators
       @numeric_defaults ||= superclass.respond_to?(:numeric_defaults) ? superclass.numeric_defaults.dup : {}
     end
 
+    # Declare an attribute as a variable-length LIST input — one posted as
+    # `inputs[name][]` (e.g. Average Return's `returns`). This does NOT change how the
+    # value is stored (the attribute itself is declared separately, untyped, so the
+    # submitted Array passes through and the calculator owns the parse — like the
+    # string-list calculators own their split). It only records the name so the
+    # controller permits that key as an ARRAY in strong params (CalculatorsController
+    # #calculator_params) rather than a scalar — registration-free, the calculator's
+    # own declaration drives it. Inherited-class-safe: a subclass starts from its
+    # parent's set, then owns its own copy.
+    def self.array_attribute(name)
+      array_attribute_names << name.to_s
+    end
+
+    # The names (as strings) of attributes declared via ::array_attribute — the LIST
+    # inputs the controller permits as arrays. Seeded from the superclass so a subclass
+    # inherits its parent's array attributes, then owns its own copy (no cross-class
+    # leakage). Empty for the common scalar-only calculator.
+    def self.array_attribute_names
+      @array_attribute_names ||=
+        superclass.respond_to?(:array_attribute_names) ? superclass.array_attribute_names.dup : []
+    end
+
     # Calculators::Percentage => "percentage"
     def self.slug = name.demodulize.underscore
 

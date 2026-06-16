@@ -90,7 +90,19 @@ class CalculatorsController < ApplicationController
   # The calculator's declared attributes ARE the allowlist: permit exactly those
   # keys. Unknown keys are dropped (not 500s via UnknownAttributeError), and missing
   # `inputs` degrades to {} → the calculator's own validations produce a 422.
-  def calculator_params(klass) = params.permit(inputs: klass.attribute_names).fetch(:inputs, {})
+  #
+  # A LIST input (an attribute the calculator declares via ::array_attribute, e.g.
+  # Average Return's `returns`, posted as `inputs[returns][]`) must be permitted as an
+  # ARRAY — strong params drops an array value for a scalar-permitted key — so it is
+  # permitted as `{ name => [] }`. Every other attribute is a scalar. This stays
+  # registration-free: the permit shape is derived from the calculator's own
+  # declarations; nothing shared is edited to add a list calculator.
+  def calculator_params(klass)
+    array_names = klass.array_attribute_names
+    scalar_names = klass.attribute_names - array_names
+    permitted = scalar_names + [ array_names.index_with { [] } ]
+    params.permit(inputs: permitted).fetch(:inputs, {})
+  end
 
   # The one JSON envelope, identical for every calculator — the backend↔frontend seam (§4).
   def envelope_ok(klass, calc)      = { ok: true,  calculator: klass.slug, inputs: calc.attributes, result: calc.result }
