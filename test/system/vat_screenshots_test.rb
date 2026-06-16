@@ -102,6 +102,22 @@ class VatScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("96-vat-large-result")
   end
 
+  test "segmented mode pills are equal height with vertically-centered text when labels wrap" do
+    # VAT is the structural twin of Sales Tax — same segmented control (.direction-pill), same
+    # operator-reported wrap-misalignment risk. Narrow the window so the multi-word labels wrap,
+    # then assert every pill is equal height with vertically-centered text (default state and with
+    # "VAT rate" selected, the one-line-among-wrapping case).
+    page.driver.browser.manage.window.resize_to(420, 900)
+    visit "/calculators/vat"
+    assert_selector ".direction-pill", minimum: 3
+    assert_pills_equal_height_and_centered(".direction-pill")
+    screenshot_full_page("98-vat-pills-wrap-default")
+
+    choose "VAT rate", allow_label_click: true
+    assert_pills_equal_height_and_centered(".direction-pill")
+    screenshot_full_page("99-vat-pills-wrap-rate-selected")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/vat"
     # Submit with no numbers → server 422 → error fragment in #result.

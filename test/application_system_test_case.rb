@@ -76,6 +76,47 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
+  # Assert that EVERY pill matching `css` (a segmented-control half, `.direction-pill`) is
+  # EQUAL HEIGHT and renders its text VERTICALLY CENTERED — even when one label wraps to two
+  # lines and a sibling stays one line (the reported Sales Tax / VAT misalignment, DESIGN.md §4
+  # "Mode picker"). A markup/text assertion can't see a top-pinned one-line label, so we measure
+  # laid-out geometry of each pill and its inner text:
+  #   • equal height — every pill's box height matches the tallest within a 1px slack (the flex
+  #     track's default `align-items: stretch` makes them share the wrap-determined height);
+  #   • vertically centered — for each pill, the space ABOVE its text (text.top − box.top) and
+  #     BELOW its text (box.bottom − text.bottom) are within ~2px of each other, so a one-line
+  #     label sits centered in the stretched height rather than pinned to the top by padding.
+  # The text rect is measured with a DOM Range over the label's contents (its real laid-out
+  # text box), not the padded element box.
+  def assert_pills_equal_height_and_centered(css)
+    measured = page.evaluate_script(<<~JS)
+      Array.from(document.querySelectorAll(#{css.to_json})).map(function (el) {
+        var box = el.getBoundingClientRect();
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var text = range.getBoundingClientRect();
+        return {
+          height: box.height,
+          above:  text.top - box.top,
+          below:  box.bottom - text.bottom,
+          text:   el.textContent.trim()
+        };
+      })
+    JS
+    assert_operator measured.length, :>=, 2,
+      "expected at least two pills matching #{css.inspect} to compare heights"
+
+    tallest = measured.map { |m| m["height"] }.max
+    measured.each do |m|
+      assert_in_delta tallest, m["height"], 1.0,
+        "expected pill #{m["text"].inspect} to be equal height (#{m["height"]}px) " \
+        "to the tallest pill (#{tallest}px) — segmented halves must stretch to share height"
+      assert_in_delta m["above"], m["below"], 2.0,
+        "expected pill #{m["text"].inspect} text to be vertically centered " \
+        "(space above #{m["above"]}px vs below #{m["below"]}px) — it is top-pinned, not centered"
+    end
+  end
+
   # Sign in through the real login form (drives the browser, exercising the full stack).
   #
   # By default this BLOCKS until login is observably complete — it asserts the "Sign out"
