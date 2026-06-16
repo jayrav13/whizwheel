@@ -81,11 +81,17 @@ half-up._
 | auto_price | term_months | annual_rate | down_payment | trade_in | sales_tax_rate | fees | sales_tax | amount_financed | monthly_payment | total_paid | total_interest |
 |------------|-------------|-------------|--------------|----------|----------------|------|-----------|-----------------|-----------------|------------|----------------|
 | 30000      | 60          | 5           | 4000         | 6000     | 7              | 800  | 1680.00   | 22480.00        | 424.23          | 25453.48   | 2973.48        |
-| 25000      | 48          | 6           | 3000         | 0        | 8              | 500  | 2000.00   | 24500.00        | 575.38          | 27618.24*  | 3118.24*       |
+| 25000      | 48          | 6           | 3000         | 0        | 8              | 500  | 2000.00   | 24500.00        | 575.38          | 27618.41*  | 3118.41*       |
 | 20000      | 36          | 0           | 2000         | 0        | 0              | 0    | 0.00      | 18000.00        | 500.00          | 18000.00   | 0.00           |
 
 _*Row 2's `total_paid` / `total_interest` follow the same schedule-reconciled recurrence (final-row
-reconciliation); the authoritative worked anchor is row 1, where the full schedule was reconciled._
+reconciliation): `amount_financed 24500.00`, `r = 0.06/12 = 0.005`, `n = 48` → raw payment 575.3832… →
+**575.38**; summing the 48 schedule rows (with the final row absorbing accumulated rounding to clear the
+balance to `0.00`) gives `total_interest = Σ interest = **3118.41**` and `total_paid = amount_financed +
+total_interest = **27618.41**`. These are **schedule-reconciled** figures — **not** `monthly_payment × n`
+(575.38 × 48 = 27618.24, which would wrongly imply 3118.24 of interest); the cent of difference is the
+final-row reconciliation, exactly as the worked row-1 anchor below derives. The authoritative worked anchor
+is row 1, where the full schedule was reconciled._
 
 _Worked anchor (row 1, `auto_price 30000, term 60, rate 5%, down 4000, trade-in 6000, tax 7%, fees 800`):
 sales_tax = (30000 − 6000) × 7/100 = 24000 × 0.07 = **1680.00**; amount_financed = 30000 − 4000 − 6000 +
