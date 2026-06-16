@@ -12,10 +12,11 @@ require "application_system_test_case"
 # alice (the admin from the roles fixture).
 class AdminStatsScreenshotsTest < ApplicationSystemTestCase
   test "the admin dashboard renders the stats, the painted trend chart, and the discarded badge" do
+    # sign_in_as blocks until the post-login redirect lands (the signed-in nav paints, so
+    # the session cookie is set) — the #229 barrier. Visiting before that raced the in-flight
+    # login POST and 404'd the admin gate; the helper's wait removes the race. The Admin nav
+    # link is asserted below as content (it renders only for a signed-in admin).
     sign_in_as("alice", "password")
-    # Wait for the post-login redirect to land (the session cookie is set) before
-    # navigating — visiting too early races the in-flight login POST and 404s the
-    # admin gate. The Admin nav link only renders for a signed-in admin.
     assert_link "Admin"
     visit "/admin/stats"
 
@@ -53,11 +54,9 @@ class AdminStatsScreenshotsTest < ApplicationSystemTestCase
   end
 
   test "the volume stat grid renders large counts without clipping" do
+    # sign_in_as blocks until login lands (#229 barrier — the signed-in nav paints before we
+    # navigate), so visiting the admin gate no longer races the in-flight login redirect.
     sign_in_as("alice", "password")
-    # Wait for the post-login redirect to land (the session cookie is set) before
-    # navigating — visiting too early races the in-flight login POST and 404s the
-    # admin gate. The Admin nav link only renders for a signed-in admin.
-    assert_link "Admin"
     visit "/admin/stats"
     # The volume grid uses the shared wide stat-grid; assert no value is clipped at the
     # card edge (DESIGN.md §4: stats must NEVER clip). The fixture counts are small, but

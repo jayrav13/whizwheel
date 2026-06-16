@@ -27,7 +27,7 @@ class UiScreenshotsTest < ApplicationSystemTestCase
   end
 
   test "failed login alert" do
-    sign_in_as("alice", "wrong")
+    sign_in_as("alice", "wrong", expect_success: false)
     assert_selector "[role=alert]", text: "Invalid username or password."
     screenshot_full_page("03-login-failed")
   end
