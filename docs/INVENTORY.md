@@ -76,8 +76,8 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Annuity Calculator |  | Financial | 4 | multi-input, iterative-solve, tabular-output |  | [annuity-calculator](https://www.calculator.net/annuity-calculator.html) |  |
 | Annuity Payout Calculator |  | Financial | 4 | multi-input, tabular-output |  | [annuity-payout-calculator](https://www.calculator.net/annuity-payout-calculator.html) |  |
 | Auto Lease Calculator |  | Financial | 3 | multi-input |  | [auto-lease-calculator](https://www.calculator.net/auto-lease-calculator.html) |  |
-| Auto Loan Calculator |  | Financial | 3 | multi-input |  | [auto-loan-calculator](https://www.calculator.net/auto-loan-calculator.html) |  |
-| Average Return Calculator |  | Financial | 3 | multi-input, statistical |  | [average-return-calculator](https://www.calculator.net/average-return-calculator.html) |  |
+| Auto Loan Calculator | auto_loan | Financial | 3 | multi-input, tabular-output | An amortized auto loan — fold trade-in, down payment, sales tax and fees into the financed amount and see the monthly payment, total interest, and full repayment schedule. | [auto-loan-calculator](https://www.calculator.net/auto-loan-calculator.html) |  |
+| Average Return Calculator | average_return | Financial | 3 | multi-input, statistical | Average a series of period returns — get both the simple arithmetic average and the compounded geometric average (the true annualized rate). | [average-return-calculator](https://www.calculator.net/average-return-calculator.html) |  |
 | Boat Loan Calculator |  | Financial | 3 | multi-input |  | [boat-loan-calculator](https://www.calculator.net/boat-loan-calculator.html) |  |
 | Bond Calculator |  | Financial | 4 | multi-input, iterative-solve |  | [bond-calculator](https://www.calculator.net/bond-calculator.html) |  |
 | Budget Calculator |  | Financial | 3 | multi-input, charts |  | [budget-calculator](https://www.calculator.net/budget-calculator.html) |  |
@@ -93,7 +93,7 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Debt Payoff Calculator |  | Financial | 4 | multi-input, tabular-output |  | [debt-payoff-calculator](https://www.calculator.net/debt-payoff-calculator.html) |  |
 | Debt-to-Income Ratio Calculator |  | Financial | 2 | multi-input |  | [debt-ratio-calculator](https://www.calculator.net/debt-ratio-calculator.html) |  |
 | Depreciation Calculator |  | Financial | 4 | multi-input, multi-mode, tabular-output |  | [depreciation-calculator](https://www.calculator.net/depreciation-calculator.html) |  |
-| Discount Calculator |  | Financial | 2 | multi-input |  | [discount-calculator](https://www.calculator.net/discount-calculator.html) |  |
+| Discount Calculator | discount | Financial | 2 | multi-input, multi-mode | Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved. | [discount-calculator](https://www.calculator.net/discount-calculator.html) |  |
 | Down Payment Calculator |  | Financial | 3 | multi-input |  | [down-payment-calculator](https://www.calculator.net/down-payment-calculator.html) |  |
 | Estate Tax Calculator |  | Financial | 3 | multi-input |  | [estate-tax-calculator](https://www.calculator.net/estate-tax-calculator.html) |  |
 | FHA Loan Calculator |  | Financial | 4 | multi-input, tabular-output |  | [fha-loan-calculator](https://www.calculator.net/fha-loan-calculator.html) |  |
@@ -101,10 +101,10 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Future Value Calculator |  | Financial | 3 | multi-input |  | [future-value-calculator](https://www.calculator.net/future-value-calculator.html) |  |
 | HELOC Calculator |  | Financial | 3 | multi-input |  | [heloc-calculator](https://www.calculator.net/heloc-calculator.html) |  |
 | Home Equity Loan Calculator |  | Financial | 3 | multi-input, tabular-output |  | [home-equity-loan-calculator](https://www.calculator.net/home-equity-loan-calculator.html) |  |
-| House Affordability Calculator |  | Financial | 4 | multi-input |  | [house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html) |  |
+| House Affordability Calculator | house_affordability | Financial | 4 | multi-input | How much house can you afford — from your income, debts, down payment, and DTI limits, get the maximum monthly payment, loan amount, and home price. | [house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html) |  |
 | IRA Calculator |  | Financial | 4 | multi-input, tabular-output, charts |  | [ira-calculator](https://www.calculator.net/ira-calculator.html) |  |
 | IRR Calculator |  | Financial | 4 | multi-input, iterative-solve |  | [irr-calculator](https://www.calculator.net/irr-calculator.html) |  |
-| Income Tax Calculator |  | Financial | 5 | multi-input, multi-mode, tabular-output |  | [tax-calculator](https://www.calculator.net/tax-calculator.html) |  |
+| Income Tax Calculator | income_tax | Financial | 5 | multi-input, tabular-output | US federal income tax on your taxable income — progressive 2024 single-filer brackets, with the per-bracket breakdown plus your effective and marginal rates. | [tax-calculator](https://www.calculator.net/tax-calculator.html) |  |
 | Inflation Calculator |  | Financial | 3 | multi-input, charts |  | [inflation-calculator](https://www.calculator.net/inflation-calculator.html) |  |
 | Interest Calculator |  | Financial | 4 | multi-input, tabular-output, charts |  | [interest-calculator](https://www.calculator.net/interest-calculator.html) |  |
 | Interest Rate Calculator |  | Financial | 3 | multi-input, iterative-solve |  | [interest-rate-calculator](https://www.calculator.net/interest-rate-calculator.html) |  |
@@ -117,10 +117,10 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Payback Period Calculator |  | Financial | 3 | multi-input |  | [payback-period-calculator](https://www.calculator.net/payback-period-calculator.html) |  |
 | Payment Calculator |  | Financial | 4 | multi-input, multi-mode, tabular-output |  | [payment-calculator](https://www.calculator.net/payment-calculator.html) |  |
 | Pension Calculator |  | Financial | 4 | multi-input, multi-mode |  | [pension-calculator](https://www.calculator.net/pension-calculator.html) |  |
-| Personal Loan Calculator |  | Financial | 3 | multi-input, tabular-output |  | [personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html) |  |
+| Personal Loan Calculator | personal_loan | Financial | 3 | multi-input, tabular-output | An amortized personal loan — enter the loan amount, rate, and term to see the monthly payment, total interest, total cost, and full repayment schedule. | [personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html) |  |
 | Present Value Calculator |  | Financial | 3 | multi-input |  | [present-value-calculator](https://www.calculator.net/present-value-calculator.html) |  |
 | RMD Calculator |  | Financial | 3 | multi-input, tabular-output |  | [rmd-calculator](https://www.calculator.net/rmd-calculator.html) |  |
-| ROI Calculator |  | Financial | 2 | multi-input |  | [roi-calculator](https://www.calculator.net/roi-calculator.html) |  |
+| ROI Calculator | roi | Financial | 2 | multi-input | Return on investment — enter the amount invested and the amount returned (with an optional holding period) to get the total gain, ROI %, and annualized ROI. | [roi-calculator](https://www.calculator.net/roi-calculator.html) |  |
 | Real Estate Calculator |  | Financial | 4 | multi-input, multi-mode |  | [real-estate-calculator](https://www.calculator.net/real-estate-calculator.html) |  |
 | Refinance Calculator |  | Financial | 4 | multi-input, tabular-output |  | [refinance-calculator](https://www.calculator.net/refinance-calculator.html) |  |
 | Rent Calculator |  | Financial | 2 | multi-input |  | [rent-calculator](https://www.calculator.net/rent-calculator.html) |  |
@@ -130,13 +130,13 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Retirement Calculator |  | Financial | 5 | multi-input, multi-mode, iterative-solve, charts |  | [retirement-calculator](https://www.calculator.net/retirement-calculator.html) |  |
 | Roth IRA Calculator |  | Financial | 4 | multi-input, tabular-output, charts |  | [roth-ira-calculator](https://www.calculator.net/roth-ira-calculator.html) |  |
 | Salary Calculator |  | Financial | 3 | multi-input, multi-mode |  | [salary-calculator](https://www.calculator.net/salary-calculator.html) |  |
-| Sales Tax Calculator |  | Financial | 2 | multi-input |  | [sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html) |  |
+| Sales Tax Calculator | sales_tax | Financial | 2 | multi-input, multi-mode | Solve a sales-tax problem from any two of the three figures — before-tax price, tax rate, or after-tax price — and get the tax amount and the missing value. | [sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html) |  |
 | Savings Calculator |  | Financial | 4 | multi-input, tabular-output, charts |  | [savings-calculator](https://www.calculator.net/savings-calculator.html) |  |
 | Social Security Calculator |  | Financial | 4 | multi-input, multi-mode |  | [social-security-calculator](https://www.calculator.net/social-security-calculator.html) |  |
 | Student Loan Calculator |  | Financial | 4 | multi-input, tabular-output |  | [student-loan-calculator](https://www.calculator.net/student-loan-calculator.html) |  |
 | Take-Home-Paycheck Calculator |  | Financial | 4 | multi-input, multi-mode |  | [take-home-pay-calculator](https://www.calculator.net/take-home-pay-calculator.html) |  |
 | VA Mortgage Calculator |  | Financial | 4 | multi-input, tabular-output |  | [va-mortgage-calculator](https://www.calculator.net/va-mortgage-calculator.html) |  |
-| VAT Calculator |  | Financial | 2 | multi-input |  | [vat-calculator](https://www.calculator.net/vat-calculator.html) |  |
+| VAT Calculator | vat | Financial | 2 | multi-input, multi-mode | Solve a value-added-tax problem from any two of the three figures — net price, VAT rate, or gross price — and get the VAT amount and the missing value. | [vat-calculator](https://www.calculator.net/vat-calculator.html) |  |
 | Army Body Fat Calculator |  | Fitness & Health | 3 | multi-input, multi-mode, health |  | [army-body-fat-calculator](https://www.calculator.net/army-body-fat-calculator.html) |  |
 | BAC Calculator |  | Fitness & Health | 3 | multi-input, health |  | [bac-calculator](https://www.calculator.net/bac-calculator.html) |  |
 | BMR Calculator |  | Fitness & Health | 3 | multi-input, multi-mode, health |  | [bmr-calculator](https://www.calculator.net/bmr-calculator.html) |  |
@@ -183,7 +183,7 @@ thermodynamic, chemistry formulas), `health` (anthropometric/medical formulas).
 | Percent Error Calculator |  | Math | 2 | text-output |  | [percent-error-calculator](https://www.calculator.net/percent-error-calculator.html) |  |
 | Permutation and Combination Calculator |  | Math | 3 | statistical, text-output |  | [permutation-and-combination-calculator](https://www.calculator.net/permutation-and-combination-calculator.html) |  |
 | Probability Calculator |  | Math | 4 | multi-mode, statistical |  | [probability-calculator](https://www.calculator.net/probability-calculator.html) |  |
-| Pythagorean Theorem Calculator |  | Math | 2 | geometry |  | [pythagorean-theorem-calculator](https://www.calculator.net/pythagorean-theorem-calculator.html) |  |
+| Pythagorean Theorem Calculator | pythagorean_theorem | Math | 2 | geometry, multi-mode | Solve a right triangle's third side with the Pythagorean theorem — give two sides and get the missing one, plus a labeled figure. | [pythagorean-theorem-calculator](https://www.calculator.net/pythagorean-theorem-calculator.html) |  |
 | Quadratic Formula Calculator |  | Math | 3 | text-output |  | [quadratic-formula-calculator](https://www.calculator.net/quadratic-formula-calculator.html) |  |
 | Random Number Generator |  | Math | 2 | randomness, multi-mode |  | [random-number-generator](https://www.calculator.net/random-number-generator.html) |  |
 | Ratio Calculator |  | Math | 2 | multi-mode |  | [ratio-calculator](https://www.calculator.net/ratio-calculator.html) |  |
