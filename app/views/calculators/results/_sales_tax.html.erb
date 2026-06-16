@@ -1,0 +1,92 @@
+<%# Sales Tax result (spec issue #252, DESIGN.md §4) — composes BLEND components:
+      • Hero-result — the figure the chosen mode SOLVED FOR (the unknown answer to the question
+                      asked): the after-tax price, before-tax price, or tax rate. 5px coral left
+                      rule, big tabular-nums, with a one-line detail naming the tax amount.
+      • Stat grid   — all four figures (before-tax price, tax amount, after-tax price, tax rate)
+                      from the shared `.stat-grid` / `.stat-card` component (issue #143), on the
+                      `--wide` track: the worst-case money runs high-magnitude (7-figure money
+                      like $1,000,000.00) which the default 9.5rem track would wrap mid-number in
+                      the narrow result panel. The tax amount reads in accent (the focal computed
+                      figure, DESIGN.md §1).
+      • Data table  — the bill-style breakdown (before-tax price + tax = after-tax price), thin
+                      rule borders, right-aligned tabular-nums, a hard ink total row.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope's values
+    (before_tax_price / after_tax_price / rate / tax_amount). `calc:` is a valid
+    Calculators::SalesTax — the empty + error states are handled one level up in _result.html.erb.
+    Structural twin of VAT (#255) — keep the result layout parallel. %>
+<% r = calc.result %>
+<% hero = sales_tax_hero(calc) %>
+<div class="space-y-6">
+  <%# ── Hero: the solved-for figure (DESIGN.md §4 "Hero-result") ─────────────────
+      The headline answer is the figure the mode solved for. 5px coral left rule + big
+      tabular-nums; the detail line states the tax amount on the price. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= hero[:eyebrow] %></p>
+        <p class="mt-2 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+          <%= hero[:value] %>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          At a <span class="font-semibold text-ink"><%= sales_tax_rate_display(r[:rate]) %>%</span> rate,
+          the tax is
+          <span class="font-semibold text-accent">$<%= money_display(r[:tax_amount]) %></span>
+          on a <span class="font-semibold text-ink">$<%= money_display(r[:before_tax_price]) %></span>
+          before-tax price.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: the four figures (DESIGN.md §4 "Stat grid", #143) ─────────────
+      The shared responsive stat grid on the `--wide` track (13rem min) — the worst-case money
+      values run high-magnitude (7-figure), which the default 9.5rem track would wrap mid-number
+      in the narrow (~489px) panel; the `.stat-card` never-clip net (overflow-wrap on the value
+      `<dd>`) catches any larger worst case. This grid sits directly on the page background (a
+      top-level block, not nested in a surface card), so the cards use `.stat-card--surface` to
+      stand off the cream. Tax amount reads in accent (the focal computed figure, DESIGN.md §1). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Before-tax price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:before_tax_price]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Tax amount</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-accent">$<%= money_display(r[:tax_amount]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">After-tax price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:after_tax_price]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Tax rate</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= sales_tax_rate_display(r[:rate]) %>%</dd>
+    </div>
+  </dl>
+
+  <%# ── Breakdown (DESIGN.md §4 "Data table") ────────────────────────────────────
+      before-tax price + tax = after-tax price. Thin rule borders, right-aligned tabular-nums, a
+      hard ink total row. The tax line reads in accent (the amount added). %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="p-7">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Breakdown</p>
+      <table class="mt-4 w-full text-[15px]">
+        <tbody>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">Before-tax price</th>
+            <td class="py-2 text-right tabular-nums text-ink">$<%= money_display(r[:before_tax_price]) %></td>
+          </tr>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">Sales tax (<%= sales_tax_rate_display(r[:rate]) %>%)</th>
+            <td class="py-2 text-right tabular-nums text-accent">+&nbsp;$<%= money_display(r[:tax_amount]) %></td>
+          </tr>
+          <tr>
+            <th scope="row" class="border-t-2 border-ink py-2 text-left font-bold text-ink">After-tax price</th>
+            <td class="border-t-2 border-ink py-2 text-right font-bold tabular-nums text-ink">$<%= money_display(r[:after_tax_price]) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
