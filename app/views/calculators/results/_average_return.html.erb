@@ -1,0 +1,58 @@
+<%# Average Return result (spec issue #257, DESIGN.md §4 Hero-result + Stat grid). A surface
+    card with a 5px coral left rule holds the two averages — the GEOMETRIC average leads
+    (the financially meaningful "true" compounded return) lifted to accent green, with the
+    ARITHMETIC average (the simple mean) beside it. Both render in the shared `.stat-grid`
+    component (DESIGN.md §4) — NOT a hand-rolled grid. Magnitudes are small percentages, so
+    the default 9.5rem track (not `--wide`) per the spec.
+
+    Below the averages, a quiet line echoes the period count and the SUBMITTED returns list as
+    raw data — the returns are verbatim quantitative values quoted back to the user, so they
+    render in a monospace `<code>` (DESIGN.md §2 "Raw / echoed data → monospace"), never plain
+    prose. The presented averages above stay grotesk tabular-nums (presented answer), the
+    echoed returns are `<code>` (raw data quoted back) — the §2 distinction.
+
+    Both averages may be NEGATIVE (a net loss); the helper preserves the sign and pads to a
+    fixed 4 decimal places (the spec's display rule). `calc:` is a valid
+    Calculators::AverageReturn; the result keys are count / arithmetic_average /
+    geometric_average (ARCHITECTURE.md §4). %>
+<% count = calc.result[:count] %>
+<div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+  <div class="flex gap-5 p-7">
+    <%# The 5px coral left rule (DESIGN.md §4 Hero-result). %>
+    <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Average return</p>
+
+      <%# The two averages in the shared stat grid (DESIGN.md §4 "Stat grid"). The geometric
+          average is the headline — emphasised in accent green (a derived/"true" figure,
+          DESIGN.md §1) — the arithmetic in ink beside it. Each value is fixed-4dp, signed,
+          tabular-nums; a `%` suffix is appended. Per the spec these are small percentages, so
+          the default 9.5rem track holds them on one line. The `.stat-card` never-clip net
+          (overflow-wrap on the value `<dd>`) is the floor beneath even a long −100.0000%. %>
+      <dl class="mt-3 stat-grid">
+        <% average_return_stats.each do |stat| %>
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label"><%= stat[:label] %></dt>
+            <dd class="mt-1.5 text-3xl font-extrabold tracking-[-0.03em] tabular-nums <%= stat[:emphasis] ? "text-accent" : "text-ink" %>">
+              <%= average_return_display(calc.result[stat[:key]]) %><span class="text-xl font-bold text-faint">%</span>
+            </dd>
+            <p class="mt-1 text-[11px] leading-snug text-faint"><%= stat[:caption] %></p>
+          </div>
+        <% end %>
+      </dl>
+
+      <%# Echo the inputs — count + the raw submitted returns list. The returns are raw echoed
+          quantitative data, so they go in a monospace `<code>` (DESIGN.md §2). Under a thin
+          rule (DESIGN.md §4 Data table rules) as a quiet footnote to the headline figures. %>
+      <div class="mt-6 border-t border-rule pt-4">
+        <dt class="text-xs font-bold text-label">
+          Averaged over <span class="tabular-nums"><%= count %></span>
+          <%= count == 1 ? "period" : "periods" %>
+        </dt>
+        <dd class="mt-1.5">
+          <code class="break-words font-mono text-[13px] leading-relaxed text-muted">[<%= average_return_input_echo(calc) %>]</code>
+        </dd>
+      </div>
+    </div>
+  </div>
+</div>

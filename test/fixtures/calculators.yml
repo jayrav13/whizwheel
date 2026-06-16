@@ -78,6 +78,15 @@ amortization:
   description: The monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest breakdown, and the full schedule.
   source: "[amortization-calculator](https://www.calculator.net/amortization-calculator.html)"
 
+average_return:
+  slug: average_return
+  name: Average Return Calculator
+  category: Financial
+  complexity: 3
+  tags: multi-input, statistical
+  description: Average a series of period returns — get both the simple arithmetic average and the compounded geometric average (the true annualized rate).
+  source: "[average-return-calculator](https://www.calculator.net/average-return-calculator.html)"
+
 loan:
   slug: loan
   name: Loan Calculator

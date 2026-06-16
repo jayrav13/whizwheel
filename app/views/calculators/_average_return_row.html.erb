@@ -1,0 +1,39 @@
+<%# One period-return row in the Average Return list (spec issue #257). Shared between the
+    server-rendered starter rows and the Stimulus <template> clone source, so a JS-cloned row
+    is byte-identical to a server-rendered one (no duplicated row HTML — DESIGN.md §5).
+
+    Each row is one `inputs[returns][]` field — the array attribute the backend permits
+    (ARCHITECTURE.md §3.2). A bare-array name (no index) means the browser collects every
+    row's value into the `returns` array in DOM order. The field carries no id (multiple rows
+    share the name; ids would collide), so its label is the leading "Period n" text wired via
+    aria-label on the input.
+
+    Layout (DESIGN.md §3, Affix tier): the "Period n" label, the input + `%` affix, and the
+    remove button sit on one row (gap-3). The remove button starts `hidden` and the Stimulus
+    controller un-hides it for every row except the last (you can't submit an empty list, so
+    the last row never offers remove — DESIGN.md §6, state by more than disabled styling).
+
+    `value:` is the field's value (blank for a fresh/empty row, or the submitted figure after
+    a 422 so the user keeps what they typed). %>
+<div data-return-list-target="row" class="flex items-center gap-3">
+  <span data-return-list-target="label"
+        class="w-16 shrink-0 text-xs font-bold text-label">Period</span>
+
+  <div class="relative flex-1">
+    <%= text_field_tag "inputs[returns][]", value,
+          inputmode: "decimal",
+          "aria-label": "Period return (percent)",
+          class: "field-input pr-9" %>
+    <%# `%` affix (DESIGN.md §4 Input) — a quiet trailing unit cue. %>
+    <span aria-hidden="true"
+          class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm font-semibold text-faint">%</span>
+  </div>
+
+  <%# Remove this period — a quiet icon button. Hidden by default (no-JS baseline); the
+      Stimulus controller un-hides it for every row except the last. %>
+  <button type="button" hidden data-return-list-target="removeButton" data-action="return-list#remove"
+          aria-label="Remove this period"
+          class="shrink-0 cursor-pointer rounded-[11px] border border-border-input bg-surface px-3 py-2.5 text-sm font-semibold text-faint transition-colors hover:border-primary/50 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+    <span aria-hidden="true">×</span>
+  </button>
+</div>
