@@ -159,6 +159,14 @@ discount:
   description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
   source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
 
+sales_tax:
+  slug: sales_tax
+  name: Sales Tax Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input, multi-mode
+  description: Solve a sales-tax problem from any two of the three figures — before-tax price, tax rate, or after-tax price — and get the tax amount and the missing value.
+  source: "[sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html)"
 auto_loan:
   slug: auto_loan
   name: Auto Loan Calculator
