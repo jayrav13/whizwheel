@@ -691,6 +691,88 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes calculator_error_messages(c), "Returns can't be blank"
   end
 
+  # ── ROI (issue #258) ────────────────────────────────────────────────────
+
+  def roi(attrs)
+    c = Calculators::Roi.new(attrs)
+    c.valid? # memoize the result so the display helpers have an envelope to read
+    c
+  end
+
+  # roi_money — an envelope money string ("20000.00", "-2000.00") delimited for display, the
+  # sign kept outside the leading "$" ("-$2,000.00"); the frontend only delimits, never rounds.
+  test "roi_money delimits a positive money string with a leading dollar sign" do
+    assert_equal "$20,000.00", roi_money("20000.00")
+  end
+
+  test "roi_money keeps the sign outside the dollar sign for a loss" do
+    assert_equal "-$2,000.00", roi_money("-2000.00")
+  end
+
+  test "roi_money handles a sub-thousand value without a delimiter" do
+    assert_equal "$500.00", roi_money("500.00")
+  end
+
+  # roi_percent — an envelope percentage string ("40.0000", "-20.0000") delimited for display,
+  # the sign preserved; the frontend only delimits the whole part.
+  test "roi_percent delimits a large percentage and preserves four decimals" do
+    assert_equal "1,234.5678", roi_percent("1234.5678")
+  end
+
+  test "roi_percent preserves the sign of a negative percentage" do
+    assert_equal "-20.0000", roi_percent("-20.0000")
+  end
+
+  # roi_gain? — reads the SIGN of the envelope's total_gain (the only negative marker).
+  test "roi_gain? is true for a positive total gain" do
+    assert roi_gain?(roi(amount_invested: "50000", amount_returned: "70000"))
+  end
+
+  test "roi_gain? is false for a negative total gain (a loss)" do
+    assert_not roi_gain?(roi(amount_invested: "10000", amount_returned: "8000"))
+  end
+
+  # roi_break_even? — exactly zero gain.
+  test "roi_break_even? is true when the gain is exactly zero" do
+    assert roi_break_even?(roi(amount_invested: "1000", amount_returned: "1000"))
+  end
+
+  test "roi_break_even? is false for a non-zero gain" do
+    assert_not roi_break_even?(roi(amount_invested: "50000", amount_returned: "70000"))
+  end
+
+  # roi_tone — the colour + word the hero spreads, by sign (DESIGN.md §1/§6, never colour alone).
+  test "roi_tone lifts a gain to accent green tagged Gain" do
+    tone = roi_tone(roi(amount_invested: "50000", amount_returned: "70000"))
+    assert_equal "text-accent", tone[:value]
+    assert_equal "Gain", tone[:word]
+  end
+
+  test "roi_tone tints a loss coral tagged Loss" do
+    tone = roi_tone(roi(amount_invested: "10000", amount_returned: "8000"))
+    assert_equal "text-primary", tone[:value]
+    assert_equal "Loss", tone[:word]
+  end
+
+  test "roi_tone reads break-even as neutral ink tagged Break-even" do
+    tone = roi_tone(roi(amount_invested: "1000", amount_returned: "1000"))
+    assert_equal "text-ink", tone[:value]
+    assert_equal "Break-even", tone[:word]
+  end
+
+  # field_labels_for / calculator_error_messages — the ROI label map (DESIGN.md §4).
+  test "field_labels_for maps the ROI inputs to their visible labels" do
+    labels = field_labels_for(roi(amount_invested: "1", amount_returned: "1"))
+    assert_equal "Amount invested", labels["amount_invested"]
+    assert_equal "Investment period", labels["investment_years"]
+  end
+
+  test "a zero ROI investment is phrased against the Amount invested label" do
+    c = Calculators::Roi.new(amount_invested: "0", amount_returned: "100")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Amount invested must be greater than 0"
+  end
+
   # ── calculator_display_name (issue #214 coming-soon fallback) ──────────────────────
 
   test "calculator_display_name prefers the registry row's curated name" do
