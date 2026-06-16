@@ -72,6 +72,10 @@ class RightTriangleScreenshotsTest < ApplicationSystemTestCase
       assert_text "1,200,000"  # perimeter
     end
     assert_no_value_clip("#result dl.stat-grid .stat-card dd span")
+    # The SVG figure's leg-`a` label ("a = 300,000") must stay INSIDE the figure — anchored
+    # `start` just right of the vertical leg, it grows into the triangle interior, never off
+    # the left margin (the QA #272 clip propagated from Pythagorean to this figure).
+    assert_svg_labels_within_bounds("#result figure svg[role=img]", "text")
     screenshot_full_page("44-right-triangle-large-values")
   end
 
