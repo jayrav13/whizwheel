@@ -622,6 +622,75 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes calculator_error_messages(c), "People must be greater than or equal to 1"
   end
 
+  # ── Average Return (issue #257) ─────────────────────────────────────────
+
+  def average_return(attrs)
+    Calculators::AverageReturn.new(attrs)
+  end
+
+  # average_return_display — a FIXED 4dp, signed, thousands-delimited percentage (the
+  # spec's display rule; the backend already rounded to 4dp, this pads/formats).
+  test "average_return_display pads a whole average to four decimals" do
+    assert_equal "10.0000", average_return_display(BigDecimal("10"))
+  end
+
+  test "average_return_display renders a plain zero to four decimals" do
+    assert_equal "0.0000", average_return_display(BigDecimal("0"))
+  end
+
+  test "average_return_display preserves the sign of a negative average" do
+    assert_equal "-0.5013", average_return_display(BigDecimal("-0.5013"))
+  end
+
+  test "average_return_display renders the total-loss −100 average signed" do
+    assert_equal "-100.0000", average_return_display(BigDecimal("-100"))
+  end
+
+  test "average_return_display delimits thousands and rounds half-up to 4dp" do
+    # A pathological large average exercises the delimiter; half-up rounds the 5th place.
+    assert_equal "1,234.5679", average_return_display(BigDecimal("1234.56785"))
+  end
+
+  # average_return_rows — the form's rows: starter rows on a pristine GET, the SUBMITTED
+  # (blank-dropped, never below one) returns after a 422 so the user keeps what they typed.
+  test "average_return_rows yields the starter rows when there is no calc" do
+    rows = average_return_rows(nil)
+    assert_equal Calculators::AverageReturnHelper::STARTER_ROW_COUNT, rows.size
+    assert rows.all?(&:empty?)
+  end
+
+  test "average_return_rows re-renders the submitted returns, blanks dropped" do
+    assert_equal %w[10 20 -5], average_return_rows(average_return(returns: [ "10", " 20 ", "", "-5" ]))
+  end
+
+  test "average_return_rows falls back to starter rows when the submission was all blank" do
+    rows = average_return_rows(average_return(returns: [ "", "  " ]))
+    assert_equal Calculators::AverageReturnHelper::STARTER_ROW_COUNT, rows.size
+  end
+
+  # average_return_input_echo — the raw, comma-joined returns echoed into the <code> block.
+  test "average_return_input_echo joins the submitted returns, blanks dropped and trimmed" do
+    assert_equal "10, 20, -5", average_return_input_echo(average_return(returns: [ "10", " 20 ", "", "-5" ]))
+  end
+
+  # average_return_stats — the two averages, geometric first (the emphasised true figure).
+  test "average_return_stats lists geometric then arithmetic, geometric emphasised" do
+    assert_equal %i[geometric_average arithmetic_average], average_return_stats.map { |s| s[:key] }
+    assert average_return_stats.first[:emphasis]
+    assert_not average_return_stats.last[:emphasis]
+  end
+
+  # field_labels_for / calculator_error_messages — the bespoke `returns` label map.
+  test "field_labels_for maps the returns input to its visible label" do
+    assert_equal "Returns", field_labels_for(average_return({}))["returns"]
+  end
+
+  test "a blank Average Return list is phrased against the Returns label" do
+    c = average_return(returns: [ "" ])
+    c.valid?
+    assert_includes calculator_error_messages(c), "Returns can't be blank"
+  end
+
   # ── calculator_display_name (issue #214 coming-soon fallback) ──────────────────────
 
   test "calculator_display_name prefers the registry row's curated name" do
