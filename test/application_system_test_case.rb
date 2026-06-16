@@ -77,10 +77,25 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # Sign in through the real login form (drives the browser, exercising the full stack).
-  def sign_in_as(username, password)
+  #
+  # By default this BLOCKS until login is observably complete — it asserts the "Sign out"
+  # button (the universal signed-in chrome, rendered for any signed-in user by the layout
+  # nav) is present, using Capybara's auto-waiting. That barrier is the fix for issue #229:
+  # under full-parallel `bin/rails test:system`, returning right after the click raced the
+  # in-flight login POST/redirect, so a follow-up assertion (e.g. `assert_link "Admin"`,
+  # then `visit "/admin/stats"`) could run before the session cookie landed and 404 the
+  # admin gate. Waiting on the signed-in nav here gives every login-dependent system test a
+  # reliable "logged in and landed" barrier, instead of re-implementing the wait per test.
+  #
+  # Pass `expect_success: false` for the failed-login flow (wrong password), where no
+  # redirect happens and "Sign out" never appears — the caller asserts the alert instead.
+  def sign_in_as(username, password, expect_success: true)
     visit new_session_path
     fill_in "Username", with: username
     fill_in "Password", with: password
     click_button "Sign in"
+    # The login redirect to root_path has landed once the signed-in nav paints. Capybara
+    # waits up to its default timeout for this selector — the deterministic post-login barrier.
+    assert_selector "nav", text: "Sign out" if expect_success
   end
 end
