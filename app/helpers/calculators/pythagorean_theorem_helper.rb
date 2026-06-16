@@ -108,9 +108,12 @@ module Calculators
       {
         width: width, height: height,
         right: right, bottom: bottom, top: top,
-        # Edge midpoints, for the side labels (nudged outward off the stroke). mid_a sits
-        # just left of the vertical leg, kept inside the padded box so the label isn't clipped.
-        mid_a: [ pad - 6, height - pad - (draw_a / 2) ],           # left of leg a
+        # Edge midpoints, for the side labels (nudged off the stroke). The `a` label sits
+        # just INSIDE the vertical leg (to its right, anchored `start` → grows rightward into
+        # the triangle interior) so a high-magnitude value like "300,000" can never overflow
+        # the figure's left margin (QA #272 cosmetic clip). mid_b sits below leg b; mid_c over
+        # the hypotenuse, both anchored to grow toward open space.
+        mid_a: [ pad + 6, height - pad - (draw_a / 2) ],           # just right of leg a (interior)
         mid_b: [ pad + (draw_b / 2), height - pad + 18 ],          # below leg b
         mid_c: [ pad + (draw_b / 2) + 12, height - pad - (draw_a / 2) - 6 ] # over hypotenuse
       }

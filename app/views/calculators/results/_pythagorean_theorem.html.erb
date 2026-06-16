@@ -61,7 +61,7 @@
           <%# Side labels (symbol + value), each off its edge midpoint. The SOLVED side is
               accent green, the given sides ink — matching the grid's state colours. %>
           <% [
-               [points[:mid_a], "a", result[:a], "end",    :a],  # left of the vertical leg → grow left
+               [points[:mid_a], "a", result[:a], "start",  :a],  # just right of the vertical leg → grow into the interior
                [points[:mid_b], "b", result[:b], "middle", :b],  # below the horizontal leg
                [points[:mid_c], "c", result[:c], "start",  :c]   # over the hypotenuse → grow right
              ].each do |(lx, ly), sym, val, anchor, key| %>
