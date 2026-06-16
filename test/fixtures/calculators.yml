@@ -159,6 +159,14 @@ discount:
   description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
   source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
 
+personal_loan:
+  slug: personal_loan
+  name: Personal Loan Calculator
+  category: Financial
+  complexity: 3
+  tags: multi-input, tabular-output
+  description: An amortized personal loan — enter the loan amount, rate, and term to see the monthly payment, total interest, total cost, and full repayment schedule.
+  source: "[personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html)"
 house_affordability:
   slug: house_affordability
   name: House Affordability Calculator
