@@ -36,6 +36,11 @@ class IncomeTaxScreenshotsTest < ApplicationSystemTestCase
       # The per-bracket breakdown table — the worked-anchor 22% bracket.
       assert_text "12,072.50"
     end
+    # The bracket RANGE cell (e.g. "$103,350 – $197,300") must render single-line — it must
+    # not wrap mid-range across two lines (the iteration-0007 harvest fix, DESIGN.md §4 "Data
+    # table": numeric/range cells nowrap inside `.data-table`). Measure the laid-out range
+    # `<code>` cells: a wrapped one would be ~2 line-heights tall.
+    assert_no_mid_value_wrap("#result table.data-table tbody td code.tabular-nums")
     screenshot_full_page("income-tax-result")
   end
 

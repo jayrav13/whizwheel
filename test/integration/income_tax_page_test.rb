@@ -98,6 +98,10 @@ class IncomeTaxPageTest < ActionDispatch::IntegrationTest
     within = "section#result"
     # One row per bracket reached (5 for 250,000) + the header row + the total row.
     assert_select "#{within} table tbody tr", count: 5
+    # The breakdown table is tagged `.data-table` (the shared single-line/nowrap component,
+    # iteration-0007 harvest, DESIGN.md §4 "Data table") and sits in a `.table-scroll`
+    # container so it scrolls rather than clips on a narrow panel.
+    assert_select "#{within} div.table-scroll table.data-table", count: 1
     # The bracket range is raw echoed data → monospace <code> (DESIGN.md §2).
     assert_select "#{within} table tbody tr td code.font-mono"
     # Worked anchor: the 22% bracket taxes 54,875.00 → 12,072.50.

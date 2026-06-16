@@ -25,7 +25,8 @@
 
         <%# Bill breakdown — a small data table (DESIGN.md §4 "Data table"): thin rule
             borders, right-aligned tabular-nums money, a hard total row (top border ink). %>
-        <table class="mt-6 w-full text-[15px]">
+        <div class="table-scroll">
+        <table class="data-table mt-6 w-full text-[15px]">
           <tbody>
             <tr class="border-b border-rule">
               <th scope="row" class="py-2 text-left font-medium text-muted">Bill</th>
@@ -41,6 +42,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
