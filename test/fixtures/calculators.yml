@@ -159,6 +159,15 @@ discount:
   description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
   source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
 
+house_affordability:
+  slug: house_affordability
+  name: House Affordability Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input
+  description: How much house can you afford — from your income, debts, down payment, and DTI limits, get the maximum monthly payment, loan amount, and home price.
+  source: "[house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html)"
+
 retired_thing:
   slug: retired_thing
   name: Retired Calculator
