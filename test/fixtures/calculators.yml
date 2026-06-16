@@ -159,6 +159,15 @@ discount:
   description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
   source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
 
+roi:
+  slug: roi
+  name: ROI Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input
+  description: Return on investment — enter the amount invested and the amount returned (with an optional holding period) to get the total gain, ROI %, and annualized ROI.
+  source: "[roi-calculator](https://www.calculator.net/roi-calculator.html)"
+
 retired_thing:
   slug: retired_thing
   name: Retired Calculator
