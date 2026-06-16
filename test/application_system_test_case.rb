@@ -117,6 +117,40 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
+  # Assert that EVERY SVG `<text>` label matching `text_css`, inside the `<svg>` matching
+  # `svg_css`, renders FULLY WITHIN its SVG's horizontal bounds — i.e. no figure label spills
+  # off the left or right edge of the diagram. This is the SVG-figure analogue of
+  # assert_no_value_clip: a stat-card clip shows as scrollWidth > clientWidth, but an SVG label
+  # overflowing the viewBox is painted *outside* the figure box (or clipped by overflow:hidden),
+  # which a markup/text assertion can't see. The canonical regression is a high-magnitude leg-`a`
+  # label (e.g. "a = 300,000") anchored `end` just LEFT of the vertical leg, growing off the
+  # figure's left margin (QA #272, propagated from Pythagorean to Right Triangle): the fix anchors
+  # it `start` just inside the leg so it grows into the interior. We measure laid-out geometry —
+  # each label's text rect must sit within its SVG's box (1px slack for sub-pixel rounding).
+  def assert_svg_labels_within_bounds(svg_css, text_css)
+    measured = page.evaluate_script(<<~JS)
+      (function () {
+        var svg = document.querySelector(#{svg_css.to_json});
+        if (!svg) { return null; }
+        var box = svg.getBoundingClientRect();
+        return Array.from(svg.querySelectorAll(#{text_css.to_json})).map(function (el) {
+          var t = el.getBoundingClientRect();
+          return { left: t.left, right: t.right, boxLeft: box.left, boxRight: box.right, text: el.textContent.trim() };
+        });
+      })()
+    JS
+    assert_not_nil measured, "expected an SVG matching #{svg_css.inspect} to measure label bounds"
+    assert_not_empty measured, "expected at least one SVG label matching #{text_css.inspect} to measure"
+    measured.each do |m|
+      assert_operator m["left"], :>=, m["boxLeft"] - 1,
+        "expected SVG label #{m["text"].inspect} to stay within the figure's left edge " \
+        "(label left #{m["left"]}px vs figure left #{m["boxLeft"]}px) — it spills off the left margin"
+      assert_operator m["right"], :<=, m["boxRight"] + 1,
+        "expected SVG label #{m["text"].inspect} to stay within the figure's right edge " \
+        "(label right #{m["right"]}px vs figure right #{m["boxRight"]}px) — it spills off the right margin"
+    end
+  end
+
   # Sign in through the real login form (drives the browser, exercising the full stack).
   #
   # By default this BLOCKS until login is observably complete — it asserts the "Sign out"

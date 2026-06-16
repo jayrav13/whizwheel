@@ -59,6 +59,18 @@ class Calculators::RightTriangleHelperTest < ActionView::TestCase
     assert points.key?(:mid_c)
   end
 
+  test "right_triangle_points anchors the leg-a label inside the vertical leg" do
+    # The leg-`a` label sits just INSIDE the vertical leg (x to the RIGHT of the left pad) so,
+    # rendered text-anchor=start, it grows into the triangle interior — a high-magnitude value
+    # ("a = 300,000") can never overflow the figure's left margin (QA #272 clip, propagated
+    # from Pythagorean). The old left-of-leg position (x = pad - 6) is the regression this pins.
+    points = right_triangle_points({ a: "300000.000000", b: "400000.000000", c: "500000.000000" })
+    mid_a_x, = points[:mid_a]
+    right_x, = points[:right]   # the left/bottom vertex x == pad
+    assert_operator mid_a_x, :>, right_x,
+      "leg-a label must be inside (right of) the vertical leg so it grows into the interior"
+  end
+
   test "right_triangle_points scales the longer leg to fill its box dimension" do
     # A tall-thin 5-12-13: leg b (12) is longer, so it should fill the horizontal box more
     # than a square 1-1 would; either way both drawn legs stay within the box.
