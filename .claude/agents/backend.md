@@ -171,6 +171,40 @@ end
   `"0"`). Guard `#compute` against `nil` for optional numerics, or treat blank as the default.
   *(Base-level hardening tracked in #213.)*
 
+### List / array inputs — `array_attribute`, the registration-free way to declare a list (Average Return)
+
+Some calculators take a **variable-length list** input — e.g. Average Return's `returns`, a series of
+per-period figures posted as `inputs[returns][]`. Strong params **drops an array value for a
+scalar-permitted key**, so a list input must be permitted as an **array**, not a scalar. `Base`
+provides the sanctioned, **registration-free** way to declare this — `array_attribute`:
+
+```ruby
+module Calculators
+  class AverageReturn < Base
+    array_attribute :returns   # records "returns" as a LIST input → controller permits inputs[returns][]
+    attribute :returns         # declared separately, UNTYPED — the submitted Array passes through
+    # ... presence/numericality on the parsed list is the calculator's own job ...
+
+    private
+
+    def compute = { ... }      # you own parsing the Array of raw strings (like the string-list calcs split)
+  end
+end
+```
+
+How it works (read `app/calculators/base.rb` + `app/controllers/calculators_controller.rb` to confirm):
+
+- **`array_attribute :name`** adds the name to a per-class `array_attribute_names` set (inherited-class-safe:
+  a subclass starts from its parent's set, then owns its own copy). It does **NOT** declare or type the
+  attribute — you still `attribute :name` separately, **untyped**, so the posted Array passes straight
+  through and **the calculator owns the parse** (exactly like the string-list calculators own their split).
+- The controller's `calculator_params` reads `klass.array_attribute_names` and permits those keys as
+  **arrays** (`{ name => [] }`) while every other attribute stays a scalar. The permit shape is **derived
+  from the calculator's own declaration** — nothing shared is edited to add a list calculator (rule #3
+  holds; parallel builds stay conflict-free).
+- It is **not** a numeric-guarded type — the per-element coercion/validation of the list is yours to write
+  in the calculator. Use `array_attribute` for *any* list input, not only numeric ones.
+
 ### Numeric input is guarded *before* casting — a `Base` guarantee (#109/#110)
 
 ActiveModel runs a `:decimal`/`:integer` **cast before validation**, and the cast silently
@@ -236,7 +270,7 @@ Calculators are **code, append-only**: never delete a calculator — **deprecate
 - **From your worktree:** commit → push → open the PR with `gh pr create` (body includes
   **`Closes #<issue>`** and the Claude Code footer). **Never merge** and never auto-merge — a
   human merges after CI is green. Report the PR number when you finish; the main thread dispatches
-  `ci-monitor`.
+  the `quality-assurance-agent` gate (which absorbed the old `ci-monitor`'s CI watch — now deprecated).
 
 ## When unsure
 

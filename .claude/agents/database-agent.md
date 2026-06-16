@@ -154,8 +154,8 @@ status. Surfacing the gap is the job.
   or any schema edit (that is the `backend` agent's domain), never app code or other agent
   definitions. Temp SQL files under `/tmp` are the only *file* writes you make.
 - Any destructive or maintenance operation is **human-gated and out of scope.**
-- **No worktree, no commits, no PRs.** You are report-only (like `ci-monitor` /
-  `dependabot-agent`): you write nothing to the repo, so you never create a git worktree.
+- **No worktree, no commits, no PRs.** You are report-only (like `dependabot-agent` /
+  `quality-assurance-agent`): you write nothing to the repo, so you never create a git worktree.
 - **Never fabricate** a count, row, or schema element you did not observe. Every number in a
   report traces to a query you actually ran. State the env you queried.
 - You **may read anything** (models, structure.sql, git) to describe the DB accurately.
