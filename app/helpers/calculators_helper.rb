@@ -44,6 +44,20 @@ module CalculatorsHelper
     end
   end
 
+  # ── Coming-soon fallback (issue #214) ─────────────────────────────────────────────
+
+  # A human display name for a calculator that has no page yet — used by the generic
+  # "coming soon" fallback (calculators/unavailable.html.erb), rendered during the
+  # backend-before-frontend merge window. Prefers the registry row's curated `name`
+  # (resolved by slug), and falls back to a titleized slug when no registry row exists
+  # (e.g. a calculator class on `main` before its INVENTORY row is ingested). Accepts the
+  # `Calculators::X` class the controller looked up (it responds to `.slug`), or a raw slug.
+  def calculator_display_name(calculator_or_slug)
+    slug = calculator_or_slug.respond_to?(:slug) ? calculator_or_slug.slug : calculator_or_slug.to_s
+    registered = Calculator.find_by(slug: slug)
+    registered&.name.presence || slug.titleize
+  end
+
   # ── Convention-based dispatch + label resolution (issue #107) ─────────────────────
 
   # The result partial for a calculator instance, resolved by slug (the no-central-

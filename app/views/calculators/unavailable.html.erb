@@ -1,0 +1,44 @@
+<%#
+  The generic "coming soon" fallback for a calculator that is registry-active (its
+  Calculators::X class is on `main`, so the slug resolves and the catalog knows it) but
+  whose bespoke page has not shipped yet — the backend-before-frontend merge window
+  (issue #214). Without this, CalculatorsController#show's `render "calculators/<slug>"`
+  raised ActionView::MissingTemplate → a user-facing 500. This page degrades that into an
+  intentional, on-brand "we're building it" state.
+
+  STABLE PATH — the backend follow-up (the controller `rescue_from ActionView::MissingTemplate`
+  for the direct-URL case) renders exactly this template: `render "calculators/unavailable"`.
+  Do NOT rename without updating that controller hand-off.
+
+  The controller sets `@calculator` to the looked-up Calculators::X class (it responds to
+  `.slug`); `calculator_display_name` resolves a human name from the registry, falling back
+  to a titleized slug — so this renders even before the INVENTORY row is ingested. It is
+  defensive about `@calculator` being nil (a future caller may render it without one).
+
+  BLEND (DESIGN.md): a surface card with the 5px coral left rule (the Hero-result frame,
+  §4) reframed as a status, a green eyebrow (§2), warm copy, and a coral secondary button
+  back to the catalog. No result UI, no form — there is nothing to compute yet.
+%>
+
+<% name = @calculator ? calculator_display_name(@calculator) : "This calculator" %>
+<% content_for :title, "#{name} — coming soon — whizwheel" %>
+
+<section class="mx-auto max-w-2xl">
+  <%# Hero-result card frame (DESIGN.md §4): surface card, 5px coral left rule. %>
+  <div class="rounded-[18px] border border-border border-l-[5px] border-l-primary bg-surface p-8 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-10">
+    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Coming soon</p>
+    <h1 class="mt-3 text-4xl font-extrabold tracking-[-0.035em] text-ink">
+      <%= name %>
+    </h1>
+    <p class="mt-4 max-w-xl text-[15px] leading-relaxed text-muted">
+      This calculator is being built. The math is ready behind the scenes — we're putting
+      the finishing touches on its page, and it will be available here shortly. Every answer
+      is computed server-side and verifiable to the decimal.
+    </p>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      <%= link_to "Browse all calculators", root_path,
+            class: "inline-block rounded-[13px] bg-primary px-5 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    </div>
+  </div>
+</section>

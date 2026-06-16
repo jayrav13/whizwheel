@@ -621,4 +621,21 @@ class CalculatorsHelperTest < ActionView::TestCase
     c.valid?
     assert_includes calculator_error_messages(c), "People must be greater than or equal to 1"
   end
+
+  # ── calculator_display_name (issue #214 coming-soon fallback) ──────────────────────
+
+  test "calculator_display_name prefers the registry row's curated name" do
+    # The Tip fixture row carries the human name; resolve it from the looked-up class.
+    assert_equal "Tip Calculator", calculator_display_name(Calculators::Base.lookup("tip"))
+  end
+
+  test "calculator_display_name accepts a raw slug" do
+    assert_equal "Percentage Calculator", calculator_display_name("percentage")
+  end
+
+  test "calculator_display_name titleizes the slug when no registry row exists" do
+    # A class on `main` before its INVENTORY row is ingested — no Calculator row to resolve.
+    assert_nil Calculator.find_by(slug: "pending_thing")
+    assert_equal "Pending Thing", calculator_display_name("pending_thing")
+  end
 end
