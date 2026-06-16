@@ -145,6 +145,13 @@ truth for the *what* — build to it.** Two process points are specifically your
   goes in a real `<code>` element with Tailwind `font-mono`, not plain prose. Scoped to *raw echoed
   values* only: **formatted presentation figures** (stat-card values, hero results, data-table cells)
   stay `tabular-nums` grotesk. Presented answer → grotesk; raw data quoted back → `<code>`.
+- **Money always renders with 2 decimals (cents) — `DESIGN.md §2`.** Every **displayed monetary /
+  dollar figure** shows **exactly two decimal places** (`$1,000.00`, `$463.16`, `$0.00`) — **never**
+  `$1,000`, `$1,000.5`, or `$1000` — everywhere a money value appears: hero results, stat cards,
+  breakdown tables, schedule tables. A whole-dollar value still gets `.00`; thousands separators
+  stay. This is **money-only**: rates, percentages, counts, and other non-money numbers keep their
+  own existing precision — do **not** force them to 2dp. `DESIGN.md §2` is the source of truth; build
+  to it.
 - **Test the worst case.** When you build or use a stat grid, add a render/state test that
   exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip or
   wrap a large one — assertions a markup/text test cannot make. For a `--wide` grid assert the
