@@ -98,6 +98,22 @@ class DateEnvelopeTest < ActionDispatch::IntegrationTest
     assert_includes body.dig("errors", "months"), "must be a whole number"
   end
 
+  test "blank offset fields submitted directly to the route return 200, not 500 — #213" do
+    # The authentic reproduction of #213: a direct API client (bypassing any client-
+    # side value="0") posts the offset keys as empty strings. They must coerce to the
+    # default 0 — a 200 with the start date unchanged — never a 500 from `nil * 12`.
+    assert_difference "Calculation.count", 1 do
+      post "/calculators/date",
+        params: { inputs: { mode: "add_subtract", start_date: "2024-06-14", operation: "add",
+                            years: "", months: "", weeks: "", days: "" } }, as: :json
+    end
+
+    assert_response :success
+    body = JSON.parse(@response.body)
+    assert body["ok"]
+    assert_equal "2024-06-14", body.dig("result", "result_date")
+  end
+
   test "a successful difference calculation records a Calculation row" do
     assert_difference "Calculation.count", 1 do
       post "/calculators/date",

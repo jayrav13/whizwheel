@@ -167,6 +167,28 @@ class Calculators::MortgageTest < ActiveSupport::TestCase
     assert_equal result[:pi_monthly], result[:total_monthly], "total_monthly == pi_monthly when no add-ons"
   end
 
+  # --- add-ons submitted BLANK → coerced to their default 0 (no 500) — #213 ---
+  test "blank tax, insurance and HOA fields are coerced to the default 0" do
+    # An API client submits the optional cost keys as empty strings. Without Base's
+    # blank-defaults-the-default coercion they cast to nil and #compute's division /
+    # rounding (annual_property_tax / 12, monthly_hoa.round) would 500. Each must
+    # default to 0 and the result match the omitted case.
+    calc = Calculators::Mortgage.new(
+      home_price: 250000, down_payment: 50000, annual_rate: 6, loan_term_years: 15,
+      annual_property_tax: "", annual_home_insurance: "  ", monthly_hoa: ""
+    )
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal 0, calc.annual_property_tax
+    assert_equal 0, calc.annual_home_insurance
+    assert_equal 0, calc.monthly_hoa
+    result = nil
+    assert_nothing_raised { result = calc.result }
+    assert_equal "0.00", result[:tax_monthly]
+    assert_equal "0.00", result[:insurance_monthly]
+    assert_equal "0.00", result[:hoa_monthly]
+    assert_equal result[:pi_monthly], result[:total_monthly]
+  end
+
   # --- zero-rate edge: P&I = loan_amount / n, no interest anywhere ---
   test "zero rate yields loan_amount/n P&I and zero interest in every row" do
     result = Calculators::Mortgage.new(

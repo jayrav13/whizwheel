@@ -41,6 +41,20 @@ module Calculators
   # that is already Numeric/BigDecimal is valid by construction. A blank or omitted
   # raw value is left alone, so each calculator's own presence rules still own
   # "missing input".
+  #
+  # ## Blank input on a defaulted numeric attribute (issue #213)
+  #
+  # ActiveModel applies an attribute's `default:` only when the key is ABSENT. An HTML
+  # form (or any API client) that submits the key with an empty string casts it to nil
+  # — NOT to the default — so a `default: 0` optional field defeats its own default and
+  # `#compute` receives nil (e.g. `nil * 12` → NoMethodError → 500). Base closes this
+  # once for every calculator: for any numeric attribute declared WITH a `default:`, a
+  # blank raw value (nil or whitespace-only string) is coerced to the declared default
+  # at the cast seam (#_write_attribute) — before validation and before #compute — so a
+  # blank optional numeric field behaves identically to an omitted one (the declared
+  # default), and #compute never sees nil for a defaulted numeric. A numeric attribute
+  # WITHOUT a default is untouched: its blank stays nil, for the calculator's own
+  # presence rules to report.
   class Base
     include ActiveModel::Model
     include ActiveModel::Attributes
@@ -62,9 +76,24 @@ module Calculators
     # get lossless casting + the coercion guard, with no per-calculator change. Any
     # macro options (e.g. `default:`) pass straight through to ActiveModel; our
     # numeric types take no type-specific options today, so the type is built bare.
+    #
+    # When a numeric attribute is declared WITH a `default:`, record that default so
+    # blank input on it is coerced to the default rather than reaching #compute as nil
+    # (#213). The map is per-class and inherited-class-safe: a subclass starts from its
+    # parent's defaults so a calculator inherits any base-declared defaulted numerics.
     def self.attribute(name, type = nil, **options)
-      type = NUMERIC_TYPES.fetch(type).new if NUMERIC_TYPES.key?(type)
+      if NUMERIC_TYPES.key?(type)
+        numeric_defaults[name.to_s] = options[:default] if options.key?(:default)
+        type = NUMERIC_TYPES.fetch(type).new
+      end
       super(name, type, **options)
+    end
+
+    # Per-class map of `attribute name (String) => declared default` for numeric
+    # attributes given a `default:`. Seeded from the superclass so a subclass inherits
+    # its parent's defaulted numerics, then owns its own copy (no cross-class leakage).
+    def self.numeric_defaults
+      @numeric_defaults ||= superclass.respond_to?(:numeric_defaults) ? superclass.numeric_defaults.dup : {}
     end
 
     # Calculators::Percentage => "percentage"
@@ -101,11 +130,21 @@ module Calculators
     # here (before ActiveModel casts it and loses "abc" → 0 / "2.5" → 2) makes the
     # guard assignment-path-independent: it fires however the attribute was set, and a
     # corrective re-assignment overwrites the captured raw (no stale false 422).
+    #
+    # For a numeric attribute declared WITH a `default:` (#213), a blank value (nil or
+    # whitespace-only string) is replaced by the declared default before both the raw
+    # capture and the cast — so a blank optional field behaves like an omitted one and
+    # #compute never sees nil for a defaulted numeric. The substituted value is a valid
+    # number, so the captured raw passes the coercion guard.
     def _write_attribute(name, value)
       key = name.to_s
+      value = self.class.numeric_defaults[key] if numeric_default?(key) && blank_raw?(value)
       @raw_numeric_inputs[key] = value if self.class.numeric_attribute_names.include?(key)
-      super
+      super(name, value)
     end
+
+    # True when +key+ names a numeric attribute that was declared with a `default:`.
+    def numeric_default?(key) = self.class.numeric_defaults.key?(key)
 
     # The coercion guard (#109, #110). For each numeric attribute given a non-blank
     # raw value, ask its type whether the raw value is valid — a finite number for
