@@ -1,0 +1,126 @@
+<% content_for :title, "Income Tax Calculator — whizwheel" %>
+
+<%#
+  Income Tax calculator page (spec issue #260, DESIGN.md BLEND) — iteration-0007's one new
+  primitive: PROGRESSIVE BRACKET math. Apply the pinned 2025 US federal single-filer
+  ordinary-income brackets to a taxable income and show the total tax (the hero), the
+  effective + marginal rates (stat grid), and the per-bracket breakdown (the tabular-output
+  data table).
+
+  Two ways to enter income — the spec's either/or resolution (taxable_income entered
+  directly, OR gross_income − deductions). The frontend turns that into a MODE PICKER: a
+  native radio <fieldset>/<legend> posting inputs[mode], showing only the active mode's
+  field(s). The backend ignores `mode` (not a declared attribute) and resolves from whichever
+  income source it receives — so the controller DISABLES the inactive mode's inputs, sending
+  exactly one income source. The form posts over Turbo and re-renders #result in place; it
+  works WITHOUT JS — both field blocks are present, the server resolves the income from
+  whatever is filled, and re-renders the result fragment.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): TWO modes (N=2) but both labels read as
+  multi-word ("Taxable income" / "Gross income & deductions"). The §4 rule reserves the
+  segmented control for N ≤ 3 with SHORT labels; a multi-word label routes to the SELECTABLE
+  OPTION LIST (.mode-option), with a helper line per row.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to one
+  column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • major blocks within the card (mode → fields → submit) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Income Tax Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Your <span class="font-semibold text-ink">2025 US federal income tax</span> on your
+    taxable income, using the progressive single-filer brackets — with the
+    <span class="font-semibold text-ink">per-bracket breakdown</span> and your effective and
+    marginal rates. Enter your taxable income directly, or your gross income and deductions.
+    Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/income_tax", scope: :inputs, method: :post,
+          data: { controller: "income-tax" } do |f| %>
+
+      <%# Mode picker — selectable option list (.mode-option), per DESIGN.md §4: two multi-word
+          modes → one bordered, divided container of full-width rows, NOT a segmented control
+          (reserved for N ≤ 3 short labels). The accessible control is a native radio
+          <fieldset>/<legend> posting inputs[mode]; each radio is visually-hidden (peer sr-only)
+          and paired to a styled <label for>. The active row is painted with no JS via
+          peer:checked, and the .mode-option::before radio glyph is the non-colour active cue
+          (DESIGN.md §6). Each row names HOW income is entered (bold label) + a helper. %>
+      <fieldset>
+        <legend class="text-xs font-bold text-label">How do you want to enter income?</legend>
+        <div class="mt-3 overflow-hidden rounded-[13px] border border-border-input divide-y divide-rule">
+          <% income_tax_modes.each_with_index do |m, i| %>
+            <div>
+              <%= f.radio_button :mode, m[:value],
+                    checked: i.zero?,
+                    class: "peer sr-only",
+                    data: { income_tax_target: "modeInput", action: "income-tax#select" } %>
+              <%= f.label :mode, value: m[:value],
+                    class: "mode-option",
+                    data: { income_tax_target: "modeOption", mode: m[:value] } do %>
+                <span class="text-sm font-semibold text-ink"><%= m[:label] %></span>
+                <span class="text-xs text-muted"><%= m[:helper] %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# Fields. Stacked tier: space-y-5 down the column (DESIGN.md §3). Each field block
+          declares the single mode it serves via data-income-tax-mode; Stimulus shows only the
+          active mode's block(s) and disables the others' inputs so only one income source is
+          posted (the no-JS baseline shows all — the server resolves whatever is filled). Every
+          money input carries a leading $ affix on the Affix tier (gap-2). %>
+      <div class="mt-8 space-y-5">
+        <%# Taxable income — the `taxable` mode only. The directly-entered figure the brackets
+            apply to. %>
+        <div data-income-tax-target="field" data-income-tax-mode="taxable">
+          <%= f.label :taxable_income, "Taxable income", class: "field-label", for: "inputs_taxable_income" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :taxable_income, id: "inputs_taxable_income", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Gross income — the `gross` mode only. Total income before deductions. %>
+        <div data-income-tax-target="field" data-income-tax-mode="gross">
+          <%= f.label :gross_income, "Gross income", class: "field-label", for: "inputs_gross_income" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :gross_income, id: "inputs_gross_income", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Deductions — the `gross` mode only. Subtracted from gross to find taxable income
+            (floored at 0). Optional; defaults to 0 server-side. %>
+        <div data-income-tax-target="field" data-income-tax-mode="gross">
+          <%= f.label :deductions, "Deductions", class: "field-label", for: "inputs_deductions" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :deductions, id: "inputs_deductions", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+          <p class="mt-1.5 text-xs text-muted">Standard or itemized — leave blank for none.</p>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate tax",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>
