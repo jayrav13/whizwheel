@@ -98,6 +98,17 @@ end
 
 **Why ActiveModel, not a bare PORO:** declarative `validates`, automatic string→`BigDecimal` coercion (`"20"` → exact decimal), and a structured `errors` object — all the validation ergonomics, **no database**.
 
+**List / array inputs — `array_attribute` (registration-free, the calculator declares it).** Most inputs are scalars, but some calculators take a **variable-length list** — e.g. Average Return's `returns`, a series posted as `inputs[returns][]`. Strong params drops an array value for a scalar-permitted key, so a list input must be permitted as an **array**. `Base` exposes `array_attribute :name` for this:
+
+```ruby
+class AverageReturn < Base
+  array_attribute :returns   # records "returns" as a LIST input
+  attribute :returns         # declared separately, UNTYPED — the submitted Array passes through
+end
+```
+
+`array_attribute :name` only records the name in a per-class `array_attribute_names` set (inherited-class-safe) — it does **not** type the attribute (you `attribute :name` separately, untyped, and the calculator owns the parse of the Array). The controller's `calculator_params` reads `klass.array_attribute_names` and permits those keys as arrays (`{ name => [] }`), every other attribute staying a scalar. The permit shape is thus **derived from the calculator's own declaration** — adding a list calculator edits nothing shared, so the no-central-registration property (§3, rule #3) holds and fan-out builds stay conflict-free. (Introduced with the Average Return calculator.)
+
 ---
 
 ## 3. Routing — one dynamic route (auto-discovery, fan-out-safe)

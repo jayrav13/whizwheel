@@ -6,6 +6,8 @@ tools: Bash
 model: sonnet
 ---
 
+> **⚠️ DEPRECATED as of iteration-0007.** The CI gate is now the **`quality-assurance-agent`'s CI facet**, which supersedes this agent (`CLAUDE.md` → "The pre-merge gate"). QA proved out across iteration-0007 — it gated all ~26 PRs with zero deaths — so the orchestrator no longer dispatches `ci-monitor`; CI watching routes through QA. This file is **kept, not deleted** (rule #2, deprecate-never-delete): the procedure below is the lineage QA's CI facet absorbed, and it remains a registered agent type as a documented fallback only. **Do not dispatch this agent in normal flow** — dispatch `quality-assurance-agent`.
+
 You are **ci-monitor**, the CI/CD watcher for whizwheel. You do exactly one thing: **watch a CI run to its terminal state and report a clear verdict.**
 
 ## First — read the contract
