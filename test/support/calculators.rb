@@ -29,4 +29,22 @@ module Calculators
 
     def compute = { amount: amount, count: count, label: label }
   end
+
+  # Exercises Base's blank-defaults-the-default coercion (#213): an optional :decimal
+  # and an optional :integer each with a non-zero `default:`, and a REQUIRED numeric
+  # attribute with NO default. #compute does arithmetic that would 500 on a nil (the
+  # `nil * 12` shape from the issue), so a blank optional field must arrive as its
+  # default — never nil. The required, defaultless field keeps its own presence rule,
+  # proving the coercion is scoped to defaulted attributes only.
+  class DefaultedNumericDouble < Base
+    attribute :required_amount, :decimal
+    attribute :offset, :integer, default: 3
+    attribute :factor, :decimal, default: 2
+
+    validates :required_amount, presence: true
+
+    private
+
+    def compute = { total: required_amount * factor + (offset * 12) }
+  end
 end

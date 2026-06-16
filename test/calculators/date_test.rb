@@ -91,6 +91,23 @@ class Calculators::DateTest < ActiveSupport::TestCase
     assert_equal "2024-06-14", calc.result[:result_date]
   end
 
+  test "add_subtract with blank offset fields uses the default 0 (no 500) — #213" do
+    # An API client (or a form without client-side value="0") submits the offset keys
+    # as empty strings. Without Base's blank-defaults-the-default coercion these cast
+    # to nil and `nil * 12` in #compute would 500. Each must default to 0.
+    calc = Calculators::Date.new(
+      mode: "add_subtract", start_date: "2024-06-14", operation: "add",
+      years: "", months: "", weeks: "", days: ""
+    )
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal 0, calc.years
+    assert_equal 0, calc.months
+    assert_equal 0, calc.weeks
+    assert_equal 0, calc.days
+    assert_nothing_raised { calc.result }
+    assert_equal "2024-06-14", calc.result[:result_date]
+  end
+
   test "add_subtract applies years and months together with end-of-month clamping" do
     # 2020-02-29 + 1 year 0 months → 2021-02-28 (clamped); + 1 more day via days field.
     calc = Calculators::Date.new(

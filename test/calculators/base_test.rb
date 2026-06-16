@@ -205,4 +205,67 @@ class Calculators::BaseTest < ActiveSupport::TestCase
     assert_not calc.valid?
     assert_includes calc.errors[:amount], "is not a number"
   end
+
+  # --- a blank string defeats `default:` (#213) ----------------------------------
+  # ActiveModel applies a `default:` only when the key is ABSENT; a submitted empty
+  # string casts to nil instead, so an optional defaulted numeric reaches #compute as
+  # nil and crashes (nil * 12 → 500). Base coerces a blank value on a DEFAULTED numeric
+  # to its declared default at the cast seam, so #compute never sees nil.
+
+  test "an absent defaulted numeric attribute keeps ActiveModel's native default" do
+    # The baseline: when the key is omitted entirely, the default still applies.
+    calc = Calculators::DefaultedNumericDouble.new(required_amount: 5)
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal 3, calc.offset
+    assert_equal BigDecimal("2"), calc.factor
+    assert_equal BigDecimal("46"), calc.result[:total] # 5*2 + 3*12
+  end
+
+  test "a blank string on a defaulted numeric is coerced to the default (no 500)" do
+    # The bug: each blank optional field would cast to nil and crash #compute. Each
+    # blank form (empty string, whitespace, explicit nil) must yield the default.
+    [ "", "   ", nil ].each do |blank|
+      calc = Calculators::DefaultedNumericDouble.new(required_amount: 5, offset: blank, factor: blank)
+      assert calc.valid?, "blank #{blank.inspect} must be valid: #{calc.errors.full_messages}"
+      assert_equal 3, calc.offset, "offset blank #{blank.inspect} should default"
+      assert_equal BigDecimal("2"), calc.factor, "factor blank #{blank.inspect} should default"
+      assert_nothing_raised { calc.result }
+      assert_equal BigDecimal("46"), calc.result[:total]
+    end
+  end
+
+  test "a blank string on a defaulted numeric is coerced through every assignment path" do
+    # The coercion lives at the cast seam, so the per-attribute writer and
+    # assign_attributes get it too — not just .new.
+    calc = Calculators::DefaultedNumericDouble.new(required_amount: 5, offset: 9)
+    assert_equal 9, calc.offset
+
+    calc.offset = ""
+    assert_equal 3, calc.offset, "writer-assigned blank must coerce to default"
+
+    calc.assign_attributes(offset: "   ")
+    assert_equal 3, calc.offset, "assign_attributes blank must coerce to default"
+  end
+
+  test "a non-blank value on a defaulted numeric is used as-is (not the default)" do
+    calc = Calculators::DefaultedNumericDouble.new(required_amount: 5, offset: 10, factor: "4")
+    assert calc.valid?, calc.errors.full_messages.to_sentence
+    assert_equal 10, calc.offset
+    assert_equal BigDecimal("4"), calc.factor
+  end
+
+  test "garbage on a defaulted numeric is still rejected (coercion is blank-only)" do
+    # The coercion replaces only BLANK values; real garbage still hits the guard.
+    calc = Calculators::DefaultedNumericDouble.new(required_amount: 5, offset: "abc")
+    assert_not calc.valid?
+    assert_includes calc.errors[:offset], "is not a number"
+  end
+
+  test "a blank required numeric WITHOUT a default still triggers its presence rule" do
+    # The coercion is scoped to defaulted attributes — a defaultless required numeric's
+    # blank stays nil so its own presence validation owns the missing-input message.
+    calc = Calculators::DefaultedNumericDouble.new(required_amount: "")
+    assert_not calc.valid?
+    assert_includes calc.errors[:required_amount], "can't be blank"
+  end
 end
