@@ -63,4 +63,18 @@ module Calculators
 
     def compute = { total: required_amount * factor + (offset * 12) }
   end
+
+  # Exercises Base's ::array_attribute declaration (the LIST-input controller permit,
+  # used by Average Return's `returns`): an untyped attribute marked as an array
+  # attribute, so it appears in array_attribute_names and is permitted as
+  # `inputs[values][]` rather than a scalar. The calculator owns the parse — here it
+  # just echoes the list size so the contract stays exercisable.
+  class ArrayAttributeDouble < Base
+    attribute :values
+    array_attribute :values
+
+    private
+
+    def compute = { count: Array(values).size }
+  end
 end

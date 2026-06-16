@@ -268,4 +268,30 @@ class Calculators::BaseTest < ActiveSupport::TestCase
     assert_not calc.valid?
     assert_includes calc.errors[:required_amount], "can't be blank"
   end
+
+  # --- array (list) attribute declaration ----------------------------------
+
+  test "Base itself declares no array attributes" do
+    # The top of the hierarchy: superclass (Object) does not respond to
+    # array_attribute_names, so the empty-list fallback is used.
+    assert_equal [], Calculators::Base.array_attribute_names
+  end
+
+  test "a scalar-only calculator declares no array attributes" do
+    # TestDouble declares no list input — its array set is empty (inherited from Base).
+    assert_equal [], Calculators::TestDouble.array_attribute_names
+  end
+
+  test "::array_attribute records a list input the controller permits as an array" do
+    # ArrayAttributeDouble declares a `values` list — it appears in array_attribute_names
+    # so CalculatorsController permits `inputs[values][]` as an array, not a scalar.
+    assert_equal %w[values], Calculators::ArrayAttributeDouble.array_attribute_names
+  end
+
+  test "array attribute declarations do not leak across sibling subclasses" do
+    # A subclass owns its own copy seeded from its parent, so declaring an array
+    # attribute on one calculator never bleeds into a sibling.
+    assert_equal [], Calculators::TestDouble.array_attribute_names
+    assert_equal %w[values], Calculators::ArrayAttributeDouble.array_attribute_names
+  end
 end
