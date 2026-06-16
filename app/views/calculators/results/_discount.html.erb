@@ -1,0 +1,82 @@
+<%# Discount result (spec issue #254, DESIGN.md §4) — it composes BLEND components:
+      • Hero-result — the FINAL (sale) price, the page's headline answer (5px coral left rule,
+                      big tabular-nums), with a one-line detail naming the discount applied.
+      • Stat grid   — the three figures (original price, amount saved, final price) from the
+                      shared `.stat-grid` / `.stat-card` component (issue #143). It uses the
+                      `--wide` track: the worst-case money values run high-magnitude (7-figure
+                      money like $1,000,000.00), which the default 9.5rem track would wrap
+                      mid-number in the narrow result panel. Amount saved reads in accent (the
+                      positive figure, DESIGN.md §1).
+      • Data table  — the bill-style breakdown (original − discount = final), thin rule borders,
+                      right-aligned tabular-nums, a hard ink total row.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope's money
+    strings (original_price / amount_saved / final_price). `calc:` is a valid Calculators::Discount
+    — the empty + error states are handled one level up in _result.html.erb. %>
+<% r = calc.result %>
+<div class="space-y-6">
+  <%# ── Hero: the final (sale) price (DESIGN.md §4 "Hero-result") ────────────────
+      The headline answer is what you actually pay. 5px coral left rule + big tabular-nums. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Final price</p>
+        <p class="mt-2 text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+          $<%= money_display(r[:final_price]) %>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          <%= discount_detail(calc) %> — you save
+          <span class="font-semibold text-accent">$<%= money_display(r[:amount_saved]) %></span>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: the three figures (DESIGN.md §4 "Stat grid", #143) ────────────
+      The shared responsive stat grid on the `--wide` track (13rem min) — the worst-case money
+      values run high-magnitude (7-figure), which the default 9.5rem track would wrap mid-number
+      in the narrow (~489px) panel; the `.stat-card` never-clip net (overflow-wrap on the value
+      `<dd>`, reinforced by break-words) catches any larger worst case. This grid sits directly on
+      the page background (a top-level block, not nested in a surface card), so the cards use
+      `.stat-card--surface` to stand off the cream. Amount saved reads in accent (the positive,
+      useful figure, DESIGN.md §1). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Original price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:original_price]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">You save</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-accent">$<%= money_display(r[:amount_saved]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Final price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:final_price]) %></dd>
+    </div>
+  </dl>
+
+  <%# ── Breakdown (DESIGN.md §4 "Data table") ────────────────────────────────────
+      original − discount = final. Thin rule borders, right-aligned tabular-nums, a hard ink
+      total row. The discount line reads in coral (the cost taken off). %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="p-7">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Breakdown</p>
+      <table class="mt-4 w-full text-[15px]">
+        <tbody>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">Original price</th>
+            <td class="py-2 text-right tabular-nums text-ink">$<%= money_display(r[:original_price]) %></td>
+          </tr>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">Discount</th>
+            <td class="py-2 text-right tabular-nums text-primary">−&nbsp;$<%= money_display(r[:amount_saved]) %></td>
+          </tr>
+          <tr>
+            <th scope="row" class="border-t-2 border-ink py-2 text-left font-bold text-ink">Final price</th>
+            <td class="border-t-2 border-ink py-2 text-right font-bold tabular-nums text-ink">$<%= money_display(r[:final_price]) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
