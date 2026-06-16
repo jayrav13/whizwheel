@@ -1,0 +1,142 @@
+<% content_for :title, "Auto Loan Calculator — whizwheel" %>
+
+<%#
+  Auto Loan calculator page (spec issue #251, DESIGN.md BLEND) — an amortized fixed-rate
+  auto loan built on the same amortized-payment loan core as Loan/Amortization, extended
+  with the auto-specific adjustments calculator.net folds into the AMOUNT FINANCED: a
+  trade-in (which both reduces the cash price and earns a sales-tax credit), a down
+  payment, sales tax on the price net of trade-in, and fixed fees. It computes the amount
+  financed, the level monthly payment, the totals and the full repayment schedule.
+
+  Single-mode (it always solves for the payment), so there is NO mode picker (DESIGN.md §4
+  "Mode picker" applies only when inputs vary by mode). The auto-specific figures (trade-in,
+  down payment, sales tax, fees) are ordinary OPTIONAL form fields, not a mode. Three fields
+  are required (vehicle price, loan term, rate); the four adjustments default to 0.
+
+  The form posts over Turbo and re-renders the #result region in place, and works WITHOUT JS
+  (the server validates and re-renders the result fragment). Stimulus is pure polish: the
+  auto_loan controller draws the hover-capable charts and paginates the schedule.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • the optional-adjustments group is fenced off with a labelled rule (Section tier)
+    • fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Auto Loan Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    An amortized fixed-rate auto loan. We fold your
+    <span class="font-semibold text-ink">trade-in</span>,
+    <span class="font-semibold text-ink">down payment</span>,
+    <span class="font-semibold text-ink">sales tax</span> and
+    <span class="font-semibold text-ink">fees</span> into the amount financed, then show the
+    monthly payment, total interest, and the full repayment schedule. Every figure is
+    computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/auto_loan", scope: :inputs, method: :post,
+          data: { controller: "auto-loan" } do |f| %>
+
+      <%# Required fields — the loan core. Stacked tier: space-y-5 down the column
+          (DESIGN.md §3). Each numeric field carries its $/%/unit affix on the Affix tier
+          (gap-2). Price + rate are decimals; the term is a whole number of months. %>
+      <div class="space-y-5">
+        <%# Vehicle price — $ affix leading the field. %>
+        <div>
+          <%= f.label :auto_price, "Vehicle price", class: "field-label", for: "inputs_auto_price" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :auto_price, id: "inputs_auto_price", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Loan term — whole months; a "months" unit trails the field. %>
+        <div>
+          <%= f.label :term_months, "Loan term", class: "field-label", for: "inputs_term_months" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :term_months, id: "inputs_term_months", step: "1", inputmode: "numeric",
+                  min: "1", placeholder: "0", class: "field-input" %>
+            <span class="w-14 text-sm font-bold text-label" aria-hidden="true">months</span>
+          </div>
+        </div>
+
+        <%# Annual interest rate — % affix trailing the field. %>
+        <div>
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Optional adjustments — the auto-specific figures that roll into the amount
+          financed. Fenced off from the required core with a labelled rule on the Section
+          tier (DESIGN.md §3); each is optional and defaults to 0, so the loan computes from
+          the three required fields alone. %>
+      <div class="mt-8 border-t border-rule pt-6">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Optional adjustments</p>
+        <div class="mt-4 space-y-5">
+          <%# Down payment — $ affix leading the field. %>
+          <div>
+            <%= f.label :down_payment, "Down payment", class: "field-label", for: "inputs_down_payment" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :down_payment, id: "inputs_down_payment", step: "any", inputmode: "decimal",
+                    min: "0", placeholder: "0", class: "field-input" %>
+            </div>
+          </div>
+
+          <%# Trade-in value — $ affix leading the field. %>
+          <div>
+            <%= f.label :trade_in, "Trade-in value", class: "field-label", for: "inputs_trade_in" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :trade_in, id: "inputs_trade_in", step: "any", inputmode: "decimal",
+                    min: "0", placeholder: "0", class: "field-input" %>
+            </div>
+          </div>
+
+          <%# Sales tax — % affix trailing the field (levied on the price net of trade-in). %>
+          <div>
+            <%= f.label :sales_tax_rate, "Sales tax", class: "field-label", for: "inputs_sales_tax_rate" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <%= f.number_field :sales_tax_rate, id: "inputs_sales_tax_rate", step: "any", inputmode: "decimal",
+                    min: "0", placeholder: "0", class: "field-input" %>
+              <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+            </div>
+          </div>
+
+          <%# Title, registration & other fees — $ affix leading the field. %>
+          <div>
+            <%= f.label :fees, "Title, registration & other fees", class: "field-label", for: "inputs_fees" %>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+              <%= f.number_field :fees, id: "inputs_fees", step: "any", inputmode: "decimal",
+                    min: "0", placeholder: "0", class: "field-input" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

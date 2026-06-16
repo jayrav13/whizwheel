@@ -707,4 +707,140 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_nil Calculator.find_by(slug: "pending_thing")
     assert_equal "Pending Thing", calculator_display_name("pending_thing")
   end
+
+  # ── Auto Loan helpers (issue #251) ──────────────────────────────────────
+  # The display-derivation helpers the Auto Loan result partial reads: the amount-financed
+  # breakdown rows, the donut series + gradient + chart payload, and the balance-curve
+  # points. Built from a real Calculators::AutoLoan so `result`/`attributes` are authentic
+  # (the FE does no math — these only arrange the backend's computed figures, ARCHITECTURE.md
+  # §4). The row-1 spec anchor: 30000 / 60mo / 5% / down 4000 / trade 6000 / tax 7% / fees
+  # 800 → sales_tax 1680.00, amount_financed 22480.00, total_interest 2973.48.
+
+  def auto_loan(attrs = {})
+    Calculators::AutoLoan.new({
+      auto_price: "30000", term_months: "60", annual_rate: "5",
+      down_payment: "4000", trade_in: "6000", sales_tax_rate: "7", fees: "800"
+    }.merge(attrs))
+  end
+
+  # auto_loan_breakdown — the +/− itemized roll-up; only non-zero adjustment rows appear.
+  test "auto_loan_breakdown lists every non-zero adjustment with its sign" do
+    rows = auto_loan_breakdown(auto_loan)
+    labels = rows.map { |r| r[:label] }
+    assert_equal "Vehicle price", rows.first[:label]
+    assert_equal :add, rows.first[:sign]
+    assert_includes labels, "Sales tax"
+    assert_includes labels, "Fees"
+    # Down payment + trade-in are subtractions.
+    down = rows.find { |r| r[:label] == "Down payment" }
+    trade = rows.find { |r| r[:label] == "Trade-in value" }
+    assert_equal :subtract, down[:sign]
+    assert_equal :subtract, trade[:sign]
+    # The sales-tax row carries the COMPUTED tax money string (1680.00), not an input.
+    assert_equal "1680.00", rows.find { |r| r[:label] == "Sales tax" }[:amount]
+  end
+
+  test "auto_loan_breakdown omits every zero adjustment row" do
+    # A bare loan (no down/trade/tax/fees) → only the vehicle-price row; sales tax is 0.00 so
+    # its row drops too (the zero-sales-tax branch of the unless guard).
+    rows = auto_loan_breakdown(auto_loan(down_payment: "0", trade_in: "0", sales_tax_rate: "0", fees: "0"))
+    assert_equal [ "Vehicle price" ], rows.map { |r| r[:label] }
+  end
+
+  test "auto_loan_breakdown treats omitted optional inputs as zero rows" do
+    # Optional inputs default to 0 in the calculator; omitting them entirely (nil attributes)
+    # exercises money_str's blank branch and still drops the rows.
+    rows = auto_loan_breakdown(Calculators::AutoLoan.new(auto_price: "20000", term_months: "36", annual_rate: "0"))
+    assert_equal [ "Vehicle price" ], rows.map { |r| r[:label] }
+  end
+
+  # auto_loan_donut — two slices; the LARGER one is accent green (DESIGN.md §1).
+  test "auto_loan_donut puts the larger slice (financed >= interest) in accent green" do
+    # The anchor: financed 22,480 > interest 2,973.48 → financed is green.
+    slices = auto_loan_donut(auto_loan.result)
+    assert_equal :principal, slices.first[:key]
+    assert_equal "accent",  slices.first[:color]   # financed, larger → green
+    assert_equal "primary", slices.last[:color]    # interest, smaller → coral
+    assert_in_delta 100.0, slices.first[:pct] + slices.last[:pct], 0.0001
+  end
+
+  test "auto_loan_donut puts the larger slice (interest > financed) in accent green" do
+    result = { amount_financed: "1000.00", total_interest: "5000.00", schedule: [] }
+    slices = auto_loan_donut(result)
+    assert_equal "primary", slices.first[:color]   # financed, smaller → coral
+    assert_equal "accent",  slices.last[:color]    # interest, larger → green
+  end
+
+  test "auto_loan_donut treats an equal split as financed-larger (>= boundary)" do
+    result = { amount_financed: "100.00", total_interest: "100.00", schedule: [] }
+    slices = auto_loan_donut(result)
+    assert_equal "accent", slices.first[:color] # financed, on the >= boundary, green
+  end
+
+  # auto_loan_donut_gradient — a conic-gradient from the two TOKEN colours (no hex).
+  test "auto_loan_donut_gradient composes a conic-gradient from token custom properties" do
+    result = { amount_financed: "100.00", total_interest: "100.00", schedule: [] } # 50/50
+    g = auto_loan_donut_gradient(auto_loan_donut(result))
+    assert_match(/conic-gradient\(/, g)
+    assert_includes g, "var(--color-accent)"
+    assert_includes g, "var(--color-primary)"
+    assert_includes g, "50.0%"
+    refute_match(/#/, g) # never an inline hex (DESIGN.md §5 guardrail)
+  end
+
+  # auto_loan_donut_data — the flat object the JS chart controller reads.
+  test "auto_loan_donut_data flattens the slices into the chart controller payload" do
+    data = auto_loan_donut_data(auto_loan_donut(auto_loan.result))
+    assert_equal "22480.00", data[:principal]
+    assert_equal "Amount financed", data[:principalLabel]
+    assert_equal "accent", data[:principalColor]   # financed larger → green
+    assert_equal "2973.48", data[:interest]
+    assert_equal "Total interest", data[:interestLabel]
+    assert_equal "primary", data[:interestColor]   # interest smaller → coral
+  end
+
+  # auto_loan_balance_curve — month 0 = amount financed, then each scheduled balance.
+  test "auto_loan_balance_curve prepends month 0 at the amount financed" do
+    curve = auto_loan_balance_curve(auto_loan.result)
+    assert_equal 0, curve.first[:month]
+    assert_equal "22480.00", curve.first[:balance]
+    # 60-month schedule → 61 curve points (month 0 + 60 scheduled).
+    assert_equal 61, curve.length
+    assert_equal "0.00", curve.last[:balance]
+  end
+
+  # auto_loan_curve_points — map (month, balance) samples into a 0..100 unit box.
+  test "auto_loan_curve_points maps the endpoints to the box corners" do
+    curve = [
+      { month: 0,  balance: "20000.00" },
+      { month: 30, balance: "10000.00" },
+      { month: 60, balance: "0.00" }
+    ]
+    pts = auto_loan_curve_points(curve).split(" ")
+    assert_equal "0.0,0.0", pts.first       # month 0, full balance → top-left
+    assert_equal "100.0,100.0", pts.last     # last month, zero balance → bottom-right
+    assert_equal "50.0,50.0", pts[1]         # midpoint
+  end
+
+  test "auto_loan_curve_points guards a degenerate all-zero curve without dividing by zero" do
+    curve = [ { month: 0, balance: "0.00" } ]
+    assert_equal "0.0,100.0", auto_loan_curve_points(curve)
+  end
+
+  # field_labels_for / calculator_error_messages — Auto Loan's bespoke label map.
+  test "field_labels_for returns the Auto Loan label map for an Auto Loan instance" do
+    labels = field_labels_for(auto_loan)
+    assert_equal "Vehicle price", labels["auto_price"]
+    assert_equal "Trade-in value", labels["trade_in"]
+    assert_equal "Sales tax", labels["sales_tax_rate"]
+  end
+
+  test "Auto Loan errors are phrased against the visible labels, not the raw keys" do
+    c = Calculators::AutoLoan.new(auto_price: "", term_months: "", annual_rate: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Vehicle price can't be blank"
+    assert_includes messages, "Loan term can't be blank"
+    assert_includes messages, "Annual interest rate can't be blank"
+  end
 end
