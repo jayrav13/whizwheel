@@ -13,14 +13,17 @@ require "test_helper"
 # for each. If a calculator gets a page but no home card, CI fails here instead of slipping past.
 class HomeCatalogTest < ActionDispatch::IntegrationTest
   # Every calculator the app serves a GET page for: one entry per page template under
-  # app/views/calculators/. We exclude partials (`_*.html.erb`) and the Turbo Stream
-  # response template (create.turbo_stream.erb) — only top-level page templates name a slug,
-  # and that slug is exactly what #show renders and what a home card must link to.
+  # app/views/calculators/. We exclude partials (`_*.html.erb`), the Turbo Stream response
+  # template (create.turbo_stream.erb), and the generic coming-soon fallback (unavailable.html.erb,
+  # issue #214) — only per-slug page templates name a calculator, and that slug is exactly what
+  # #show renders and what a home card must link to. `unavailable` is a calculator-agnostic
+  # fallback the backend rescue renders, not a calculator page, so it carries no catalog card.
   PAGE_VIEWS = Rails.root.join("app/views/calculators")
+  NON_CALCULATOR_PAGES = %w[unavailable].freeze
   CALCULATOR_PAGE_SLUGS =
     Dir.glob(PAGE_VIEWS.join("*.html.erb"))
       .map { |path| File.basename(path, ".html.erb") }
-      .reject { |slug| slug.start_with?("_") || slug.include?(".") }
+      .reject { |slug| slug.start_with?("_") || slug.include?(".") || NON_CALCULATOR_PAGES.include?(slug) }
       .sort
       .freeze
 
