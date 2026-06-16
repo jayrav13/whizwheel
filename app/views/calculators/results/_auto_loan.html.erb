@@ -1,0 +1,237 @@
+<%# Auto Loan result (spec issue #251, DESIGN.md §4) — an amortized auto loan with the
+    auto-specific amount-financed story. It composes BLEND components:
+      • Hero-result   — the level monthly payment (5px coral left rule, big tabular-nums).
+      • Breakdown     — the auto-specific amount-financed roll-up (vehicle price + sales tax
+                        + fees − down payment − trade-in → amount financed), an itemized +/−
+                        list ending in a hard total row.
+      • Stat grid     — amount financed, total of payments, total interest, number of
+                        payments, from the shared `.stat-grid` / `.stat-card` component
+                        (issue #143). `--wide` track: a fully-loaded auto loan's total of
+                        payments runs high-magnitude (a $90k truck @ 8% would be 6-figure),
+                        which the default 9.5rem track would wrap mid-number.
+      • Charts        — a Chart.js donut (amount financed vs. interest, largest slice green
+                        per DESIGN.md §1, hover tooltips) + a TradingView lightweight-charts
+                        balance-over-time line/area (crosshair + per-point tooltip). Both
+                        keep an always-rendered NO-JS fallback (a text legend / SVG curve)
+                        so the breakdown never gates on JS and never relies on colour alone
+                        (DESIGN.md §4 / §6); the Stimulus controller hides the fallback only
+                        once it has drawn the live chart.
+      • Data table    — the month-by-month schedule (thin rule borders, right-aligned
+                        tabular-nums, a hard ink total row), paginated by Stimulus with a
+                        no-JS full-table baseline.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope —
+    money strings, the chart series (derived display proportions only), and the schedule
+    rows. `calc:` is a valid Calculators::AutoLoan. %>
+<% r = calc.result %>
+<% slices = auto_loan_donut(r) %>
+<% curve = auto_loan_balance_curve(r) %>
+<% schedule = r[:schedule] %>
+
+<div class="space-y-6"
+     data-controller="auto-loan"
+     data-auto-loan-donut-value="<%= auto_loan_donut_data(slices).to_json %>"
+     data-auto-loan-curve-value="<%= curve.to_json %>">
+  <%# ── Hero: the monthly payment ──────────────────────────────────────────── %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Monthly payment</p>
+        <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p class="text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">$<%= money_display(r[:monthly_payment]) %></p>
+          <p class="text-sm font-semibold text-faint">/ month</p>
+        </div>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          <%= pluralize(r[:number_of_payments], "level payment") %> on
+          <span class="font-semibold text-ink">$<%= money_display(r[:amount_financed]) %></span> financed.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Amount-financed breakdown (the auto-specific story) ───────────────────
+      How the vehicle price, sales tax and fees roll up and the down payment + trade-in net
+      out to the amount actually financed — the differentiator of the auto-loan page. An
+      itemized +/− list (only the non-zero rows show), with a hard ink total row for the
+      amount financed (DESIGN.md §4 "Data table" — a hard total row). Right-aligned
+      tabular-nums money. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Amount financed</p>
+    <dl class="mt-4 space-y-2.5 text-sm">
+      <% auto_loan_breakdown(calc).each do |row| %>
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-muted"><%= row[:label] %></dt>
+          <dd class="tabular-nums <%= row[:sign] == :subtract ? "text-primary" : "text-ink" %>">
+            <%= row[:sign] == :subtract ? "−" : "+" %>$<%= money_display(row[:amount]) %>
+          </dd>
+        </div>
+      <% end %>
+    </dl>
+    <div class="mt-4 flex items-baseline justify-between gap-4 border-t-2 border-ink pt-3">
+      <p class="text-sm font-bold text-ink">Amount financed</p>
+      <p class="text-lg font-extrabold tabular-nums text-ink">$<%= money_display(r[:amount_financed]) %></p>
+    </div>
+  </div>
+
+  <%# ── Stat grid: financed + totals (DESIGN.md §4 "Stat grid", issue #143) ────
+      The shared responsive stat grid. `--wide` track (13rem min): a fully-loaded auto
+      loan's total of payments runs high-magnitude (a luxury vehicle financed long is
+      6-figure), which the default 9.5rem track would wrap mid-number; the `.stat-card`
+      never-clip net (overflow-wrap on the value `<dd>`, reinforced by break-words) catches
+      any larger worst case. This grid sits directly on the page background (a top-level
+      block, not nested in the hero card), so the cards use `.stat-card--surface` to stand
+      off the cream. Total interest reads in coral (the cost figure). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Amount financed</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:amount_financed]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Total of payments</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:total_paid]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Total interest</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Number of payments</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= number_with_delimiter(r[:number_of_payments]) %></dd>
+    </div>
+  </dl>
+
+  <%# ── Charts: donut + balance curve (DESIGN.md §4 "Charts") ─────────────────
+      Each chart is a [JS canvas (hidden until drawn)] + [static no-JS fallback (shown)].
+      The Stimulus controller draws the live, hover-capable chart into the canvas and only
+      then hides the fallback. With no JS the fallback stays — the breakdown is reachable
+      without JS and never colour-alone (DESIGN.md §4 / §6). %>
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+    <%# Donut — amount financed vs. total interest. Chart.js draws the hover-tooltip
+        doughnut; the figures repeat as a text legend below (always shown) so the breakdown
+        reads without colour and without JS. %>
+    <div class="rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Where your money goes</p>
+      <div class="mt-4 flex items-center gap-5">
+        <%# Live Chart.js donut canvas — hidden until the controller draws it. The canvas
+            carries explicit pixel dimensions so Chart.js (responsive:false) sizes from the
+            element itself, not from a parent measured before layout reflows. 112px = the
+            size-28 box. %>
+        <div class="relative size-28 shrink-0" data-auto-loan-target="donutCanvas" hidden>
+          <canvas width="112" height="112" class="size-28"></canvas>
+        </div>
+
+        <%# No-JS fallback donut — a CSS conic-gradient composed from the two token colours
+            (no inline hex; DESIGN.md §5 guardrail), largest slice green (DESIGN.md §1). %>
+        <div class="relative size-28 shrink-0 rounded-full" role="img"
+             data-auto-loan-target="donutFallback"
+             aria-label="Amount financed <%= money_display(r[:amount_financed]) %>, total interest <%= money_display(r[:total_interest]) %>"
+             style="background: <%= auto_loan_donut_gradient(slices) %>;">
+          <span class="absolute inset-[22%] rounded-full bg-surface" aria-hidden="true"></span>
+        </div>
+
+        <%# Text legend (always shown) — the breakdown without colour (DESIGN.md §6). %>
+        <dl class="min-w-0 flex-1 space-y-3">
+          <% slices.each do |slice| %>
+            <div>
+              <dt class="flex items-center gap-2 text-xs font-bold text-label">
+                <span class="inline-block size-2.5 shrink-0 rounded-full bg-<%= slice[:color] %>" aria-hidden="true"></span>
+                <%= slice[:label] %>
+              </dt>
+              <dd class="mt-0.5 pl-4.5 text-lg font-extrabold tabular-nums text-ink">$<%= money_display(slice[:amount]) %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+    </div>
+
+    <%# Balance over time — lightweight-charts draws the crosshair+tooltip area/line into
+        the canvas; the no-JS fallback is an SVG area+line from the same backend balances,
+        with the endpoints labelled so the trend reads without colour or JS. %>
+    <div class="rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Balance over time</p>
+
+      <%# Live lightweight-charts canvas — hidden until the controller draws it. %>
+      <div class="mt-4 h-32 w-full" data-auto-loan-target="curveCanvas" hidden></div>
+
+      <%# No-JS fallback — the SVG curve + endpoint labels (DESIGN.md §6: not colour-alone). %>
+      <div data-auto-loan-target="curveFallback">
+        <% points = auto_loan_curve_points(curve) %>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="mt-4 h-28 w-full" role="img"
+             aria-label="Remaining balance falling from $<%= money_display(curve.first[:balance]) %> to $0.00 over the term">
+          <polygon points="0,100 <%= points %> 100,100" fill="var(--color-accent)" fill-opacity="0.12" />
+          <polyline points="<%= points %>" fill="none" stroke="var(--color-accent)" stroke-width="2"
+                    vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="mt-3 flex items-baseline justify-between text-xs font-semibold text-faint">
+          <span class="tabular-nums">$<%= money_display(curve.first[:balance]) %></span>
+          <span class="tabular-nums">$0.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Schedule (DESIGN.md §4 "Data table") ────────────────────────────────
+      The full month-by-month schedule. Long (a 72-month loan is 72 rows), so Stimulus
+      paginates: the first PAGE rows show, the rest are revealed by "Show all". The no-JS
+      baseline keeps every row present and the wrapper scrolls (max-height + overflow), so
+      the table is fully usable without JS. %>
+  <% page = 12 %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex flex-wrap items-baseline justify-between gap-2 px-6 pt-6">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Payment schedule</p>
+      <p class="text-xs text-muted tabular-nums"><%= pluralize(schedule.length, "month") %></p>
+    </div>
+    <%# data-auto-loan-target=scroll: no-JS scroll cap; the controller removes it when it
+        takes over pagination so revealed rows aren't trapped in a scroll box. %>
+    <div class="mt-4 max-h-[28rem] overflow-y-auto" data-auto-loan-target="scroll">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0 z-10 bg-surface">
+          <tr class="border-b border-rule text-left text-[11px] font-bold uppercase tracking-[0.08em] text-faint">
+            <th scope="col" class="px-6 py-2.5 font-bold">Month</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Payment</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Principal</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Interest</th>
+            <th scope="col" class="px-6 py-2.5 text-right font-bold">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% schedule.each_with_index do |row, i| %>
+            <%# Rows past the first page start hidden ONLY when JS is active — the controller
+                adds the cap on connect and toggles it. data-index drives the "Show N more"
+                math. Marked with the row class so the controller can find them. %>
+            <tr class="border-b border-rule/70 text-ink last:border-0 auto-loan-row"
+                data-auto-loan-target="row" data-index="<%= i %>">
+              <td class="px-6 py-2.5 tabular-nums text-muted"><%= row[:month] %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums">$<%= money_display(row[:payment]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums">$<%= money_display(row[:principal]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums text-primary">$<%= money_display(row[:interest]) %></td>
+              <td class="px-6 py-2.5 text-right tabular-nums font-semibold"><%= row[:balance] == "0.00" ? "Paid off" : "$#{money_display(row[:balance])}" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <%# Hard total row — top border in ink (DESIGN.md §4 "Data table"). %>
+          <tr class="border-t-2 border-ink bg-bg/40 font-bold text-ink">
+            <td class="px-6 py-3">Total</td>
+            <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:total_paid]) %></td>
+            <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:amount_financed]) %></td>
+            <td class="px-6 py-3 text-right tabular-nums text-primary">$<%= money_display(r[:total_interest]) %></td>
+            <td class="px-6 py-3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <%# Show-all control — hidden unless JS reveals it AND there's more than one page (the
+        controller only shows it when schedule.length > page). It expands the hidden rows. %>
+    <div class="hidden border-t border-rule px-6 py-4 text-center" data-auto-loan-target="toggle">
+      <button type="button" data-action="auto-loan#showAll"
+              class="cursor-pointer text-sm font-semibold text-primary transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+        Show all <span class="tabular-nums"><%= schedule.length %></span> months
+      </button>
+    </div>
+  </div>
+
+  <%# Page-size hint for the Stimulus controller (the first page count). %>
+  <span class="hidden" data-auto-loan-target="pageSize" data-page="<%= page %>"></span>
+</div>

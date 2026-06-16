@@ -691,6 +691,88 @@ class CalculatorsHelperTest < ActionView::TestCase
     assert_includes calculator_error_messages(c), "Returns can't be blank"
   end
 
+  # ── ROI (issue #258) ────────────────────────────────────────────────────
+
+  def roi(attrs)
+    c = Calculators::Roi.new(attrs)
+    c.valid? # memoize the result so the display helpers have an envelope to read
+    c
+  end
+
+  # roi_money — an envelope money string ("20000.00", "-2000.00") delimited for display, the
+  # sign kept outside the leading "$" ("-$2,000.00"); the frontend only delimits, never rounds.
+  test "roi_money delimits a positive money string with a leading dollar sign" do
+    assert_equal "$20,000.00", roi_money("20000.00")
+  end
+
+  test "roi_money keeps the sign outside the dollar sign for a loss" do
+    assert_equal "-$2,000.00", roi_money("-2000.00")
+  end
+
+  test "roi_money handles a sub-thousand value without a delimiter" do
+    assert_equal "$500.00", roi_money("500.00")
+  end
+
+  # roi_percent — an envelope percentage string ("40.0000", "-20.0000") delimited for display,
+  # the sign preserved; the frontend only delimits the whole part.
+  test "roi_percent delimits a large percentage and preserves four decimals" do
+    assert_equal "1,234.5678", roi_percent("1234.5678")
+  end
+
+  test "roi_percent preserves the sign of a negative percentage" do
+    assert_equal "-20.0000", roi_percent("-20.0000")
+  end
+
+  # roi_gain? — reads the SIGN of the envelope's total_gain (the only negative marker).
+  test "roi_gain? is true for a positive total gain" do
+    assert roi_gain?(roi(amount_invested: "50000", amount_returned: "70000"))
+  end
+
+  test "roi_gain? is false for a negative total gain (a loss)" do
+    assert_not roi_gain?(roi(amount_invested: "10000", amount_returned: "8000"))
+  end
+
+  # roi_break_even? — exactly zero gain.
+  test "roi_break_even? is true when the gain is exactly zero" do
+    assert roi_break_even?(roi(amount_invested: "1000", amount_returned: "1000"))
+  end
+
+  test "roi_break_even? is false for a non-zero gain" do
+    assert_not roi_break_even?(roi(amount_invested: "50000", amount_returned: "70000"))
+  end
+
+  # roi_tone — the colour + word the hero spreads, by sign (DESIGN.md §1/§6, never colour alone).
+  test "roi_tone lifts a gain to accent green tagged Gain" do
+    tone = roi_tone(roi(amount_invested: "50000", amount_returned: "70000"))
+    assert_equal "text-accent", tone[:value]
+    assert_equal "Gain", tone[:word]
+  end
+
+  test "roi_tone tints a loss coral tagged Loss" do
+    tone = roi_tone(roi(amount_invested: "10000", amount_returned: "8000"))
+    assert_equal "text-primary", tone[:value]
+    assert_equal "Loss", tone[:word]
+  end
+
+  test "roi_tone reads break-even as neutral ink tagged Break-even" do
+    tone = roi_tone(roi(amount_invested: "1000", amount_returned: "1000"))
+    assert_equal "text-ink", tone[:value]
+    assert_equal "Break-even", tone[:word]
+  end
+
+  # field_labels_for / calculator_error_messages — the ROI label map (DESIGN.md §4).
+  test "field_labels_for maps the ROI inputs to their visible labels" do
+    labels = field_labels_for(roi(amount_invested: "1", amount_returned: "1"))
+    assert_equal "Amount invested", labels["amount_invested"]
+    assert_equal "Investment period", labels["investment_years"]
+  end
+
+  test "a zero ROI investment is phrased against the Amount invested label" do
+    c = Calculators::Roi.new(amount_invested: "0", amount_returned: "100")
+    c.valid?
+    assert_includes calculator_error_messages(c), "Amount invested must be greater than 0"
+  end
+
   # ── calculator_display_name (issue #214 coming-soon fallback) ──────────────────────
 
   test "calculator_display_name prefers the registry row's curated name" do
@@ -706,5 +788,141 @@ class CalculatorsHelperTest < ActionView::TestCase
     # A class on `main` before its INVENTORY row is ingested — no Calculator row to resolve.
     assert_nil Calculator.find_by(slug: "pending_thing")
     assert_equal "Pending Thing", calculator_display_name("pending_thing")
+  end
+
+  # ── Auto Loan helpers (issue #251) ──────────────────────────────────────
+  # The display-derivation helpers the Auto Loan result partial reads: the amount-financed
+  # breakdown rows, the donut series + gradient + chart payload, and the balance-curve
+  # points. Built from a real Calculators::AutoLoan so `result`/`attributes` are authentic
+  # (the FE does no math — these only arrange the backend's computed figures, ARCHITECTURE.md
+  # §4). The row-1 spec anchor: 30000 / 60mo / 5% / down 4000 / trade 6000 / tax 7% / fees
+  # 800 → sales_tax 1680.00, amount_financed 22480.00, total_interest 2973.48.
+
+  def auto_loan(attrs = {})
+    Calculators::AutoLoan.new({
+      auto_price: "30000", term_months: "60", annual_rate: "5",
+      down_payment: "4000", trade_in: "6000", sales_tax_rate: "7", fees: "800"
+    }.merge(attrs))
+  end
+
+  # auto_loan_breakdown — the +/− itemized roll-up; only non-zero adjustment rows appear.
+  test "auto_loan_breakdown lists every non-zero adjustment with its sign" do
+    rows = auto_loan_breakdown(auto_loan)
+    labels = rows.map { |r| r[:label] }
+    assert_equal "Vehicle price", rows.first[:label]
+    assert_equal :add, rows.first[:sign]
+    assert_includes labels, "Sales tax"
+    assert_includes labels, "Fees"
+    # Down payment + trade-in are subtractions.
+    down = rows.find { |r| r[:label] == "Down payment" }
+    trade = rows.find { |r| r[:label] == "Trade-in value" }
+    assert_equal :subtract, down[:sign]
+    assert_equal :subtract, trade[:sign]
+    # The sales-tax row carries the COMPUTED tax money string (1680.00), not an input.
+    assert_equal "1680.00", rows.find { |r| r[:label] == "Sales tax" }[:amount]
+  end
+
+  test "auto_loan_breakdown omits every zero adjustment row" do
+    # A bare loan (no down/trade/tax/fees) → only the vehicle-price row; sales tax is 0.00 so
+    # its row drops too (the zero-sales-tax branch of the unless guard).
+    rows = auto_loan_breakdown(auto_loan(down_payment: "0", trade_in: "0", sales_tax_rate: "0", fees: "0"))
+    assert_equal [ "Vehicle price" ], rows.map { |r| r[:label] }
+  end
+
+  test "auto_loan_breakdown treats omitted optional inputs as zero rows" do
+    # Optional inputs default to 0 in the calculator; omitting them entirely (nil attributes)
+    # exercises money_str's blank branch and still drops the rows.
+    rows = auto_loan_breakdown(Calculators::AutoLoan.new(auto_price: "20000", term_months: "36", annual_rate: "0"))
+    assert_equal [ "Vehicle price" ], rows.map { |r| r[:label] }
+  end
+
+  # auto_loan_donut — two slices; the LARGER one is accent green (DESIGN.md §1).
+  test "auto_loan_donut puts the larger slice (financed >= interest) in accent green" do
+    # The anchor: financed 22,480 > interest 2,973.48 → financed is green.
+    slices = auto_loan_donut(auto_loan.result)
+    assert_equal :principal, slices.first[:key]
+    assert_equal "accent",  slices.first[:color]   # financed, larger → green
+    assert_equal "primary", slices.last[:color]    # interest, smaller → coral
+    assert_in_delta 100.0, slices.first[:pct] + slices.last[:pct], 0.0001
+  end
+
+  test "auto_loan_donut puts the larger slice (interest > financed) in accent green" do
+    result = { amount_financed: "1000.00", total_interest: "5000.00", schedule: [] }
+    slices = auto_loan_donut(result)
+    assert_equal "primary", slices.first[:color]   # financed, smaller → coral
+    assert_equal "accent",  slices.last[:color]    # interest, larger → green
+  end
+
+  test "auto_loan_donut treats an equal split as financed-larger (>= boundary)" do
+    result = { amount_financed: "100.00", total_interest: "100.00", schedule: [] }
+    slices = auto_loan_donut(result)
+    assert_equal "accent", slices.first[:color] # financed, on the >= boundary, green
+  end
+
+  # auto_loan_donut_gradient — a conic-gradient from the two TOKEN colours (no hex).
+  test "auto_loan_donut_gradient composes a conic-gradient from token custom properties" do
+    result = { amount_financed: "100.00", total_interest: "100.00", schedule: [] } # 50/50
+    g = auto_loan_donut_gradient(auto_loan_donut(result))
+    assert_match(/conic-gradient\(/, g)
+    assert_includes g, "var(--color-accent)"
+    assert_includes g, "var(--color-primary)"
+    assert_includes g, "50.0%"
+    refute_match(/#/, g) # never an inline hex (DESIGN.md §5 guardrail)
+  end
+
+  # auto_loan_donut_data — the flat object the JS chart controller reads.
+  test "auto_loan_donut_data flattens the slices into the chart controller payload" do
+    data = auto_loan_donut_data(auto_loan_donut(auto_loan.result))
+    assert_equal "22480.00", data[:principal]
+    assert_equal "Amount financed", data[:principalLabel]
+    assert_equal "accent", data[:principalColor]   # financed larger → green
+    assert_equal "2973.48", data[:interest]
+    assert_equal "Total interest", data[:interestLabel]
+    assert_equal "primary", data[:interestColor]   # interest smaller → coral
+  end
+
+  # auto_loan_balance_curve — month 0 = amount financed, then each scheduled balance.
+  test "auto_loan_balance_curve prepends month 0 at the amount financed" do
+    curve = auto_loan_balance_curve(auto_loan.result)
+    assert_equal 0, curve.first[:month]
+    assert_equal "22480.00", curve.first[:balance]
+    # 60-month schedule → 61 curve points (month 0 + 60 scheduled).
+    assert_equal 61, curve.length
+    assert_equal "0.00", curve.last[:balance]
+  end
+
+  # auto_loan_curve_points — map (month, balance) samples into a 0..100 unit box.
+  test "auto_loan_curve_points maps the endpoints to the box corners" do
+    curve = [
+      { month: 0,  balance: "20000.00" },
+      { month: 30, balance: "10000.00" },
+      { month: 60, balance: "0.00" }
+    ]
+    pts = auto_loan_curve_points(curve).split(" ")
+    assert_equal "0.0,0.0", pts.first       # month 0, full balance → top-left
+    assert_equal "100.0,100.0", pts.last     # last month, zero balance → bottom-right
+    assert_equal "50.0,50.0", pts[1]         # midpoint
+  end
+
+  test "auto_loan_curve_points guards a degenerate all-zero curve without dividing by zero" do
+    curve = [ { month: 0, balance: "0.00" } ]
+    assert_equal "0.0,100.0", auto_loan_curve_points(curve)
+  end
+
+  # field_labels_for / calculator_error_messages — Auto Loan's bespoke label map.
+  test "field_labels_for returns the Auto Loan label map for an Auto Loan instance" do
+    labels = field_labels_for(auto_loan)
+    assert_equal "Vehicle price", labels["auto_price"]
+    assert_equal "Trade-in value", labels["trade_in"]
+    assert_equal "Sales tax", labels["sales_tax_rate"]
+  end
+
+  test "Auto Loan errors are phrased against the visible labels, not the raw keys" do
+    c = Calculators::AutoLoan.new(auto_price: "", term_months: "", annual_rate: "")
+    c.valid?
+    messages = calculator_error_messages(c)
+    assert_includes messages, "Vehicle price can't be blank"
+    assert_includes messages, "Loan term can't be blank"
+    assert_includes messages, "Annual interest rate can't be blank"
   end
 end

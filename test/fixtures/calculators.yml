@@ -167,6 +167,38 @@ sales_tax:
   tags: multi-input, multi-mode
   description: Solve a sales-tax problem from any two of the three figures — before-tax price, tax rate, or after-tax price — and get the tax amount and the missing value.
   source: "[sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html)"
+auto_loan:
+  slug: auto_loan
+  name: Auto Loan Calculator
+  category: Financial
+  complexity: 3
+  tags: multi-input, tabular-output
+  description: An amortized auto loan — fold trade-in, down payment, sales tax and fees into the financed amount and see the monthly payment, total interest, and full repayment schedule.
+  source: "[auto-loan-calculator](https://www.calculator.net/auto-loan-calculator.html)"
+roi:
+  slug: roi
+  name: ROI Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input
+  description: Return on investment — enter the amount invested and the amount returned (with an optional holding period) to get the total gain, ROI %, and annualized ROI.
+  source: "[roi-calculator](https://www.calculator.net/roi-calculator.html)"
+personal_loan:
+  slug: personal_loan
+  name: Personal Loan Calculator
+  category: Financial
+  complexity: 3
+  tags: multi-input, tabular-output
+  description: An amortized personal loan — enter the loan amount, rate, and term to see the monthly payment, total interest, total cost, and full repayment schedule.
+  source: "[personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html)"
+house_affordability:
+  slug: house_affordability
+  name: House Affordability Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input
+  description: How much house can you afford — from your income, debts, down payment, and DTI limits, get the maximum monthly payment, loan amount, and home price.
+  source: "[house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html)"
 
 retired_thing:
   slug: retired_thing
