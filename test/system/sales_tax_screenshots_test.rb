@@ -85,6 +85,24 @@ class SalesTaxScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("sales-tax-06-large-result")
   end
 
+  test "segmented mode pills are equal height with vertically-centered text when labels wrap" do
+    # The reported bug (operator screenshot): with "Tax rate" selected, the one-line "Tax rate"
+    # pill's text was top-pinned against the taller, wrap-determined height of the two-line
+    # "After-tax price" / "Before-tax price" pills. Narrow the window so the segmented track is
+    # tight enough that the multi-word labels WRAP to two lines, then assert every pill is equal
+    # height and its text is vertically centered — in BOTH the default state and with "Tax rate"
+    # selected (the exact reported state).
+    page.driver.browser.manage.window.resize_to(420, 900)
+    visit "/calculators/sales_tax"
+    assert_selector ".direction-pill", minimum: 3
+    assert_pills_equal_height_and_centered(".direction-pill")
+    screenshot_full_page("sales-tax-08-pills-wrap-default")
+
+    choose "Tax rate", allow_label_click: true
+    assert_pills_equal_height_and_centered(".direction-pill")
+    screenshot_full_page("sales-tax-09-pills-wrap-rate-selected")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/sales_tax"
     # Submit with no numbers → server 422 → error fragment in #result.

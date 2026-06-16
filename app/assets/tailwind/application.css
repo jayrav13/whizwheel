@@ -203,11 +203,26 @@
     @apply bg-surface;
   }
 
-  /* Direction toggle (increase / decrease) for `change` mode — segmented control,
-     the chosen half lifted to surface white on the bg-tinted track (Affix tier: the
-     two halves sit tight, gap-1, as parts of one control — DESIGN.md §3). */
+  /* Segmented-control half (DESIGN.md §4 "Mode picker", N ≤ 3 short labels) — the
+     chosen half lifted to surface white on the bg-tinted track (Affix tier: the two/
+     three halves sit tight, gap-1, as parts of one control — DESIGN.md §3). Used by
+     every segmented control: Percentage's Increase|Decrease, BMI's US|Metric, Simple
+     Interest's Years|Months, and the solve-for pickers (Sales Tax, VAT) whose labels
+     CAN WRAP to two lines ("After-tax price" / "Before-tax price" beside a one-line
+     "Tax rate").
+
+     VERTICAL CENTERING — the standing requirement (DESIGN.md §4: a pill's text must be
+     vertically centered within its pill regardless of wrapping). The track is `flex`
+     with the default `align-items: stretch`, so all halves already share the tallest
+     half's height when one label wraps. The half must then center its OWN content within
+     that stretched height — otherwise a one-line label sits pinned to the top by padding
+     while its two-line siblings fill the height (the reported Sales Tax / VAT
+     misalignment). So the half is itself a flex box centering both axes
+     (`items-center justify-center`); `text-center` keeps a wrapped two-line label
+     centered line-by-line. `py-2` is the consistent vertical padding that holds when the
+     content is short. */
   .direction-pill {
-    @apply flex-1 cursor-pointer rounded-[9px] px-4 py-2 text-center text-sm font-semibold text-muted transition-colors;
+    @apply flex flex-1 cursor-pointer items-center justify-center rounded-[9px] px-4 py-2 text-center text-sm font-semibold text-muted transition-colors;
   }
   .peer:checked + .direction-pill,
   .direction-pill.is-active {
