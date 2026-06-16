@@ -203,6 +203,43 @@
     @apply bg-surface;
   }
 
+  /* Data-table numeric cell — single-line, never wrap mid-value (DESIGN.md §4 "Data
+     table", iteration-0007 harvest). Numeric / money / RANGE cells in a data table must
+     stay on ONE line: a money figure ($463.16) has no internal break point, but a bracket
+     RANGE ($103,350 — $197,300) and any space-joined numeric pair DO — and were wrapping
+     mid-range in the Income Tax bracket breakdown, splitting one value across two lines.
+
+     The fix is at the SHARED component, not per page, so it propagates to EVERY
+     calculator's tables (bracket breakdowns, amortization / auto-loan / mortgage / loan
+     schedules, the admin recent-activity feed, …) and survives the regeneration sweep.
+     The hook is the universal `tabular-nums` signal already on every numeric data cell:
+     a `td`/`th` carrying `tabular-nums` is forced `white-space: nowrap`, as is any
+     `tabular-nums` element NESTED in a cell — e.g. the Income Tax bracket range, whose
+     `<code class="tabular-nums">` holds the `$103,350 – $197,300` glyph (the wrapping
+     case the harvest is named for). This is SCOPED to table cells —
+     it deliberately does NOT touch the stat-card `<dd>` (also tabular-nums) whose
+     `overflow-wrap: anywhere` never-clip net must keep wrapping (those are not table
+     cells, so this selector skips them).
+
+     NARROW-VIEWPORT SAFETY (DESIGN.md §6: tables scroll/reflow, never clip). nowrap cells
+     can make a wide table exceed a narrow result panel, so the table's scroll container
+     (`.table-scroll`) caps width and scrolls horizontally rather than clipping — the row
+     stays whole, the panel scrolls. Every result/admin data table is wrapped in
+     `.table-scroll`; a no-JS, no-clip baseline. */
+  .data-table td.tabular-nums,
+  .data-table th.tabular-nums,
+  .data-table td .tabular-nums,
+  .data-table th .tabular-nums {
+    white-space: nowrap;
+  }
+  /* Horizontal-scroll wrapper for a data table (DESIGN.md §4 / §6). max-width + x-scroll
+     means a table wider than its panel scrolls instead of overflowing/clipping; paired
+     with the nowrap cells above so a single value is never split across lines. Some tables
+     also cap HEIGHT (the long amortization schedule) — that wrapper composes with this. */
+  .table-scroll {
+    @apply w-full overflow-x-auto;
+  }
+
   /* Segmented-control half (DESIGN.md §4 "Mode picker", N ≤ 3 short labels) — the
      chosen half lifted to surface white on the bg-tinted track (Affix tier: the two/
      three halves sit tight, gap-1, as parts of one control — DESIGN.md §3). Used by
