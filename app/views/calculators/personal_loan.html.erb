@@ -1,0 +1,87 @@
+<% content_for :title, "Personal Loan Calculator — whizwheel" %>
+
+<%#
+  Personal Loan calculator page (spec issue #256, DESIGN.md BLEND) — the plain loan-core
+  skin of the loan cluster: a fixed-rate amortizing personal loan. Three inputs (loan
+  amount, annual rate, term in months) → the level monthly payment, the loan totals, a
+  principal-vs-interest donut, a balance-over-time curve, and the full month-by-month
+  repayment schedule.
+
+  SINGLE-MODE — the inputs don't depend on a chosen mode, so there is NO mode picker
+  (DESIGN.md §4 "Mode picker" applies only when inputs vary by mode; the spec is explicit:
+  "No mode picker — single-mode"). This mirrors Amortization's single-mode form rather than
+  Loan's solve-for picker. The form posts over Turbo and re-renders the #result region in
+  place, and works WITHOUT JS (the server validates). With JS the personal_loan controller
+  draws the hover-capable charts and paginates the long schedule — the no-JS baseline shows
+  the static fallbacks and the whole table.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to
+  one column on mobile. Spacing scale ("targets not minimums"):
+    • stacked fields → space-y-5
+    • fields → submit (major blocks) → mt-8 (Section tier)
+    • column gutters / card padding → gap-8 / p-7–p-8 (Layout tier)
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">Personal Loan Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    An amortized fixed-rate personal loan. Enter the
+    <span class="font-semibold text-ink">loan amount</span>, the
+    <span class="font-semibold text-ink">interest rate</span> and the
+    <span class="font-semibold text-ink">term</span> to see the monthly payment, the total
+    interest and cost, and the full repayment schedule. Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/personal_loan", scope: :inputs, method: :post do |f| %>
+
+      <%# Fields. Stacked tier: space-y-5 down the column (DESIGN.md §3). Each numeric field
+          carries its $/%/unit affix on the Affix tier (gap-2). The amount and rate are
+          decimals; the term is a whole number of months (integer). %>
+      <div class="space-y-5">
+        <%# Loan amount — $ affix leading the field. %>
+        <div>
+          <%= f.label :loan_amount, "Loan amount", class: "field-label", for: "inputs_loan_amount" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :loan_amount, id: "inputs_loan_amount", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Annual interest rate — % affix trailing the field. %>
+        <div>
+          <%= f.label :annual_rate, "Annual interest rate", class: "field-label", for: "inputs_annual_rate" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :annual_rate, id: "inputs_annual_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+
+        <%# Loan term — whole months. A "months" unit trails the field. %>
+        <div>
+          <%= f.label :term_months, "Loan term", class: "field-label", for: "inputs_term_months" %>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :term_months, id: "inputs_term_months", step: "1", inputmode: "numeric",
+                  min: "1", placeholder: "0", class: "field-input" %>
+            <span class="w-14 text-sm font-bold text-label" aria-hidden="true">months</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target) ─────────────────────────────────── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

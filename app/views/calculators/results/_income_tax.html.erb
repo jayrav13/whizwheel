@@ -1,0 +1,120 @@
+<%# Income Tax result (spec issue #260, DESIGN.md §4) — the iteration's bracket-math
+    primitive rendered. It composes BLEND components:
+      • Hero-result — the total federal income tax (5px coral left rule, big tabular-nums),
+        the cost figure, with the taxable income it was computed on read into the sentence.
+      • Stat grid   — taxable income, after-tax income, effective rate, marginal rate. The
+        money figures can run to 7+ digits ($216,020.25 on a $700k income) and a worst case
+        ($1,000,000+ income → 6-figure tax) so the grid takes the `--wide` track (DESIGN.md
+        §4: high-magnitude money → --wide so values hold on one line, never wrap mid-number).
+        After-tax income (what you keep) reads in accent green (DESIGN.md §1 — the positive
+        figure).
+      • Data table  — the per-bracket breakdown (the `tabular-output`): each bracket's range,
+        rate, the amount taxed in it, and the tax — thin rule borders, right-aligned
+        tabular-nums, a hard ink total row whose tax reconciles to total_tax (DESIGN.md §4
+        "Data table"). No chart for this build (spec: the table suffices).
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope —
+    money/rate strings and the bracket rows. `calc:` is a valid Calculators::IncomeTax. %>
+<% r = calc.result %>
+<% brackets = income_tax_brackets(calc) %>
+<div class="space-y-6">
+  <%# ── Hero: the total tax ──────────────────────────────────────────────── %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Total federal income tax</p>
+        <p class="mt-2 flex items-baseline gap-1.5">
+          <span class="text-sm font-bold text-faint">$</span>
+          <span class="text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= money_display(r[:total_tax]) %></span>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          on <span class="font-semibold text-ink">$<%= money_display(r[:taxable_income]) %></span>
+          of taxable income — an effective rate of
+          <span class="font-semibold text-ink"><%= percentage_display(BigDecimal(r[:effective_rate])) %>%</span>,
+          with your top dollar taxed at <span class="font-semibold text-ink"><%= r[:marginal_rate] %>%</span>
+          (2025 single-filer brackets).
+        </p>
+
+        <%# Breakdown — the shared responsive stat grid (DESIGN.md §4 "Stat grid", issue #143):
+            `.stat-grid` / `.stat-card`. The `--wide` modifier widens the auto-fit track (13rem)
+            so a high-magnitude money figure (after-tax income on a $700k income → $483,979.75,
+            and the worst case past $1M) holds on one line rather than wrapping at the cents
+            (DESIGN.md §4: stats must never clip/wrap). After-tax income is the positive/kept
+            figure → accent green (DESIGN.md §1); the rest read in ink. %>
+        <dl class="mt-6 stat-grid stat-grid--wide">
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label">Taxable income</dt>
+            <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words">$<%= money_display(r[:taxable_income]) %></dd>
+          </div>
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label">After-tax income</dt>
+            <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-accent break-words">$<%= money_display(r[:after_tax_income]) %></dd>
+          </div>
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label">Effective rate</dt>
+            <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words"><%= percentage_display(BigDecimal(r[:effective_rate])) %>%</dd>
+          </div>
+          <div class="stat-card">
+            <dt class="text-xs font-bold text-label">Marginal rate</dt>
+            <dd class="mt-1.5 text-xl font-extrabold tracking-[-0.02em] tabular-nums text-ink break-words"><%= r[:marginal_rate] %>%</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Per-bracket breakdown (DESIGN.md §4 "Data table") ─────────────────────
+      The `tabular-output`: one row per bracket the income reaches (rows below the marginal
+      bracket are full, the marginal row is partial). Thin rule borders, right-aligned
+      tabular-nums, a hard ink total row whose tax reconciles to total_tax. When taxable income
+      is 0 no bracket is reached → the brackets array is empty; show a quiet "no tax" note
+      instead of an empty table. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="px-6 pt-6">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">How your tax is built — bracket by bracket</p>
+    </div>
+
+    <% if brackets.empty? %>
+      <p class="px-6 py-6 text-[15px] leading-relaxed text-muted">
+        No taxable income reaches a bracket, so no federal income tax is owed.
+      </p>
+    <% else %>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-rule text-left text-[11px] font-bold uppercase tracking-[0.08em] text-faint">
+              <th scope="col" class="px-6 py-2.5 font-bold">Bracket</th>
+              <th scope="col" class="px-6 py-2.5 text-right font-bold">Rate</th>
+              <th scope="col" class="px-6 py-2.5 text-right font-bold">Taxed in bracket</th>
+              <th scope="col" class="px-6 py-2.5 text-right font-bold">Tax</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% brackets.each do |row| %>
+              <tr class="border-b border-rule/70 text-ink last:border-0">
+                <%# The bracket's taxed range — the raw bracket edges echoed back to the user,
+                    so per DESIGN.md §2 they render in monospace <code> (font-mono). %>
+                <td class="px-6 py-2.5 text-muted">
+                  <code class="font-mono text-[13px] tabular-nums"><%= income_tax_bracket_range(row) %></code>
+                </td>
+                <td class="px-6 py-2.5 text-right tabular-nums"><%= row[:rate] %>%</td>
+                <td class="px-6 py-2.5 text-right tabular-nums">$<%= money_display(row[:taxable_in_bracket]) %></td>
+                <td class="px-6 py-2.5 text-right tabular-nums font-semibold">$<%= money_display(row[:tax]) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <%# Hard total row — top border in ink (DESIGN.md §4 "Data table"). The tax column
+                sums to total_tax (Σ brackets[*].tax == total_tax, per the spec). %>
+            <tr class="border-t-2 border-ink bg-bg/40 font-bold text-ink">
+              <td class="px-6 py-3">Total</td>
+              <td class="px-6 py-3"></td>
+              <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:taxable_income]) %></td>
+              <td class="px-6 py-3 text-right tabular-nums">$<%= money_display(r[:total_tax]) %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>
