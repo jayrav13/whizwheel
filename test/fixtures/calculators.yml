@@ -167,6 +167,14 @@ personal_loan:
   tags: multi-input, tabular-output
   description: An amortized personal loan — enter the loan amount, rate, and term to see the monthly payment, total interest, total cost, and full repayment schedule.
   source: "[personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html)"
+house_affordability:
+  slug: house_affordability
+  name: House Affordability Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input
+  description: How much house can you afford — from your income, debts, down payment, and DTI limits, get the maximum monthly payment, loan amount, and home price.
+  source: "[house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html)"
 
 retired_thing:
   slug: retired_thing
