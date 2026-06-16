@@ -1,0 +1,98 @@
+<%# VAT result (spec issue #255, DESIGN.md §4) — it composes BLEND components:
+      • Hero-result — the figure the chosen MODE solved for (gross / net / rate), the page's
+                      headline answer (5px coral left rule, big tabular-nums), with a one-line
+                      detail naming the solve in context.
+      • Stat grid   — the four figures (net price, VAT amount, gross price, VAT rate) from the
+                      shared `.stat-grid` / `.stat-card` component (issue #143). It uses the
+                      `--wide` track: the worst-case money values run high-magnitude (7-figure
+                      money like $1,000,000.00), which the default 9.5rem track would wrap
+                      mid-number in the narrow result panel. The VAT amount reads in accent (the
+                      derived figure of interest, DESIGN.md §1).
+      • Data table  — the price breakdown (net + VAT = gross), thin rule borders, right-aligned
+                      tabular-nums, a hard ink total row.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope's money
+    strings (net_price / gross_price / vat_amount) + the rate string. `calc:` is a valid
+    Calculators::Vat — the empty + error states are handled one level up in _result.html.erb.
+
+    Deliberate structural twin of the Sales Tax result (net/VAT/gross ↔ before/tax/after). %>
+<% r = calc.result %>
+<div class="space-y-6">
+  <%# ── Hero: the figure the mode solved for (DESIGN.md §4 "Hero-result") ────────
+      The headline answer is whichever figure the chosen mode computed. 5px coral left rule +
+      big tabular-nums. The eyebrow names the solved figure; the detail reads the solve in
+      context. For the `rate` mode the answer is a percent (trimmed of trailing-zero noise);
+      the gross/net modes answer in money. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent"><%= vat_solved_label(r[:mode]) %></p>
+        <p class="mt-2 break-words text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink">
+          <% if r[:mode] == "rate" %>
+            <%= rate_trim(r[:rate]) %>%
+          <% elsif r[:mode] == "gross" %>
+            $<%= money_display(r[:gross_price]) %>
+          <% else %>
+            $<%= money_display(r[:net_price]) %>
+          <% end %>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          <%= vat_detail(calc) %> The VAT amount is
+          <span class="font-semibold text-accent">$<%= money_display(r[:vat_amount]) %></span>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: the four figures (DESIGN.md §4 "Stat grid", #143) ─────────────
+      The shared responsive stat grid on the `--wide` track (13rem min) — the worst-case money
+      values run high-magnitude (7-figure), which the default 9.5rem track would wrap mid-number
+      in the narrow (~489px) panel; the `.stat-card` never-clip net (overflow-wrap on the value
+      `<dd>`, reinforced by break-words) catches any larger worst case. This grid sits directly
+      on the page background (a top-level block, not nested in a surface card), so the cards use
+      `.stat-card--surface` to stand off the cream. The VAT amount reads in accent (the derived
+      figure of interest, DESIGN.md §1). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Net price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:net_price]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">VAT amount</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-accent">$<%= money_display(r[:vat_amount]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Gross price</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:gross_price]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">VAT rate</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= rate_trim(r[:rate]) %>%</dd>
+    </div>
+  </dl>
+
+  <%# ── Breakdown (DESIGN.md §4 "Data table") ────────────────────────────────────
+      net + VAT = gross. Thin rule borders, right-aligned tabular-nums, a hard ink total row.
+      The VAT line reads in accent (the value added). %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="p-7">
+      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Breakdown</p>
+      <table class="mt-4 w-full text-[15px]">
+        <tbody>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">Net price</th>
+            <td class="py-2 text-right tabular-nums text-ink">$<%= money_display(r[:net_price]) %></td>
+          </tr>
+          <tr class="border-b border-rule">
+            <th scope="row" class="py-2 text-left font-medium text-muted">VAT (<%= rate_trim(r[:rate]) %>%)</th>
+            <td class="py-2 text-right tabular-nums text-accent">+&nbsp;$<%= money_display(r[:vat_amount]) %></td>
+          </tr>
+          <tr>
+            <th scope="row" class="border-t-2 border-ink py-2 text-left font-bold text-ink">Gross price</th>
+            <td class="border-t-2 border-ink py-2 text-right font-bold tabular-nums text-ink">$<%= money_display(r[:gross_price]) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

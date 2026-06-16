@@ -1,0 +1,121 @@
+<% content_for :title, "VAT Calculator — whizwheel" %>
+
+<%#
+  VAT calculator page (spec issue #255, DESIGN.md BLEND) — a solve-for-X value-added-tax
+  calculator over three related figures: the NET price (before VAT), the VAT RATE (%), and the
+  GROSS price (after VAT). Given any TWO, solve for the third (and always report the VAT amount).
+  A required `mode` picker selects which figure is the unknown; the form shows only the two
+  GIVEN fields for the chosen mode (the field it solves for is left blank). The form posts over
+  Turbo and re-renders the #result region in place; it works WITHOUT JS — the server validates
+  exactly the selected mode's required pair and re-renders the result fragment. The vat_controller
+  is pure polish: it reveals only the active mode's two given fields (disabling the rest so the
+  solved-for figure is never posted) and lifts the active segmented half.
+
+  Deliberate structural twin of the Sales Tax page (net/VAT/gross ↔ before/tax/after) — same
+  solve-for-X shape, same field-gating, differing only in domain labels. Keep parallel.
+
+  Mode-picker choice (DESIGN.md §4 "Mode picker"): THREE modes (N=3), every label SHORT
+  ("Gross price" / "Net price" / "VAT rate", ≤12 chars). The §4 rule routes N ≤ 3 short labels to
+  the SEGMENTED CONTROL (the connected horizontal track, as BMI's US|Metric and Percentage's
+  Increase|Decrease) — not the selectable option list (reserved for N ≥ 4 or multi-word labels).
+  It stays a native radio <fieldset>/<legend> posting a single-select inputs[mode]; the no-JS
+  baseline (peer:checked paints the active half) is retained.
+
+  Layout per DESIGN.md §3 — an input column + a results panel (≈380px 1fr), collapsing to one
+  column on mobile. Spacing scale ("targets not minimums"): stacked fields → space-y-5 (Stacked);
+  mode → fields → submit, the major blocks → mt-8 (Section); column gutters / card padding →
+  gap-8 / p-7–p-8 (Layout).
+%>
+
+<header class="max-w-2xl">
+  <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Financial</p>
+  <h1 class="mt-2 text-4xl font-extrabold tracking-[-0.035em] text-ink">VAT Calculator</h1>
+  <p class="mt-3 text-[15px] leading-relaxed text-muted">
+    Solve a value-added-tax problem from any two of the three figures —
+    <span class="font-semibold text-ink">net price</span> (before VAT),
+    <span class="font-semibold text-ink">VAT rate</span>, or
+    <span class="font-semibold text-ink">gross price</span> (after VAT). Pick which figure to
+    solve for and get it plus the VAT amount. Every figure is computed server-side.
+  </p>
+</header>
+
+<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+  <%# ── Input column ─────────────────────────────────────────────────────── %>
+  <section class="rounded-[18px] border border-border bg-surface p-7 shadow-[0_10px_34px_rgba(150,110,80,0.12)] sm:p-8">
+    <%= form_with url: "/calculators/vat", scope: :inputs, method: :post,
+          data: { controller: "vat" } do |f| %>
+
+      <%# Mode picker — SEGMENTED CONTROL (DESIGN.md §4: N=3 short labels → the connected
+          horizontal track, not the option list). One bg-tinted, bordered track; the three
+          modes are halves (.direction-pill) tight on the Affix tier (gap-1 — parts of one
+          control). The chosen half lifts to surface white via .peer:checked (no-JS baseline)
+          and .is-active (the controller's paintPills hook). Native radio <fieldset>/<legend>
+          posting inputs[mode]. A helper line under the legend names what each mode solves. %>
+      <fieldset>
+        <legend class="field-label">Solve for</legend>
+        <p class="mt-1 text-xs text-muted">Choose which figure to compute from the other two.</p>
+        <div class="mt-2 flex gap-1 rounded-[11px] border border-border-input bg-bg p-1">
+          <% vat_modes.each_with_index do |m, i| %>
+            <%= f.radio_button :mode, m[:value],
+                  checked: i.zero?,
+                  class: "peer sr-only",
+                  data: { vat_target: "modeInput", action: "vat#select" } %>
+            <%= f.label :mode, m[:label], value: m[:value],
+                  class: "direction-pill",
+                  data: { vat_target: "pill", mode: m[:value] } %>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <%# Figure fields. Each block declares the modes that GIVE it via data-vat-modes; Stimulus
+          shows only the active mode's two given fields and disables the rest so the solved-for
+          figure isn't posted. The no-JS baseline shows every field and the server validates only
+          the selected mode's required pair, ignoring the field the mode solves for. Stacked tier
+          — space-y-5. Each money field carries its $ leading affix on the Affix tier (gap-2);
+          the rate field its % trailing affix. %>
+      <div class="mt-8 space-y-5">
+        <%# Net price — GIVEN by gross + rate modes ($ leading affix). %>
+        <div data-vat-target="field" data-vat-modes="gross rate">
+          <%= f.label :net_price, "Net price", class: "field-label", for: "inputs_net_price" %>
+          <p class="mt-0.5 text-xs text-muted">The price before VAT.</p>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :net_price, id: "inputs_net_price", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# Gross price — GIVEN by net + rate modes ($ leading affix). %>
+        <div data-vat-target="field" data-vat-modes="net rate">
+          <%= f.label :gross_price, "Gross price", class: "field-label", for: "inputs_gross_price" %>
+          <p class="mt-0.5 text-xs text-muted">The price after VAT.</p>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="text-sm font-bold text-label" aria-hidden="true">$</span>
+            <%= f.number_field :gross_price, id: "inputs_gross_price", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0.00", class: "field-input" %>
+          </div>
+        </div>
+
+        <%# VAT rate — GIVEN by gross + net modes (% trailing affix). %>
+        <div data-vat-target="field" data-vat-modes="gross net">
+          <%= f.label :rate, "VAT rate", class: "field-label", for: "inputs_rate" %>
+          <p class="mt-0.5 text-xs text-muted">The value-added-tax percentage.</p>
+          <div class="mt-1.5 flex items-center gap-2">
+            <%= f.number_field :rate, id: "inputs_rate", step: "any", inputmode: "decimal",
+                  min: "0", placeholder: "0", class: "field-input" %>
+            <span class="text-sm font-bold text-label" aria-hidden="true">%</span>
+          </div>
+        </div>
+      </div>
+
+      <%# Submit — Section tier above; the primary coral button (DESIGN.md §4). %>
+      <%= f.submit "Calculate",
+            class: "mt-8 w-full cursor-pointer rounded-[13px] bg-primary px-4 py-3 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <% end %>
+  </section>
+
+  <%# ── Results panel (the Turbo target; aria-live so the answer is announced) ── %>
+  <section id="result" aria-live="polite">
+    <%= render "calculators/result", calc: nil %>
+  </section>
+</div>

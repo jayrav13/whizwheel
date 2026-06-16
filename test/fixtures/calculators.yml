@@ -159,6 +159,15 @@ discount:
   description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
   source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
 
+vat:
+  slug: vat
+  name: VAT Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input, multi-mode
+  description: Solve a value-added-tax problem from any two of the three figures — net price, VAT rate, or gross price — and get the VAT amount and the missing value.
+  source: "[vat-calculator](https://www.calculator.net/vat-calculator.html)"
+
 retired_thing:
   slug: retired_thing
   name: Retired Calculator
