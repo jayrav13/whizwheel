@@ -28,7 +28,10 @@
 # Usage:
 #   bin/merge-cleanup <pr-number>
 #
-# Run from the MAIN checkout (not from inside the worktree you're about to remove).
+# Safe to run from inside the worktree you're about to remove: the script cd's to the
+# MAIN checkout up front (NOT to `git rev-parse --show-toplevel`, which from inside a
+# worktree is the worktree itself), so `git worktree remove` never deletes the cwd out
+# from under the remaining git steps (issue #231).
 
 set -uo pipefail
 
@@ -38,12 +41,22 @@ if [[ -z "$pr" ]]; then
   exit 2
 fi
 
-# Repo root (the main checkout). git worktree operations run from here.
-repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
-if [[ -z "$repo_root" ]]; then
+# Resolve the MAIN checkout root — deliberately NOT `git rev-parse --show-toplevel`,
+# which from inside a linked worktree returns the WORKTREE's path. cd'ing there and
+# then removing that worktree would pull the cwd out from under every later git
+# command ("fatal: Unable to read current working directory") — which silently
+# mis-reported branch deletes as "already gone" and left stale local+remote branches
+# behind (issue #231).
+#
+# `--git-common-dir` points at the MAIN checkout's `.git` from anywhere (the main
+# checkout or any linked worktree); its parent is the stable main checkout root, which
+# is never the directory being removed.
+git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+if [[ -z "$git_common_dir" ]]; then
   echo "merge-cleanup: not inside a git repository" >&2
   exit 1
 fi
+repo_root="$(dirname "$git_common_dir")"
 cd "$repo_root" || exit 1
 
 # ── Resolve the PR's head branch up front (needed for cleanup even after merge). ──
@@ -104,22 +117,41 @@ else
 fi
 
 # ── Step 4: delete the LOCAL and REMOTE branches (each independent, neither skipped). ──
+# Distinguish three outcomes for each existence probe — present / genuinely absent /
+# probe FAILED — so a failed git command can never be mis-read as "already gone" (the
+# #231 false-positive). `git show-ref --verify --quiet` exits 0=present, 1=absent,
+# >1=error; `git ls-remote --exit-code` exits 0=present, 2=absent, other=error.
 echo "→ [4/5] deleting branch $branch (local + remote)"
-if git show-ref --verify --quiet "refs/heads/$branch"; then
-  git branch -D "$branch" \
-    && echo "  local branch deleted." \
-    || echo "  WARNING: failed to delete local branch $branch." >&2
-else
-  echo "  local branch $branch already gone (skipped)."
-fi
 
-if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-  git push origin --delete "$branch" \
-    && echo "  remote branch deleted." \
-    || echo "  WARNING: failed to delete remote branch origin/$branch." >&2
-else
-  echo "  remote branch origin/$branch already gone (skipped)."
-fi
+git show-ref --verify --quiet "refs/heads/$branch"
+case $? in
+  0)
+    git branch -D "$branch" \
+      && echo "  local branch deleted." \
+      || echo "  WARNING: failed to delete local branch $branch." >&2
+    ;;
+  1)
+    echo "  local branch $branch already gone (skipped)."
+    ;;
+  *)
+    echo "  WARNING: could not determine if local branch $branch exists (probe failed) — delete it manually." >&2
+    ;;
+esac
+
+git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1
+case $? in
+  0)
+    git push origin --delete "$branch" \
+      && echo "  remote branch deleted." \
+      || echo "  WARNING: failed to delete remote branch origin/$branch." >&2
+    ;;
+  2)
+    echo "  remote branch origin/$branch already gone (skipped)."
+    ;;
+  *)
+    echo "  WARNING: could not determine if remote branch origin/$branch exists (probe failed) — delete it manually." >&2
+    ;;
+esac
 
 # ── Step 5: back to main, fast-forward, prune stale worktree refs. ──
 echo "→ [5/5] checkout main, pull --ff-only, prune worktrees"
