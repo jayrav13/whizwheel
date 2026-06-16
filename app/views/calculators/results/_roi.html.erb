@@ -1,0 +1,105 @@
+<%# ROI result (spec issue #258, DESIGN.md §4 Hero-result + Stat grid). It composes BLEND
+    components:
+      • Hero-result — the ROI PERCENTAGE is the headline answer (5px coral left rule, big
+                      tabular-nums). The figure is tinted by sign (DESIGN.md §1/§6): a gain →
+                      accent green, a loss → coral, break-even → ink — and ALWAYS paired with a
+                      "Gain"/"Loss"/"Break-even" tag, so the meaning never rests on hue alone.
+      • Annualized  — shown ONLY when an investment period was supplied (the envelope's
+                      annualized_roi_percent is null otherwise); a quiet second figure beside
+                      the headline, with the period it was computed over.
+      • Stat grid   — invested → total gain → returned, from the shared `.stat-grid` /
+                      `.stat-card` component (issue #143) on the `--wide` track: the worst-case
+                      money values run high-magnitude (7-figure money like $1,000,000.00), which
+                      the default 9.5rem track would wrap mid-number in the narrow result panel.
+                      Total gain is the derived figure — accent green on a gain, coral on a loss
+                      — paired with its +/− sign.
+      • Echo        — the raw invested → returned figures quoted back in a monospace `<code>`
+                      (DESIGN.md §2 "Raw / echoed data"): the verbatim inputs, not a presented
+                      figure (which stay grotesk tabular-nums above).
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope's strings
+    (amount_invested / amount_returned / total_gain / roi_percent / annualized_roi_percent).
+    `calc:` is a valid Calculators::Roi — the empty + error states are handled in _result.html.erb. %>
+<% r = calc.result %>
+<% tone = roi_tone(calc) %>
+<% gain = roi_gain?(calc) %>
+<% break_even = roi_break_even?(calc) %>
+<% annualized = r[:annualized_roi_percent] %>
+<div class="space-y-6">
+  <%# ── Hero: the ROI percentage (DESIGN.md §4 "Hero-result") ─────────────────────
+      The headline answer. 5px coral left rule (the chrome) + big tabular-nums ROI %, tinted by
+      sign and tagged with the word — colour reinforces, never carries, the meaning (§6). %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+        <p class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] <%= tone[:tag] %>">
+          Return on investment
+          <span class="rounded-full bg-current/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.08em]"><%= tone[:word] %></span>
+        </p>
+        <p class="mt-2 flex items-baseline gap-1 text-5xl font-extrabold tracking-[-0.04em] tabular-nums <%= tone[:value] %>">
+          <%= roi_percent(r[:roi_percent]) %><span class="text-3xl font-bold">%</span>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          <% unless break_even %>
+            A
+            <span class="font-semibold <%= tone[:value] %>"><%= gain ? "gain" : "loss" %> of <%= roi_money(r[:total_gain]).delete_prefix("-") %></span>
+            on
+          <% else %>
+            Broke even on
+          <% end %>
+          <%= roi_money(r[:amount_invested]) %> invested<% if annualized %>, over <%= decimal_display(calc.investment_years) %> <%= calc.investment_years == 1 ? "year" : "years" %><% end %>.
+        </p>
+
+        <%# Annualized ROI — present ONLY when a period was supplied (envelope null otherwise).
+            A quiet derived figure under a thin rule (DESIGN.md §4 Data-table rules) so the
+            headline ROI stays the star. Same sign tone as the total return. %>
+        <% if annualized %>
+          <div class="mt-5 flex items-baseline justify-between gap-4 border-t border-rule pt-4">
+            <div>
+              <p class="text-xs font-bold text-label">Annualized ROI</p>
+              <p class="mt-0.5 text-[13px] leading-snug text-faint">The compound annual growth rate</p>
+            </div>
+            <p class="shrink-0 text-2xl font-extrabold tracking-[-0.02em] tabular-nums <%= tone[:value] %>">
+              <%= roi_percent(annualized) %><span class="text-base font-bold">%</span>
+            </p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: invested → total gain → returned (DESIGN.md §4 "Stat grid", #143) ──
+      The shared responsive stat grid on the `--wide` track (13rem min): the worst-case money
+      values run high-magnitude (7-figure), which the default 9.5rem track would wrap mid-number
+      in the narrow (~489px) panel. This grid sits directly on the page background (a top-level
+      block, not nested in a surface card), so the cards use `.stat-card--surface` to stand off
+      the cream. Total gain is the derived figure — accent green on a gain, coral on a loss
+      (DESIGN.md §1) — paired with its +/− sign (never colour alone, §6). The `.stat-card`
+      never-clip net (overflow-wrap on the value <dd>) catches any larger worst case. %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Amount invested</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= roi_money(r[:amount_invested]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Total <%= gain ? "gain" : "loss" %></dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums <%= break_even ? "text-ink" : tone[:value] %>">
+        <% unless break_even %><%= gain ? "+" : "−" %>&nbsp;<% end %><%= roi_money(r[:total_gain]).delete_prefix("-") %>
+      </dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Amount returned</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink"><%= roi_money(r[:amount_returned]) %></dd>
+    </div>
+  </dl>
+
+  <%# ── Echo: the raw invested → returned inputs (DESIGN.md §2 "Raw / echoed data") ───
+      The verbatim figures quoted back to the user → monospace `<code>`, never plain prose. A
+      quiet footnote naming what produced the answer above. %>
+  <p class="px-1 text-[13px] text-faint">
+    <code class="font-mono text-muted"><%= roi_money(r[:amount_invested]) %></code>
+    invested →
+    <code class="font-mono text-muted"><%= roi_money(r[:amount_returned]) %></code>
+    returned.
+  </p>
+</div>

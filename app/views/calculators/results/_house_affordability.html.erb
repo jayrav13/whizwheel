@@ -1,0 +1,112 @@
+<%# House Affordability result (spec issue #259, DESIGN.md §4) — the mortgage math in
+    reverse, so the headline answer is the MAXIMUM HOME PRICE. It composes BLEND components:
+      • Hero-result   — the max home price (5px coral left rule, big tabular-nums), with the
+                        max loan + down payment that compose it called out beneath.
+      • Stat grid     — gross monthly income, the binding DTI housing cap, the P&I room, and
+                        the max loan amount (the shared responsive `.stat-grid`, `--wide`
+                        because a high-income buyer clears seven figures of loan/price — the
+                        §4 selection criteria, spec Notes).
+      • Donut chart   — the binding monthly HOUSING BUDGET split into its four components
+                        (P&I largest → green per DESIGN.md §1, then property tax / insurance /
+                        HOA), a Chart.js hover-tooltip doughnut with an always-rendered no-JS
+                        fallback (conic-gradient + text legend) so the breakdown never gates on
+                        JS and never relies on colour alone (DESIGN.md §4 / §6). The Stimulus
+                        controller draws the live chart, then hides the fallback.
+    The backend owns every number (ARCHITECTURE.md §4); this only renders the envelope's five
+    money strings + the entered ownership-cost inputs (for the budget donut). `calc:` is a
+    valid Calculators::HouseAffordability. %>
+<% r = calc.result %>
+<% slices = house_affordability_donut(calc) %>
+
+<div class="space-y-6"
+     data-controller="house-affordability"
+     data-house-affordability-donut-value="<%= house_affordability_donut_data(slices).to_json %>">
+  <%# ── Hero: the maximum home price ──────────────────────────────────────
+      The headline answer — the most expensive home these constraints support — with the loan
+      + down payment that compose it read into the sentence beneath. %>
+  <div class="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <div class="flex gap-5 p-7">
+      <span class="w-[5px] shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">Maximum home price</p>
+        <p class="mt-2 flex items-baseline gap-1.5">
+          <span class="text-sm font-bold text-faint">$</span>
+          <span class="text-5xl font-extrabold tracking-[-0.04em] tabular-nums text-ink"><%= money_display(r[:max_home_price]) %></span>
+        </p>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted">
+          A <span class="font-semibold text-accent">$<%= money_display(r[:max_loan_amount]) %></span> loan
+          plus your <span class="font-semibold text-ink">$<%= money_display(calc.down_payment) %></span>
+          down payment, at <%= decimal_display(calc.annual_rate) %>% over
+          <%= pluralize(calc.loan_term_years, "year") %>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Stat grid: the budget figures (DESIGN.md §4 "Stat grid", issue #143) ──
+      The shared responsive stat grid. `--wide` (13rem track) because these run HIGH-MAGNITUDE
+      — a high-income buyer pushes the max loan amount into seven figures, which would wrap
+      mid-number on the default 9.5rem track in the narrow result panel (DESIGN.md §4 — single
+      line preferred for big figures; the `.stat-card` overflow-wrap net is the floor). The
+      grid sits directly on the page background (a top-level block, not nested in the hero
+      card), so the cards use `.stat-card--surface` to stand off the cream. Max loan amount is
+      the headline-supporting derived figure → accent green (DESIGN.md §1). %>
+  <dl class="stat-grid stat-grid--wide">
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Gross monthly income</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:gross_monthly_income]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Max monthly housing</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:max_monthly_housing]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Principal &amp; interest room</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-ink">$<%= money_display(r[:max_pi]) %></dd>
+    </div>
+    <div class="stat-card stat-card--surface">
+      <dt class="text-xs font-bold text-label">Max loan amount</dt>
+      <dd class="mt-1.5 break-words text-2xl font-extrabold tracking-[-0.02em] tabular-nums text-accent">$<%= money_display(r[:max_loan_amount]) %></dd>
+    </div>
+  </dl>
+
+  <%# ── Donut: the monthly housing budget breakdown (DESIGN.md §4 "Charts") ──
+      The binding DTI housing cap split into its four monthly components — P&I (largest →
+      accent green), property tax, home insurance, HOA. Chart.js draws the hover-tooltip
+      doughnut into the canvas; the figures repeat as a text legend (always shown) so the
+      breakdown reads without colour and without JS, and a conic-gradient ring is the no-JS
+      fallback shape. The controller hides the fallback only after the live chart builds. %>
+  <div class="rounded-[18px] border border-border bg-surface p-6 shadow-[0_10px_34px_rgba(150,110,80,0.12)]">
+    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Monthly housing budget</p>
+    <div class="mt-4 flex items-center gap-5">
+      <%# Live Chart.js donut canvas — hidden until the controller draws it. The canvas carries
+          explicit pixel dimensions so Chart.js (responsive:false) sizes from the element
+          itself, not from a parent measured before layout reflows. 112px = the size-28 box. %>
+      <div class="relative size-28 shrink-0" data-house-affordability-target="donutCanvas" hidden>
+        <canvas width="112" height="112" class="size-28"></canvas>
+      </div>
+
+      <%# No-JS fallback donut — a CSS conic-gradient composed from the slice token colours
+          (no inline hex; DESIGN.md §5 guardrail), largest slice green (DESIGN.md §1). %>
+      <div class="relative size-28 shrink-0 rounded-full" role="img"
+           data-house-affordability-target="donutFallback"
+           aria-label="Monthly housing budget: <%= slices.map { |s| "#{s[:label]} $#{money_display(s[:amount])}" }.join(', ') %>"
+           style="background: <%= house_affordability_donut_gradient(slices) %>;">
+        <span class="absolute inset-[22%] rounded-full bg-surface" aria-hidden="true"></span>
+      </div>
+
+      <%# Text legend (always shown) — the breakdown without colour (DESIGN.md §6). %>
+      <dl class="min-w-0 flex-1 space-y-2.5">
+        <% slices.each do |slice| %>
+          <div>
+            <dt class="flex items-center gap-2 text-xs font-bold text-label">
+              <span class="inline-block size-2.5 shrink-0 rounded-full bg-<%= slice[:color] %>" aria-hidden="true"></span>
+              <%= slice[:label] %>
+            </dt>
+            <dd class="mt-0.5 pl-4.5 text-base font-extrabold tabular-nums text-ink">$<%= money_display(slice[:amount]) %></dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+</div>
