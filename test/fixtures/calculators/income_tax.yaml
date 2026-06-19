@@ -1,0 +1,8 @@
+income_tax:
+  slug: income_tax
+  name: Income Tax Calculator
+  category: Financial
+  complexity: 5
+  tags: multi-input, tabular-output
+  description: US federal income tax on your taxable income — progressive 2025 single-filer brackets, with the per-bracket breakdown plus your effective and marginal rates.
+  source: "[tax-calculator](https://www.calculator.net/tax-calculator.html)"

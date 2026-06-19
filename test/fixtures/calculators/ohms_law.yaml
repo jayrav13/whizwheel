@@ -1,0 +1,8 @@
+ohms_law:
+  slug: ohms_law
+  name: Ohms Law Calculator
+  category: Other
+  complexity: 2
+  tags: multi-input, multi-mode, physics
+  description: Voltage, current, resistance, and power — supply any two and solve the other two.
+  source: "[ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html)"

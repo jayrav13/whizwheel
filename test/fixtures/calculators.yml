@@ -1,225 +1,30 @@
-# The calculator registry is normally populated by Registry::Ingest from
-# docs/INVENTORY.md (via seeds). db:test:prepare runs neither migrations nor seeds,
-# so tests get registry data from these fixtures instead.
-#
-# These cover every BUILT calculator (one row per app/views/calculators/<slug>.html.erb)
-# so the registry-driven home catalog (issue #107) renders the full library in tests,
-# plus one deprecated row to exercise the .active scope excluding it. Names/categories/
-# descriptions mirror docs/INVENTORY.md (the registry's source of truth).
-percentage:
-  slug: percentage
-  name: Percentage Calculator
-  category: Math
-  complexity: 3
-  tags: multi-mode, multi-input
-  description: Five percentage operations — % of a number, what percent, percent of what, difference, and increase/decrease.
-  source: "[percent-calculator](https://www.calculator.net/percent-calculator.html)"
+<%#
+  Per-calculator fixture aggregator (issue #286).
 
-ohms_law:
-  slug: ohms_law
-  name: Ohms Law Calculator
-  category: Other
-  complexity: 2
-  tags: multi-input, multi-mode, physics
-  description: Voltage, current, resistance, and power — supply any two and solve the other two.
-  source: "[ohms-law-calculator](https://www.calculator.net/ohms-law-calculator.html)"
+  The calculator registry (the `calculators` table) is normally populated by
+  Registry::Ingest from docs/INVENTORY.md (via seeds). db:test:prepare runs
+  neither migrations nor seeds, so tests get registry data from fixtures instead.
 
-bmi:
-  slug: bmi
-  name: BMI Calculator
-  category: Fitness & Health
-  complexity: 2
-  tags: multi-input, health, unit-conversion
-  description: Body Mass Index from weight and height, in US or metric units, with the WHO classification band.
-  source: "[bmi-calculator](https://www.calculator.net/bmi-calculator.html)"
+  WHY THIS IS AN ERB AGGREGATOR: a single shared calculators.yml was a fan-out
+  serialization chokepoint — every parallel frontend build appended its row and
+  they collided at merge time (the predicted "fixture<->page coupling", #286),
+  defeating the conflict-free-parallel-build promise (CLAUDE.md rule #3: no
+  hand-edited central registration).
 
-compound_interest:
-  slug: compound_interest
-  name: Compound Interest Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input, multi-mode, charts
-  description: Grow a principal with compound interest — pick how often it compounds (annually to daily) and see the future value, total interest, and a growth curve.
-  source: "[compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html)"
+  So each calculator now owns its OWN fixture file under test/fixtures/calculators/
+  (one <slug>.yaml per BUILT calculator, plus _deprecated.yaml for the deprecated-
+  scope row). Adding a calculator = adding a file, never editing a shared one —
+  exactly rule #3's "add a file" property, now applied to the test fixtures too.
 
-date:
-  slug: date
-  name: Date Calculator
-  category: Other
-  complexity: 3
-  tags: date-math, multi-mode
-  description: Days between two dates, or add/subtract years, months, weeks and days from a date.
-  source: "[date-calculator](https://www.calculator.net/date-calculator.html)"
+  This file is the only piece Rails' `fixtures :all` loads for the `calculators`
+  table: it ERB-inlines every partial below into one fixture set. The partials use
+  the .yaml extension (NOT .yml) ON PURPOSE — Rails' fixture glob is `*.{yml}`, so
+  a `.yaml` file in a subdirectory is NOT picked up by `fixtures :all` as its own
+  (mis-named) fixture set; only this aggregator reads them, loading every row into
+  the `calculators` table so the `calculators(:percentage)` accessor keeps working.
 
-age:
-  slug: age
-  name: Age Calculator
-  category: Other
-  complexity: 3
-  tags: date-math, multi-mode
-  description: Your exact age between two dates — years, months and days, plus total months, weeks, days and hours.
-  source: "[age-calculator](https://www.calculator.net/age-calculator.html)"
-
-simple_interest:
-  slug: simple_interest
-  name: Simple Interest Calculator
-  category: Financial
-  complexity: 2
-  tags: multi-input
-  description: Interest on the original principal only — never compounded. Enter a principal, rate, and term in years or months.
-  source: "[simple-interest-calculator](https://www.calculator.net/simple-interest-calculator.html)"
-
-amortization:
-  slug: amortization
-  name: Amortization Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input, tabular-output, charts
-  description: The monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest breakdown, and the full schedule.
-  source: "[amortization-calculator](https://www.calculator.net/amortization-calculator.html)"
-
-average_return:
-  slug: average_return
-  name: Average Return Calculator
-  category: Financial
-  complexity: 3
-  tags: multi-input, statistical
-  description: Average a series of period returns — get both the simple arithmetic average and the compounded geometric average (the true annualized rate).
-  source: "[average-return-calculator](https://www.calculator.net/average-return-calculator.html)"
-
-loan:
-  slug: loan
-  name: Loan Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input, multi-mode, tabular-output
-  description: An amortized fixed-rate loan — solve for the monthly payment, the loan amount you can afford, or the term, and see the full repayment schedule.
-  source: "[loan-calculator](https://www.calculator.net/loan-calculator.html)"
-
-mean_median_mode_range:
-  slug: mean_median_mode_range
-  name: Mean, Median, Mode, Range Calculator
-  category: Math
-  complexity: 3
-  tags: statistical, text-output
-  description: The central tendency and spread of a list of numbers — mean, median, mode, range, sum, count and more.
-  source: "[mean-median-mode-range-calculator](https://www.calculator.net/mean-median-mode-range-calculator.html)"
-
-standard_deviation:
-  slug: standard_deviation
-  name: Standard Deviation Calculator
-  category: Math
-  complexity: 3
-  tags: statistical, multi-mode, text-output
-  description: Standard deviation, variance and mean of a data set — choose population or sample.
-  source: "[standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html)"
-
-mortgage:
-  slug: mortgage
-  name: Mortgage Calculator
-  category: Financial
-  complexity: 5
-  tags: multi-input, tabular-output, charts
-  description: A full home-mortgage estimate — principal & interest plus property tax, insurance and HOA — with the monthly payment breakdown, total cost, and amortization schedule.
-  source: "[mortgage-calculator](https://www.calculator.net/mortgage-calculator.html)"
-
-pythagorean_theorem:
-  slug: pythagorean_theorem
-  name: Pythagorean Theorem Calculator
-  category: Math
-  complexity: 2
-  tags: geometry, multi-mode
-  description: Solve a right triangle's third side with the Pythagorean theorem — give two sides and get the missing one, plus a labeled figure.
-  source: "[pythagorean-theorem-calculator](https://www.calculator.net/pythagorean-theorem-calculator.html)"
-
-right_triangle:
-  slug: right_triangle
-  name: Right Triangle Calculator
-  category: Math
-  complexity: 3
-  tags: geometry, multi-mode
-  description: Solve a right triangle from two known sides — get the third side, both acute angles, area, perimeter, and altitude.
-  source: "[right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html)"
-
-tip:
-  slug: tip
-  name: Tip Calculator
-  category: Other
-  complexity: 2
-  tags: multi-input
-  description: The tip and grand total on a bill, split evenly across your party for the per-person amount.
-  source: "[tip-calculator](https://www.calculator.net/tip-calculator.html)"
-
-discount:
-  slug: discount
-  name: Discount Calculator
-  category: Financial
-  complexity: 2
-  tags: multi-input, multi-mode
-  description: Apply a discount to a price — percent off or a fixed amount off — and see the final sale price and how much you saved.
-  source: "[discount-calculator](https://www.calculator.net/discount-calculator.html)"
-
-vat:
-  slug: vat
-  name: VAT Calculator
-  category: Financial
-  complexity: 2
-  tags: multi-input, multi-mode
-  description: Solve a value-added-tax problem from any two of the three figures — net price, VAT rate, or gross price — and get the VAT amount and the missing value.
-  source: "[vat-calculator](https://www.calculator.net/vat-calculator.html)"
-income_tax:
-  slug: income_tax
-  name: Income Tax Calculator
-  category: Financial
-  complexity: 5
-  tags: multi-input, tabular-output
-  description: US federal income tax on your taxable income — progressive 2025 single-filer brackets, with the per-bracket breakdown plus your effective and marginal rates.
-  source: "[tax-calculator](https://www.calculator.net/tax-calculator.html)"
-sales_tax:
-  slug: sales_tax
-  name: Sales Tax Calculator
-  category: Financial
-  complexity: 2
-  tags: multi-input, multi-mode
-  description: Solve a sales-tax problem from any two of the three figures — before-tax price, tax rate, or after-tax price — and get the tax amount and the missing value.
-  source: "[sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html)"
-auto_loan:
-  slug: auto_loan
-  name: Auto Loan Calculator
-  category: Financial
-  complexity: 3
-  tags: multi-input, tabular-output
-  description: An amortized auto loan — fold trade-in, down payment, sales tax and fees into the financed amount and see the monthly payment, total interest, and full repayment schedule.
-  source: "[auto-loan-calculator](https://www.calculator.net/auto-loan-calculator.html)"
-roi:
-  slug: roi
-  name: ROI Calculator
-  category: Financial
-  complexity: 2
-  tags: multi-input
-  description: Return on investment — enter the amount invested and the amount returned (with an optional holding period) to get the total gain, ROI %, and annualized ROI.
-  source: "[roi-calculator](https://www.calculator.net/roi-calculator.html)"
-personal_loan:
-  slug: personal_loan
-  name: Personal Loan Calculator
-  category: Financial
-  complexity: 3
-  tags: multi-input, tabular-output
-  description: An amortized personal loan — enter the loan amount, rate, and term to see the monthly payment, total interest, total cost, and full repayment schedule.
-  source: "[personal-loan-calculator](https://www.calculator.net/personal-loan-calculator.html)"
-house_affordability:
-  slug: house_affordability
-  name: House Affordability Calculator
-  category: Financial
-  complexity: 4
-  tags: multi-input
-  description: How much house can you afford — from your income, debts, down payment, and DTI limits, get the maximum monthly payment, loan amount, and home price.
-  source: "[house-affordability-calculator](https://www.calculator.net/house-affordability-calculator.html)"
-
-retired_thing:
-  slug: retired_thing
-  name: Retired Calculator
-  category: Math
-  complexity: 1
-  description: A calculator that was dropped from the catalog.
-  deprecated_at: 2026-06-12 00:00:00
+  To add a calculator's registry fixture: drop test/fixtures/calculators/<slug>.yaml
+  with a single top-level `<slug>:` mapping. Nothing here changes. Names/categories/
+  descriptions mirror docs/INVENTORY.md (the registry's source of truth).
+-%>
+<%= Dir[File.expand_path("calculators/*.yaml", __dir__)].sort.map { |path| File.read(path) }.join("\n") %>

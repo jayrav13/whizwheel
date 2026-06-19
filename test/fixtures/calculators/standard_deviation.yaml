@@ -1,0 +1,8 @@
+standard_deviation:
+  slug: standard_deviation
+  name: Standard Deviation Calculator
+  category: Math
+  complexity: 3
+  tags: statistical, multi-mode, text-output
+  description: Standard deviation, variance and mean of a data set — choose population or sample.
+  source: "[standard-deviation-calculator](https://www.calculator.net/standard-deviation-calculator.html)"

@@ -1,0 +1,8 @@
+simple_interest:
+  slug: simple_interest
+  name: Simple Interest Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input
+  description: Interest on the original principal only — never compounded. Enter a principal, rate, and term in years or months.
+  source: "[simple-interest-calculator](https://www.calculator.net/simple-interest-calculator.html)"

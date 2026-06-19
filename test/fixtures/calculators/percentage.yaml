@@ -1,0 +1,8 @@
+percentage:
+  slug: percentage
+  name: Percentage Calculator
+  category: Math
+  complexity: 3
+  tags: multi-mode, multi-input
+  description: Five percentage operations — % of a number, what percent, percent of what, difference, and increase/decrease.
+  source: "[percent-calculator](https://www.calculator.net/percent-calculator.html)"

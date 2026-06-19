@@ -1,0 +1,8 @@
+bmi:
+  slug: bmi
+  name: BMI Calculator
+  category: Fitness & Health
+  complexity: 2
+  tags: multi-input, health, unit-conversion
+  description: Body Mass Index from weight and height, in US or metric units, with the WHO classification band.
+  source: "[bmi-calculator](https://www.calculator.net/bmi-calculator.html)"

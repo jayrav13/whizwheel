@@ -1,0 +1,8 @@
+sales_tax:
+  slug: sales_tax
+  name: Sales Tax Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input, multi-mode
+  description: Solve a sales-tax problem from any two of the three figures — before-tax price, tax rate, or after-tax price — and get the tax amount and the missing value.
+  source: "[sales-tax-calculator](https://www.calculator.net/sales-tax-calculator.html)"
