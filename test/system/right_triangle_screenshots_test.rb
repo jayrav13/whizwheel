@@ -79,6 +79,35 @@ class RightTriangleScreenshotsTest < ApplicationSystemTestCase
     screenshot_full_page("44-right-triangle-large-values")
   end
 
+  test "tall-thin near-degenerate triangle keeps every figure label inside the figure" do
+    # Issue #215, the remaining geometry beyond #288's large-VALUE case: a tall-thin triangle
+    # (a huge leg a, a tiny leg b) collapses the bottom vertex hard against the figure's left
+    # origin, so the `end`-anchored α angle label — which grows LEFTWARD from that vertex —
+    # would spill off the figure's left margin without the helper's clamp. We solve leg b from
+    # a long leg a and a hypotenuse a hair larger, so b stays tiny: a = 300,000, c = 300,001
+    # → b ≈ 774, a ~387:1 sliver. Every SVG label (sides AND both clamped angle labels) must
+    # render fully within the figure's horizontal bounds — the worst case #288's check missed.
+    visit "/calculators/right_triangle"
+    choose "Leg & hypotenuse (a, c)", allow_label_click: true
+    fill_in "Leg a", with: "300000"
+    fill_in "Hypotenuse (c)", with: "300001"
+    click_button "Calculate"
+    within "#result" do
+      assert_text "Solved triangle".upcase
+      assert_selector "figure svg[role=img]"
+      assert_selector "figure svg polygon"
+      # The α/β angle labels are present in the degenerate figure (the clamp keeps them on-screen).
+      assert_selector "figure svg text", text: "α"
+      assert_selector "figure svg text", text: "β"
+    end
+    # No stat-card value clips even on the lopsided geometry.
+    assert_no_value_clip("#result dl.stat-grid .stat-card dd span")
+    # The pre-existing check: every SVG label — the three side labels AND both clamped angle
+    # labels — stays inside the figure's left/right edges, the tall-thin worst case (#215).
+    assert_svg_labels_within_bounds("#result figure svg[role=img]", "text")
+    screenshot_full_page("45-right-triangle-tall-thin")
+  end
+
   test "invalid input shows the error fragment" do
     visit "/calculators/right_triangle"
     # Submit legs with no numbers → server 422 → error fragment in #result.
