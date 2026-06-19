@@ -31,11 +31,65 @@ expand_sha() {
   echo "$s"
 }
 
-# Resolve a CI run id for a full SHA via the server-side --commit filter — no
-# manual headSha equality (which an abbreviated SHA silently fails) and no
-# --limit window that could miss an older-but-real run (#224).
+# Resolve a run id for a full SHA. Tries the most reliable source first:
+#  1. The REST Actions API filtered by head_sha — the canonical server-side index
+#     a run is registered in the moment its run object exists, so it resolves a
+#     LIVE run that the `gh run list` CLI filters haven't caught up to yet (#261:
+#     ci-watch false-NO-RUN'd a live run because the CLI --commit/--branch filters
+#     lag the underlying index right after a push).
+#  2. `gh run list --commit` (the #224 fix) — server-side, no abbreviated-SHA
+#     headSha mismatch, no --limit window.
+#  3. The commit's check-runs (`commits/{sha}/check-runs`) — reaches the run via a
+#     check-run html_url even when the run-list filters are still empty.
+#  4. A client-side headSha scan over a wide recent window — last resort.
+# Each strategy is independent, so one lagging index never hard-fails resolution.
 run_id_for_sha() {
-  gh run list --commit "$1" --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null
+  local sha="$1" id
+  id=$(gh api "repos/{owner}/{repo}/actions/runs?head_sha=${sha}&per_page=1" \
+    --jq '.workflow_runs[0].id // empty' 2>/dev/null)
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
+  id=$(gh run list --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null)
+  [[ -n "$id" && "$id" != "null" ]] && { echo "$id"; return 0; }
+  id=$(gh api "repos/{owner}/{repo}/commits/${sha}/check-runs" \
+    --jq '.check_runs[0].html_url // empty' 2>/dev/null \
+    | grep -oE 'runs/[0-9]+' | head -1 | grep -oE '[0-9]+')
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
+  gh run list --limit 100 --json databaseId,headSha \
+    --jq "[.[] | select(.headSha==\"$sha\")][0].databaseId // empty" 2>/dev/null
+}
+
+# Resolve a run id for a PR. The head-SHA resolver (run_id_for_sha → REST Actions
+# API by head_sha) is tried FIRST: it registers a live run the instant its run
+# object exists, whereas `gh pr checks` returns empty until check-runs have
+# materialized — the window in which a freshly-pushed live run false-NO-RUN'd
+# (#261, seen on this PR's own live run). `gh pr checks` (the PR's actual
+# check-run association; its `link` embeds .../actions/runs/<id>/...) is the next
+# fallback, then the --branch filter.
+run_id_for_pr() {
+  local ref="$1" head_sha="$2" branch="$3" id
+  if [[ -n "$head_sha" ]]; then
+    id=$(run_id_for_sha "$head_sha")
+    [[ -n "$id" ]] && { echo "$id"; return 0; }
+  fi
+  id=$(gh pr checks "$ref" --json link --jq '.[0].link' 2>/dev/null \
+    | grep -oE 'runs/[0-9]+' | head -1 | grep -oE '[0-9]+')
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
+  [[ -n "$branch" ]] || return 1
+  gh run list --branch "$branch" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null
+}
+
+# Resolve a run id with a bounded retry. The run may be created moments after the
+# push but before any index catches up, so a single shot can false-NO-RUN a run
+# that is about to be (or already is) live (#261). Retry the given resolver a few
+# times before giving up. Prints the run id on success, nothing on exhaustion.
+resolve_with_retry() {
+  local id attempt
+  for attempt in 1 2 3 4 5; do
+    id=$("$@")
+    [[ -n "$id" && "$id" != "null" ]] && { echo "$id"; return 0; }
+    [[ $attempt -lt 5 ]] && sleep 3
+  done
+  return 1
 }
 
 poll=false; logs=false; ref=""; mode="branch"
@@ -50,22 +104,22 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-branch=""; sha=""
+run_id=""
 case "$mode" in
   pr)
     branch=$(gh pr view "$ref" --json headRefName --jq .headRefName 2>/dev/null) \
       || { echo "ci-watch: PR $ref not found" >&2; exit 3; }
-    sha=$(gh pr view "$ref" --json headRefOid --jq .headRefOid 2>/dev/null) ;;
-  sha) sha="$ref" ;;
-  branch) branch="${ref:-$(git rev-parse --abbrev-ref HEAD)}" ;;
+    head_sha=$(gh pr view "$ref" --json headRefOid --jq .headRefOid 2>/dev/null)
+    [[ -n "$head_sha" ]] && head_sha=$(expand_sha "$head_sha")
+    run_id=$(resolve_with_retry run_id_for_pr "$ref" "$head_sha" "$branch") ;;
+  sha)
+    sha=$(expand_sha "$ref")
+    run_id=$(resolve_with_retry run_id_for_sha "$sha") ;;
+  branch)
+    branch="${ref:-$(git rev-parse --abbrev-ref HEAD)}"
+    run_id=$(resolve_with_retry \
+      gh run list --branch "$branch" --limit 1 --json databaseId --jq '.[0].databaseId // empty') ;;
 esac
-
-if [[ -n "$sha" ]]; then
-  sha=$(expand_sha "$sha")
-  run_id=$(run_id_for_sha "$sha")
-else
-  run_id=$(gh run list --branch "$branch" --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null)
-fi
 
 if [[ -z "$run_id" || "$run_id" == "null" ]]; then
   echo "ci-watch: no CI run found for ${ref:-current branch}" >&2; exit 3
