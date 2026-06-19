@@ -42,29 +42,38 @@ expand_sha() {
   echo "$s"
 }
 
-# Resolve a run id for a full SHA: server-side --commit filter first (#224), then
-# a client-side headSha scan over a wide window for runs --commit hasn't yet
-# indexed (eventual consistency right after creation, #261).
+# Resolve a run id for a full SHA. REST Actions API by head_sha first — the
+# canonical server-side index, registered the instant the run object exists, so
+# it resolves a LIVE run the `gh run list` CLI filters still lag (#261). Then the
+# --commit filter (#224), then the commit's check-runs, then a client-side
+# headSha scan. Each strategy independent; no lagging index hard-fails resolution.
 run_id_for_sha() {
   local sha="$1" id
-  id=$(gh run list --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null)
+  id=$(gh api "repos/{owner}/{repo}/actions/runs?head_sha=${sha}&per_page=1" \
+    --jq '.workflow_runs[0].id // empty' 2>/dev/null)
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
+  id=$(gh run list --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null)
   [[ -n "$id" && "$id" != "null" ]] && { echo "$id"; return 0; }
+  id=$(gh api "repos/{owner}/{repo}/commits/${sha}/check-runs" \
+    --jq '.check_runs[0].html_url // empty' 2>/dev/null \
+    | grep -oE 'runs/[0-9]+' | head -1 | grep -oE '[0-9]+')
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
   gh run list --limit 100 --json databaseId,headSha \
     --jq "[.[] | select(.headSha==\"$sha\")][0].databaseId // empty" 2>/dev/null
 }
 
-# Resolve a run id for a PR via its actual check-run association (`gh pr checks`),
-# which reaches a pull_request-event run the --commit/--branch filters can miss
-# (#261). Falls back to --commit on the head SHA, then to the --branch filter.
+# Resolve a run id for a PR. Head-SHA resolver first (REST by head_sha reaches a
+# live run before check-runs materialize), then `gh pr checks` (the PR's actual
+# check-run association), then the --branch filter (#261).
 run_id_for_pr() {
   local ref="$1" head_sha="$2" branch="$3" id
-  id=$(gh pr checks "$ref" --json link --jq '.[0].link' 2>/dev/null \
-    | grep -oE 'runs/[0-9]+' | head -1 | grep -oE '[0-9]+')
-  [[ -n "$id" ]] && { echo "$id"; return 0; }
   if [[ -n "$head_sha" ]]; then
     id=$(run_id_for_sha "$head_sha")
     [[ -n "$id" ]] && { echo "$id"; return 0; }
   fi
+  id=$(gh pr checks "$ref" --json link --jq '.[0].link' 2>/dev/null \
+    | grep -oE 'runs/[0-9]+' | head -1 | grep -oE '[0-9]+')
+  [[ -n "$id" ]] && { echo "$id"; return 0; }
   [[ -n "$branch" ]] || return 1
   gh run list --branch "$branch" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null
 }
