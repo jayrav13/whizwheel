@@ -74,13 +74,23 @@ module Calculators
 
     # The SVG figure geometry for a solved Right Triangle (DESIGN.md §4 charts/visualisation
     # vocabulary, extended to a static labeled diagram). Returns the three vertex points of a
-    # right triangle laid out inside a `width × height` box (with `pad` margin for the labels),
-    # SCALED to the solved side ratios so the drawn triangle is geometrically faithful — a 3-4-5
-    # looks like a 3-4-5, a 5-12-13 reads tall and thin. The right angle sits at the bottom-left;
-    # leg a runs up the left side (vertical), leg b along the bottom (horizontal), the hypotenuse
-    # c spans them. Heights/widths come straight from the solved `result` so the picture matches
-    # the numbers. Pure geometry → returns a Hash the partial reads; no markup here.
-    def right_triangle_points(result, width: 260, height: 190, pad: 34)
+    # right triangle laid out inside a `width × height` box, SCALED to the solved side ratios
+    # so the drawn triangle is geometrically faithful — a 3-4-5 looks like a 3-4-5, a 5-12-13
+    # reads tall and thin. The right angle sits at the bottom-left; leg a runs up the left side
+    # (vertical), leg b along the bottom (horizontal), the hypotenuse c spans them. Heights and
+    # widths come straight from the solved `result` so the picture matches the numbers. Pure
+    # geometry → returns a Hash the partial reads; no markup here.
+    #
+    # Label gutter (issue #215). The edge labels can carry HIGH-MAGNITUDE delimited values
+    # ("a = 300,000", "c = 500,000") and the angle labels six decimals ("α 36.869898°"); on
+    # extreme inputs these grow OUTWARD past the drawn triangle. To stop them clipping at the
+    # viewBox boundary the figure reserves a horizontal `gutter` of empty space on EACH side:
+    # the triangle is drawn inset by `gutter` (origin x = `gutter + pad`), and the outward-
+    # growing labels spill into the gutter instead of off the figure. The angle-label anchor
+    # x's are CLAMPED to the figure's left edge so that even a near-degenerate tall-thin
+    # triangle (a tiny leg b → the bottom vertex sits hard against the origin) can't push the
+    # `end`-anchored α label off the left margin.
+    def right_triangle_points(result, width: 320, height: 190, pad: 34, gutter: 30)
       leg_a = result[:a].to_f # vertical leg
       leg_b = result[:b].to_f # horizontal leg
 
@@ -89,28 +99,47 @@ module Calculators
       leg_a = 1.0 if leg_a <= 0
       leg_b = 1.0 if leg_b <= 0
 
-      box_w = width  - (pad * 2)
-      box_h = height - (pad * 2)
+      # Drawable area is the viewBox minus the label gutters (each side) and the pad.
+      inner_w = width  - (gutter * 2) - (pad * 2)
+      box_h   = height - (pad * 2)
       # Scale so the longer leg fills its box dimension; the shorter keeps the true ratio.
-      scale = [ box_w / leg_b, box_h / leg_a ].min
+      scale  = [ inner_w / leg_b, box_h / leg_a ].min
       draw_b = leg_b * scale
       draw_a = leg_a * scale
 
-      right  = [ pad, height - pad ]               # right-angle vertex (bottom-left)
-      bottom = [ pad + draw_b, height - pad ]      # end of horizontal leg b
-      top    = [ pad, height - pad - draw_a ]      # top of vertical leg a
+      ox = gutter + pad                           # origin x (right-angle vertex), inset by the gutter
+      right  = [ ox, height - pad ]               # right-angle vertex (bottom-left)
+      bottom = [ ox + draw_b, height - pad ]      # end of horizontal leg b
+      top    = [ ox, height - pad - draw_a ]      # top of vertical leg a
+
+      # Angle-label x's, clamped to the figure's horizontal bounds so neither spills off an edge
+      # even on a near-degenerate triangle (issue #215). `angle_label_w` reserves room for the
+      # widest angle string (e.g. "α 36.869898°") at the 10px font — both clamps below keep that
+      # whole string inside the figure regardless of how cramped the vertex gets.
+      #   • α is anchored `end` below-left of the bottom vertex, so its TEXT grows leftward; we
+      #     floor its anchor x at `gutter + angle_label_w` so the text's left edge stays ≥ gutter
+      #     even when a tiny leg b pulls the bottom vertex hard against the origin.
+      #   • β is anchored `start` above-right of the top vertex, so its TEXT grows rightward; we
+      #     ceiling its anchor x at `width - gutter - angle_label_w` so its right edge stays inside.
+      angle_label_w = 70
+      alpha_x = [ bottom[0] - 16, (gutter + angle_label_w).to_f ].max
+      beta_x  = [ top[0] + 14, (width - gutter - angle_label_w).to_f ].min
 
       {
-        width: width, height: height,
+        width: width, height: height, gutter: gutter,
         right: right, bottom: bottom, top: top,
         # Edge midpoints, for the side labels (nudged off the stroke). The `a` label sits
         # just INSIDE the vertical leg (to its right, anchored `start` → grows rightward into
         # the triangle interior) so a high-magnitude value like "300,000" can never overflow
         # the figure's left margin (QA #272 cosmetic clip — propagated from Pythagorean). mid_b
         # sits below leg b; mid_c over the hypotenuse, both anchored to grow toward open space.
-        mid_a: [ pad + 6, height - pad - (draw_a / 2) ],           # just right of leg a (interior)
-        mid_b: [ pad + (draw_b / 2), height - pad + 18 ],          # below leg b
-        mid_c: [ pad + (draw_b / 2) + 12, height - pad - (draw_a / 2) - 6 ] # over hypotenuse
+        mid_a: [ ox + 6, height - pad - (draw_a / 2) ],           # just right of leg a (interior)
+        mid_b: [ ox + (draw_b / 2), height - pad + 18 ],          # below leg b
+        mid_c: [ ox + (draw_b / 2) + 12, height - pad - (draw_a / 2) - 6 ], # over hypotenuse
+        # Angle-label anchors (clamped — see above). Kept as named points so the clamp is
+        # computed/tested here in Ruby, not inline in the (coverage-blind) ERB.
+        alpha: [ alpha_x, bottom[1] - 6 ],                        # below-left of the bottom vertex
+        beta:  [ beta_x, top[1] + 26 ]                            # above-right of the top vertex
       }
     end
 

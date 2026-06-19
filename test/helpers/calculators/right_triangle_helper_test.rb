@@ -46,9 +46,11 @@ class Calculators::RightTriangleHelperTest < ActionView::TestCase
 
   test "right_triangle_points returns the three vertices and label anchors" do
     points = right_triangle_points({ a: "3.000000", b: "4.000000", c: "5.000000" })
-    # Right angle at bottom-left; both legs drawn positive within the padded box.
-    assert_equal 260, points[:width]
+    # Right angle at bottom-left; both legs drawn positive within the padded box. The viewBox
+    # is widened (issue #215) to a 320×190 box with a horizontal label gutter on each side.
+    assert_equal 320, points[:width]
     assert_equal 190, points[:height]
+    assert_operator points[:gutter], :>, 0
     rx, ry = points[:right]
     bx, _by = points[:bottom]
     _tx, ty = points[:top]
@@ -57,6 +59,37 @@ class Calculators::RightTriangleHelperTest < ActionView::TestCase
     assert points.key?(:mid_a)
     assert points.key?(:mid_b)
     assert points.key?(:mid_c)
+    # Angle-label anchors are now computed (clamped) in the helper, not inline in the ERB.
+    assert points.key?(:alpha)
+    assert points.key?(:beta)
+  end
+
+  test "right_triangle_points insets the triangle by the gutter so labels never clip" do
+    # Issue #215: the figure reserves an empty horizontal gutter on each side; the drawn
+    # triangle's right-angle vertex sits inset by the gutter (x > gutter), leaving room for
+    # outward-growing edge labels.
+    points = right_triangle_points({ a: "3.000000", b: "4.000000", c: "5.000000" })
+    right_x, = points[:right]
+    assert_operator right_x, :>=, points[:gutter],
+      "the drawn triangle should sit inside the left label gutter"
+  end
+
+  test "right_triangle_points clamps the angle labels inside the figure on a degenerate triangle" do
+    # Issue #215: a near-degenerate tall-thin triangle (a tiny leg b) pulls the bottom vertex
+    # hard against the origin; without a clamp the `end`-anchored α label would grow off the
+    # left margin. The α anchor x is floored, and β ceilinged, so both stay inside the figure.
+    width  = 320
+    gutter = 30
+    points = right_triangle_points({ a: "300000.000000", b: "3.000000", c: "300000.000000" })
+    alpha_x, = points[:alpha]
+    beta_x,  = points[:beta]
+    # α is anchored `end`, growing left — its anchor must be far enough right that the longest
+    # angle string still ends to the right of the left gutter edge.
+    assert_operator alpha_x, :>=, gutter,
+      "the α label anchor must be floored inside the left gutter so the text can't clip"
+    # β is anchored `start`, growing right — its anchor must stay left of the right gutter edge.
+    assert_operator beta_x, :<=, width - gutter,
+      "the β label anchor must be ceilinged inside the right gutter so the text can't clip"
   end
 
   test "right_triangle_points anchors the leg-a label inside the vertical leg" do
@@ -73,10 +106,11 @@ class Calculators::RightTriangleHelperTest < ActionView::TestCase
 
   test "right_triangle_points scales the longer leg to fill its box dimension" do
     # A tall-thin 5-12-13: leg b (12) is longer, so it should fill the horizontal box more
-    # than a square 1-1 would; either way both drawn legs stay within the box.
+    # than a square 1-1 would; either way both drawn legs stay within the box (the drawable
+    # area is the viewBox minus the label gutter on each side and the pad — issue #215).
     points = right_triangle_points({ a: "5.000000", b: "12.000000", c: "13.000000" })
     bx, _ = points[:bottom]
-    assert_operator bx, :<=, 260 - 34  # within width - pad
+    assert_operator bx, :<=, points[:width] - points[:gutter] - 34  # within width - gutter - pad
   end
 
   test "right_triangle_points falls back to a unit triangle on a degenerate side" do

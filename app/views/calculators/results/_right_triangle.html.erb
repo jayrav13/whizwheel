@@ -46,15 +46,17 @@
               <%= sym %> = <%= right_triangle_value(val) %>
             </text>
           <% end %>
-          <%# Angle labels at the two acute vertices — α opposite a (at the bottom vertex),
-              β opposite b (at the top vertex). accent green, matching the eyebrow. %>
-          <% bx, by = points[:bottom] %>
-          <text x="<%= bx - 16 %>" y="<%= by - 6 %>" text-anchor="end"
+          <%# Angle labels at the two acute vertices — α opposite a (below the bottom vertex),
+              β opposite b (above the top vertex). accent green, matching the eyebrow. Their x's
+              are CLAMPED in the helper to the figure's gutters so neither spills off an edge on
+              an extreme/near-degenerate triangle (issue #215). %>
+          <% ax, ay = points[:alpha] %>
+          <text x="<%= ax %>" y="<%= ay %>" text-anchor="end"
                 class="fill-accent tabular-nums [font-size:10px] [font-weight:700]">
             α <%= right_triangle_value(result[:alpha]) %>°
           </text>
-          <% tx, ty = points[:top] %>
-          <text x="<%= tx + 14 %>" y="<%= ty + 26 %>"
+          <% bx, by = points[:beta] %>
+          <text x="<%= bx %>" y="<%= by %>"
                 class="fill-accent tabular-nums [font-size:10px] [font-weight:700]">
             β <%= right_triangle_value(result[:beta]) %>°
           </text>
