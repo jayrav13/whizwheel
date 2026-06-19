@@ -1,0 +1,8 @@
+age:
+  slug: age
+  name: Age Calculator
+  category: Other
+  complexity: 3
+  tags: date-math, multi-mode
+  description: Your exact age between two dates — years, months and days, plus total months, weeks, days and hours.
+  source: "[age-calculator](https://www.calculator.net/age-calculator.html)"

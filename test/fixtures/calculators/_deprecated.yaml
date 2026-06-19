@@ -1,0 +1,12 @@
+# A deprecated registry row NOT backed by a built calculator class. It exercises
+# Calculator's .active / .deprecated scopes and #deprecate / #reinstate (see
+# test/models/calculator_test.rb). It is intentionally not a per-calculator
+# partial — hence the `_` prefix — and the ingest reconciles it away because no
+# Calculators::RetiredThing class exists.
+retired_thing:
+  slug: retired_thing
+  name: Retired Calculator
+  category: Math
+  complexity: 1
+  description: A calculator that was dropped from the catalog.
+  deprecated_at: 2026-06-12 00:00:00

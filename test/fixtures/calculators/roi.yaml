@@ -1,0 +1,8 @@
+roi:
+  slug: roi
+  name: ROI Calculator
+  category: Financial
+  complexity: 2
+  tags: multi-input
+  description: Return on investment — enter the amount invested and the amount returned (with an optional holding period) to get the total gain, ROI %, and annualized ROI.
+  source: "[roi-calculator](https://www.calculator.net/roi-calculator.html)"

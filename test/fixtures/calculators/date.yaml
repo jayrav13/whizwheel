@@ -1,0 +1,8 @@
+date:
+  slug: date
+  name: Date Calculator
+  category: Other
+  complexity: 3
+  tags: date-math, multi-mode
+  description: Days between two dates, or add/subtract years, months, weeks and days from a date.
+  source: "[date-calculator](https://www.calculator.net/date-calculator.html)"

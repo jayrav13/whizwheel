@@ -1,0 +1,8 @@
+tip:
+  slug: tip
+  name: Tip Calculator
+  category: Other
+  complexity: 2
+  tags: multi-input
+  description: The tip and grand total on a bill, split evenly across your party for the per-person amount.
+  source: "[tip-calculator](https://www.calculator.net/tip-calculator.html)"

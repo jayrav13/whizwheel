@@ -1,0 +1,8 @@
+average_return:
+  slug: average_return
+  name: Average Return Calculator
+  category: Financial
+  complexity: 3
+  tags: multi-input, statistical
+  description: Average a series of period returns — get both the simple arithmetic average and the compounded geometric average (the true annualized rate).
+  source: "[average-return-calculator](https://www.calculator.net/average-return-calculator.html)"

@@ -1,0 +1,8 @@
+right_triangle:
+  slug: right_triangle
+  name: Right Triangle Calculator
+  category: Math
+  complexity: 3
+  tags: geometry, multi-mode
+  description: Solve a right triangle from two known sides — get the third side, both acute angles, area, perimeter, and altitude.
+  source: "[right-triangle-calculator](https://www.calculator.net/right-triangle-calculator.html)"

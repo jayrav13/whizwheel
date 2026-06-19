@@ -1,0 +1,8 @@
+compound_interest:
+  slug: compound_interest
+  name: Compound Interest Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input, multi-mode, charts
+  description: Grow a principal with compound interest — pick how often it compounds (annually to daily) and see the future value, total interest, and a growth curve.
+  source: "[compound-interest-calculator](https://www.calculator.net/compound-interest-calculator.html)"

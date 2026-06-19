@@ -1,0 +1,8 @@
+amortization:
+  slug: amortization
+  name: Amortization Calculator
+  category: Financial
+  complexity: 4
+  tags: multi-input, tabular-output, charts
+  description: The monthly payment on a fixed-rate loan, with the total interest, a principal-vs-interest breakdown, and the full schedule.
+  source: "[amortization-calculator](https://www.calculator.net/amortization-calculator.html)"
