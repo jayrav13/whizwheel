@@ -63,7 +63,7 @@ jobs:
           echo "Generated index + $count agent page(s)."
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
