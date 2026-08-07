@@ -21,6 +21,13 @@ module Whizwheel
     # represent. Produces db/structure.sql.
     config.active_record.schema_format = :sql
 
+    # Active Storage is unused (no attachments, no active_storage tables) — it is
+    # only present because of `require "rails/all"` above. As of Rails 8.1.3.1 the
+    # Active Storage engine resolves its variant transformer eagerly at boot, and
+    # the default `:vips` processor requires the `ruby-vips` gem, which we don't
+    # carry. `:disabled` selects a NullTransformer, so boot needs no image library.
+    config.active_storage.variant_processor = :disabled
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
