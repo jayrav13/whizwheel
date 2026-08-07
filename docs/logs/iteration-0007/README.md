@@ -1,8 +1,12 @@
 # Iteration 0007
 
-**Status:** closed
+**Status:** closed — **after TWO Evaluate→Harvest rounds** (see "Two rounds" below)
 **Opened:** 2026-06-16
-**Closed:** 2026-06-16
+**Closed:** **2026-08-07** (the r2 close — the real one). ⚠️ This log previously read
+`Closed: 2026-06-16`; that is the **r1** close, and it was **premature** — a second
+Evaluate→Harvest round (**r2**) ran on 2026-06-25/26 and its harvest merged 2026-08-07,
+*after* the date the log claimed the iteration had ended. The r1 close date is preserved
+in the body (§ "Close — r1 (2026-06-16)"); the corrected end-of-iteration date is above.
 **Pinned agent SHA:** iteration-0007 is pinned at the **post-harvest `main` SHA** `e85c47c` (HEAD at
 open). The main thread applied the `iteration-0007` git tag at that SHA; the PM does not create the tag.
 This log references "iteration-0007, pinned at post-harvest `main` (`e85c47c`)."
@@ -20,6 +24,23 @@ tripped a transient server-side API rate-limit and died mid-run; recovery was cl
 and the lesson was harvested as a **concurrency cap (~3–4)**. Backend results were clean; the operator's UI
 review surfaced **3 nits** (money-2dp, mode-picker pill vertical-centering, table cell overflow), all fixed as
 shared-layer/agent harvest, not per-calculator patches.
+
+## Two rounds — read this first
+
+Iteration-0007 ran the six-phase lifecycle's **Evaluate→Harvest pair twice**. Anyone reading this log
+cold should hold that shape in mind: the long body below is **round 1**; the **r2 addendum at the very
+bottom** is round 2, and it is r2 — not r1 — that produced the agent set iteration-0008 pins at.
+
+| Round | Evaluate | Harvest | Journal | Close | What it produced |
+|---|---|---|---|---|---|
+| **r1** | 2026-06-16 — the build-phase review of the 10 new builds (QA gates + the operator's UI pass) | #284, #285, #287, #288, #289 (+#286 filed) — merged 2026-06-16 | ch. 127–129 (PR #291) | **2026-06-16** (recorded below as "Close — r1") | 3 shared-layer UI fixes, the concurrency cap, `ci-monitor` deprecation, the P4 falsification |
+| **r2** | **2026-06-25** — the operator stands the app up headlessly and hand-reviews **all ten** 0007 calculators live | **#305, #311, #314** — opened 2026-06-26, merged **2026-08-07** (+ 7 issues filed: #306–#310, #312, #313) | ch. 134–135 (PR #314) | **2026-08-07** (this addendum) | 4 durable conventions, the `PRODUCT.md` **completeness band**, the Income Tax **v2** spec, and the #306–#310 infra backlog iteration-0008 pins behind |
+
+**Why the record was wrong:** r1's close was declared on the same day the build finished, before the
+operator's own hands-on review had happened. When that review landed nine days later it produced real
+product-level feedback and a real harvest — so the iteration was, in substance, still open. This
+addendum corrects the date rather than back-dating the evidence. See
+"**Process observation — a closed iteration reopened**" at the end for the lifecycle question this raises.
 
 ---
 
@@ -248,7 +269,16 @@ are **CLOSED** by their merged build PRs above.
 
 ---
 
-## Close (2026-06-16)
+## Close — r1 (2026-06-16)
+
+> **Preserved as written, and now superseded.** This was the iteration's **first** close, declared
+> 2026-06-16 the same day the build phase finished. It is accurate about round 1 — the prediction
+> scorecard, the metrics, and the r1 harvest below all stand — but it was **premature as an
+> end-of-iteration close**: the operator's own hands-on evaluation had not yet happened. That review
+> ran 2026-06-25 and produced **round 2**, recorded in the **r2 addendum** at the end of this file.
+> Where this section says "iteration-0008 opens pinned at the post-harvest `main`," read it as
+> **post-*r2*-harvest** `main` — the r2 conventions (#305) and product harvest (#311) landed after
+> this section was written.
 
 ### Prediction scorecard — 4/5 HELD, P4 FALSIFIED
 
@@ -328,3 +358,176 @@ completed block in BE-PR-ascending ship order, each with its build-time slug + d
 harvest above. iteration-0008 opens pinned at the post-harvest `main`; its regen sweep — if any — is what would
 propagate the #284/#285/#289 shared-layer fixes across the 14 priors that predate them, and the open **#286**
 fixture-cascade fix should land before the next 2×-scale fan-out.
+
+_(This paragraph was written at the r1 close. It is still true as far as it goes — but the set
+iteration-0008 inherits grew substantially in **r2**, below. Continue reading.)_
+
+---
+
+# Addendum — r2: the second Evaluate→Harvest round
+
+**Round:** r2 (the iteration's second Evaluate→Harvest pair)
+**Evaluate:** 2026-06-25 — the operator's live hand-review of all ten 0007 calculators
+**Harvest authored:** 2026-06-26 (PRs #305 / #311 / #314 opened) — then **stale through a project
+pause** until **2026-08-07**, when all three were re-gated and merged
+**Journal:** chapters 134–135 (PR #314)
+**Close:** **2026-08-07** — this addendum. iteration-0007 is now closed for real.
+
+## What triggered r2
+
+Nine days after the r1 close, a fresh session opened not with a build directive but with the
+operator asking whether the round was actually done — *"Have I already reviewed the last set of
+calculators that we built? Did we already harvest?"* — and then declining the offered next step:
+
+> **"I want to do a once over before calling it closed for sure."**
+
+The app was stood up headlessly (`bin/serve-headless`; a stale port-3000 server from a prior session
+produced a false-green `200` that was caught and killed before the review began), and the operator
+clicked through **all ten** iteration-0007 calculators live. That review is the Evaluate phase r1 had
+declared complete without it — and it did not come back clean.
+
+## The three operator feedback items
+
+The operator returned **three numbered items**, all pitched deliberately at the *product/principle*
+level rather than as per-page bugs. Recorded here in substance (verbatim in ch. 134):
+
+1. **Time-series chart X-axis.** The Auto Loan "Balance Over Time" chart labels its X-axis with a raw
+   month **number** (1, 2, 3 …). It should show the **actual month/year** — and the ask was explicitly
+   to **standardize this across all monthly-axis charts**, not fix one page.
+2. **Income Tax is too thin — make the depth a *product decision*.** "The Income Tax Calculator is
+   relatively simple, yeah" — we had technically implemented the *simplest possible* version, and that
+   isn't enough. The ask: make it a product decision to find a **moderate balance between the simplest
+   possible solution and the most complex possible solution.** ***Bundled in the same item:*** **link to
+   the original calculator.net calculator on every page** for easy side-by-side comparison.
+3. **Acronym tooltips.** "Always have hover-over tooltips for acronyms" — the worked example being
+   House Affordability asking for **"DTI"** with no explanation of what that is.
+
+> **Note on the count.** Three *numbered* items, **four** substantive asks — item 2 bundled the
+> completeness question **and** the compare-link request. That is why the harvest below encodes four
+> conventions, not three, and why the backlog splits into three feature lines (chart axis, source link,
+> tooltips) plus one spec rewrite.
+
+**Two of the asks needed a genuine product steer, and were surfaced as an explicit question rather than
+guessed** (the discipline this project prizes). The operator's answers, locked:
+
+- **Income Tax v2 scope = "filing status + deductions"** (not payroll/take-home, not state/credits).
+- **Completeness-pass scope = "Income Tax only now"** — the *principle* becomes general and durable, but
+  there is **no retroactive completeness audit** of the existing 24. The general rule is cheap; the
+  retroactive audit is a large PM job the operator declined.
+
+A third judgment call was surfaced by the PM inside the v2 spec and decided on principle: **`effective_rate`
+denominator = *taxable* income**, not gross (grounds: it is the standard definition of "effective tax rate";
+benchmark-comparability with calculator.net now matters *because* the compare-link is shipping; and it
+continues the v1 definition). The label must read unambiguously — "Effective rate (of taxable income)."
+
+## r2 harvest manifest — the three merged PRs
+
+Every item was routed to the **durable layer** — *fix the agent, not the code*. **Zero per-calculator
+patches were made**, exactly as in r1.
+
+| PR | Layer | Opened | Merged | What |
+|---|---|---|---|---|
+| **#305** | conventions — `DESIGN.md`, `ARCHITECTURE.md`, `.claude/agents/frontend.md`, `.claude/agents/backend.md` | 2026-06-26 | 2026-08-07 | All four conventions: (a) **time-series charts label a real calendar `Mon YYYY` axis** (ticks + crosshair) derived from a start date, never a bare month index (`DESIGN.md §4` + `frontend.md`); (b) **acronym/jargon tooltips** driven by a new **per-field `help` value in the §4 envelope**, spec-authored so the knowledge lives with the calculator rather than in a frontend glossary (`DESIGN.md §2/§4`, `ARCHITECTURE.md §3.2/§4`, both agent defs); (c) **"Compare on calculator.net"** on every page via a registry **`source_url`** (`INVENTORY` → ingest → §4 envelope → link; a `nil` value renders no link — never fabricate one); (d) **specs target the moderate completeness band** (`ARCHITECTURE.md §3.2`). Authored by the **main thread**, not an agent — an agent may not edit the rules it runs under. |
+| **#311** | product — `docs/PRODUCT.md`, `docs/logs/income-tax-v2-spec.md` | 2026-06-26 | 2026-08-07 | Two `PRODUCT.md` additions — the **completeness band** principle (moderate, not minimal, not maximal; with the where-the-line-sits heuristic and Income Tax as the motivating example) and **"Every calculator links back to its source."** Plus the full **Income Tax v2 `spec:v1`** (`docs/logs/income-tax-v2-spec.md`): four filing statuses (`single`/`mfj`/`mfs`/`hoh`) with 2025 standard deductions and all four 2025 bracket schedules pinned **as data**, ten PM-computed reference rows, three worked per-bracket anchors, edge/validation cases, and breakdown-shape assertions. |
+| **#314** | journey — `docs/journey/` | 2026-06-26 | 2026-08-07 | Chapters **134** (the once-over and the three feedback items) and **135** (the harvest execution, the double agent-death, the seven issues, the effective-rate call). This is r2's **Journal** phase. |
+
+**The six-week stall is part of the record.** All three PRs were authored 2026-06-26 and then sat
+**unmerged through a project pause** — the operator's session boundary that round was explicitly *"do all
+work required to prep for the next iteration… however, we will not start the next iteration in this
+session."* Two QA gates were killed mid-flight at that pause. On **2026-08-07** the gates were re-dispatched,
+passed, and the three PRs merged in the prescribed order **#305 → #311 → #314**. (`main` was also
+unblocked that day by **#323**, a bundler-audit failure on `crass 1.0.6` that was red-lighting `scan_ruby`
+on every PR.) Nothing about the harvest's *content* changed during the stall; only its landing date did.
+
+**Process note carried from ch. 135:** the first PM and `github-agent` dispatches of this round **both
+died simultaneously at the 600s watchdog, producing nothing** — a *fourth* distinct agent-death shape
+(mid-run-with-no-side-effect, vs. 0007's rate-limit kills and the 2026-06-19 death-on-completion). Recovery
+followed the mature protocol: verify actual side-effects (zero issues created, no PM branch) before
+re-dispatching, then **tighten the prompt to remove the suspected cause** — the PM's brief was descoped of
+a `WebFetch`-driven `source_url` backfill, and both retried agents returned cleanly.
+
+## r2 backlog — seven issues filed, all still open
+
+The **`github-agent`** filed all of them (no inline `gh` shortcuts — the all-mechanics-through-the-agent
+rule honored). **Seven** net-new issues, spanning **#306–#313** — note the range is not contiguous:
+**#311 in that range is a PR, not an issue.**
+
+| Issue | Label(s) | What | Disposition |
+|---|---|---|---|
+| **#306** | `frontend` | Time-series chart X-axis → calendar `Mon YYYY` ticks + crosshair | **iteration-0008 infra prerequisite.** Independent of the backend. |
+| **#307** | `engineering`, `backend` | Source link — registry **`source_url`** column + §4 envelope field | **iteration-0008 infra prerequisite.** Blocks #309. |
+| **#308** | `engineering`, `backend` | Acronym tooltips — per-field **`help`** text in the §4 envelope | **iteration-0008 infra prerequisite.** Blocks #310. |
+| **#309** | `frontend` | "Compare on calculator.net" link on every calculator page | **iteration-0008 infra prerequisite.** Depends on #307. |
+| **#310** | `frontend` | Acronym tooltips — shared hover-tooltip component for labels and outputs | **iteration-0008 infra prerequisite.** Depends on #308. |
+| **#312** | `backend` | **Income Tax v2** — backend (carries the full v2 spec + the effective-rate decision note) | **Deliberately EXCLUDED from iteration-0008.** Rides a later propagation sweep. |
+| **#313** | `frontend` | **Income Tax v2** — frontend (identical v2 spec body) | **Deliberately EXCLUDED from iteration-0008.** Rides a later propagation sweep. |
+
+**#306–#310 are the infra layer iteration-0008 pins *behind*** — the `source_url` and per-field `help`
+envelope fields plus their three frontend consumers are conventions #305 already *mandates*, so they must
+exist in the envelope before a fan-out builds against it. Backend (#307, #308) lands before frontend
+(#309, #310); #306 is independent.
+
+**#312/#313 (Income Tax v2) are explicitly out of iteration-0008's scope.** The v2 spec is authored and
+filed, but regenerating Income Tax is a *propagation* job, not a new-build one — it rides a later sweep
+rather than competing with 0008's new-build set. Per the append-only / deprecate-never-delete ethos the v1
+issues (#250 BE / #260 FE, both closed by the r1 builds) remain for historical comparability; v2 is
+"regenerate from this spec, not from prior code."
+
+## What r2 did **not** change
+
+Stated explicitly so a future reader doesn't go hunting for a missing update:
+
+- **r2 built no calculators.** No `app/calculators/*.rb` was added, regenerated, or patched; no calculator
+  page changed. All three merged PRs are **docs / agent-definition / spec** only.
+- **The catalog stays at 24.** `docs/INVENTORY.md` therefore needs **no update at this close** — the r1
+  close already floated all ten 0007 calculators into the completed block (14 → 24) with their build-time
+  slug + description. There is no `+N / −N` inventory delta for r2 and none should be expected.
+- **The `source_url` backfill into `INVENTORY.md` is deliberately deferred** to **iteration-0008's Open
+  phase**, per PR #311 ("the per-calculator `source_url` backfill into `INVENTORY.md` happens at
+  iteration-0008's Open phase, per the launch plan — not done here"). It was descoped from r2's PM dispatch
+  because it was `WebFetch`-driven and the prime suspect for the 600s stall that killed the first dispatch.
+  Note the consequence: `ARCHITECTURE.md §3.2`/§4 now reference an `INVENTORY.md` **`source_url`** that the
+  inventory does not yet carry as such (it carries a `Source` column with the same URL). Reconciling the two
+  — column name and per-row backfill — is **iteration-0008 Open work, not a gap in this close.**
+- **No retroactive completeness audit.** Per the operator's locked scope, the completeness band governs
+  future builds/regens only; the other 23 calculators were not re-assessed against it.
+- **iteration-0008 is not opened by this addendum**, and no tag was moved or created. 0008 pins at the
+  **post-r2 `main`** — the state after #305/#311/#314 merged — which is precisely why r2 belongs to
+  iteration-0007's log: *0008 pins at r2's output, so r2 is definitionally 0007's harvest.*
+
+## Process observation — a closed iteration reopened
+
+**The finding worth carrying forward:** an iteration that has been *declared closed* can still reopen for a
+second Evaluate→Harvest round when the operator's own review lands late. That is exactly what happened here.
+r1 closed on 2026-06-16 the day the builds finished, on the strength of the QA gates and an in-flight UI
+pass; the operator's unhurried, hands-on click-through happened **nine days later** and produced feedback
+substantial enough to reshape the product (a new `PRODUCT.md` principle), the conventions (four of them), and
+the next iteration's critical path (five prerequisite issues). By any honest reading the iteration was still
+open on 2026-06-16.
+
+Two ways the lifecycle in `CLAUDE.md` could name this case:
+
+1. **An evaluation gate before Close** — Phase 6 may not run until the *operator's* evaluation (distinct from
+   the per-PR QA gate) has actually happened and been recorded. This makes the premature close impossible by
+   construction, at the cost of a close that can block indefinitely on a human.
+2. **A named "reopened close"** — closing stays cheap, but the lifecycle explicitly permits an iteration to
+   reopen for an additional Evaluate→Harvest round, with the log required to carry a per-round manifest (the
+   shape this addendum improvises). This accepts late feedback as normal rather than exceptional.
+
+There is a real trade-off between them: (1) buys correctness at the cost of throughput; (2) buys throughput
+at the cost of a "closed" state that doesn't reliably mean finished. Note also that the two rounds' Evaluate
+phases were *different in kind* — r1's was gate-and-glance and surfaced three shared-layer **UI nits**; r2's
+was a slow live click-through and surfaced three **product-level** items. That asymmetry is itself an argument
+that the operator's hands-on pass is a distinct, non-optional input, not a redundant second look.
+
+> **Open question for the operator — the PM does not own this file.** Whether to encode (1), (2), or neither
+> is a change to the **iteration delivery lifecycle in `CLAUDE.md`**, which the PM never edits. Raised here as
+> a question, not a decision. **No `CLAUDE.md` change was made by this addendum.**
+
+## r2 close statement
+
+Iteration-0007 is **closed as of 2026-08-07**, having run two full Evaluate→Harvest rounds. Final state:
+**10 calculators shipped** (r1), **catalog 24** (unchanged by r2), **two harvests merged** (r1: #284/#285/#287/#288/#289;
+r2: #305/#311/#314), **r1's one filed issue #286 since fixed and closed** (the shared-fixture split, PR #296),
+and **seven still-open issues from r2** (#306–#310, #312, #313). iteration-0008 opens pinned at the **post-r2 `main`**, behind the
+#306–#310 infra prerequisites, with #312/#313 held back for a later propagation sweep.
