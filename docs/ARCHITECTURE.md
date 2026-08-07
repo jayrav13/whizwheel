@@ -202,10 +202,12 @@ _From the Source above — these pin correctness; the backend agent must reprodu
 ```
 
 **Section contract** (what each part means to the build):
-- **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `INVENTORY.md` echo.
+- **Header lines** — `Category`, `Source` (the calculator.net page the reference values come from), `Complexity` (1–5), `Tags` — provenance + the `INVENTORY.md` echo. The **`Source` URL is now load-bearing beyond provenance**: it is the same URL the PM records as `INVENTORY.md`'s `source_url`, which the registry ingest projects into `calculators.source_url` and the §4 envelope surfaces as each page's **"Compare on calculator.net"** link (§4, `DESIGN.md §4`). Keep the spec `Source` and the INVENTORY `source_url` in sync.
 - **Card description** — a one-line blurb describing what the calculator does, for the catalog card / registry. Authored here once at definition time; the PM transcribes it verbatim into `docs/INVENTORY.md`'s `Description` column at the iteration **Close** phase (see #153 → "Backfill workflow"). It feeds the derived calculator registry's card text (the `Description` column is **not** derivable from the calculator.net scrape).
 - **Intent** — the prose definition of the math; the single source of "what it must do."
 - **Inputs** — one row per attribute: `name` → a `Calculators::Base` `attribute`; `type` → the ActiveModel type (`:decimal` for money/quantities, per §10); `rules` → the validations.
+- **Acronyms carry their expansion (every spec).** Any input or output whose label uses an **acronym or jargon term** (`DTI`, `APR`, `CAGR`, `LTV`, …) must give a one-line **plain-language expansion** in the spec (e.g. `DTI` → "Debt-to-Income ratio"). The build surfaces it as the §4 envelope's per-field `help` text, which the frontend renders as a tooltip (`DESIGN.md §4` *Abbreviation / term tooltip*). The definition lives **with the calculator**, never in a frontend glossary — **never ship an unexplained acronym**.
+- **Scope to the completeness band.** A spec's chosen inputs/modes should target the **moderate completeness band** in `PRODUCT.md` — meaningfully more than the toy version, short of the source's maximal everything-page (iteration-0007's federal-single-filer-only Income Tax was judged too thin).
 - **Outputs** — one row per key in the `#compute` result Hash; these keys are the JSON envelope's `result` shape (§4) the frontend renders.
 - **Reference values** — the `{inputs} → {expected}` table, lifted from the Source. These **pin correctness** and become the calculator's reference-value test (§11). The backend agent reproduces them exactly and **never re-derives or invents them** (it has no web access). **Choose inputs whose result is *unambiguous under the stated rounding rule* — never an example on a `ceil`/`floor`/`round`-boundary razor's edge.** If an output is rounded (e.g. a term `ceil`'d to whole months), avoid reference inputs whose *raw* value lands a hair from the boundary (≈60.0001 vs. ≈59.9999 → 61 vs. 60 months), where a tiny precision difference flips the pinned expected value. Pick inputs that sit comfortably inside a rounding bucket, so the expected figure is stable regardless of intermediate precision. (iteration-0006: the Loan term-mode reference had to be re-pinned mid-build for exactly this reason.)
 - **Notes** — rounding/display intent (§10), deprecations, edge-case guidance.
@@ -241,6 +243,13 @@ def envelope_invalid(klass, calc) = { ok: false, calculator: klass.slug, errors:
 ```
 
 The frontend agent codes against this envelope and nothing else.
+
+**Envelope extensions (iteration-0007-r2 harvest → built in iteration-0008).** Two fields are added to the **success** envelope so the UI can render two standing affordances without reaching past the seam — both owned by the backend (see `backend.md`), tracked by the iteration-0007-r2 backlog issues:
+
+- **`source_url`** — the calculator's original calculator.net page, projected into the envelope from the **registry** (`calculators.source_url`, ingested from `INVENTORY.md`'s `source_url`, itself the spec's `Source`). The frontend renders a **"Compare on calculator.net"** link from it (`DESIGN.md §4`); a `nil`/absent value renders no link (never fabricate one).
+- **per-input `help` / abbreviation text** — optional plain-language text the **spec** authors per input (and per acronym output, §3.2), surfaced per field so the frontend can render an acronym/term **tooltip** (`DESIGN.md §4` *Abbreviation / term tooltip*; `DTI` → "Debt-to-Income ratio"). The text lives with the calculator (spec → envelope), not a frontend glossary.
+
+The exact key placement is the backend's to settle at build time; the contract intent is what's fixed here.
 
 ---
 
