@@ -152,6 +152,23 @@ truth for the *what* — build to it.** Two process points are specifically your
   stay. This is **money-only**: rates, percentages, counts, and other non-money numbers keep their
   own existing precision — do **not** force them to 2dp. `DESIGN.md §2` is the source of truth; build
   to it.
+- **Time-series charts label the time axis with real calendar dates (`DESIGN.md §4`).** A chart plotted over
+  months/periods (Auto Loan / Amortization / Mortgage *Balance over time*, Compound Interest growth, any
+  over-time schedule) labels its **axis ticks AND the crosshair/hover readout** as a real calendar **`Mon YYYY`**
+  — map period *n* → a **start date** (default the current month, or the series/loan start) + *n* months and feed
+  lightweight-charts real dates — **never** a bare month **number**. (iteration-0007: Auto Loan's *Balance Over
+  Time* showed `1, 2, 3…`, unreadable as a timeline.) Standing convention; apply on every regen. `DESIGN.md §4`
+  is the source of truth.
+- **Acronyms get a tooltip from the envelope — never an unexplained label (`DESIGN.md §2/§4`).** Render any
+  acronym/jargon term in a label or result as an `<abbr>` with a **hover + keyboard-focus tooltip** whose text
+  comes from the **§4 envelope's per-field `help`/abbreviation text** (`ARCHITECTURE.md §4`) — not a frontend
+  glossary. Dotted-underline cue (beyond colour, §6); native `<abbr title>` as the no-JS floor. If the envelope
+  lacks the expansion for an acronym a label uses, that's a backend/spec gap — **flag it, don't invent the
+  definition**. (iteration-0007 review: House Affordability's bare "DTI".)
+- **"Compare on calculator.net" link on every calculator page (`DESIGN.md §4`, `PRODUCT.md`).** Render a link to
+  the calculator's source from the **§4 envelope `source_url`** in the page chrome (a quiet `muted`/`faint`
+  affordance — footer or near the title) so a user can compare against the original. Read it from the envelope
+  only — **never hard-code a URL**; if `source_url` is absent, render no link.
 - **Test the worst case.** When you build or use a stat grid, add a render/state test that
   exercises a 6+ digit value, so a layout that looks fine on small numbers can't silently clip or
   wrap a large one — assertions a markup/text test cannot make. For a `--wide` grid assert the

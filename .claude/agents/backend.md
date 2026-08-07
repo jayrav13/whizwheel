@@ -205,6 +205,24 @@ How it works (read `app/calculators/base.rb` + `app/controllers/calculators_cont
 - It is **not** a numeric-guarded type — the per-element coercion/validation of the list is yours to write
   in the calculator. Use `array_attribute` for *any* list input, not only numeric ones.
 
+### Envelope extensions — `source_url` + per-field help text (iteration-0007-r2 harvest)
+
+The §4 envelope gains two fields the UI renders into standing affordances; both are **yours** to wire when the
+iteration-0007-r2 backlog issues are dispatched (don't pre-build):
+
+- **`source_url`** — each calculator's original calculator.net page, so the frontend can render a **"Compare on
+  calculator.net"** link (`DESIGN.md §4`). Source of truth is the **registry**: add a `source_url` column to the
+  `calculators` table (migration + model), have `calculators:ingest` project `INVENTORY.md`'s `source_url` field
+  into it, and include it in the §4 success envelope. The spec's **Source** header (`§3.2`) is the same URL — the
+  PM keeps INVENTORY and the spec Source in sync (the per-calculator backfill lands at iteration Open). A `nil`
+  `source_url` renders no link; **never fabricate a URL**.
+- **per-input `help` / abbreviation text** — for any input (or acronym output) whose label uses an acronym/jargon
+  term, the **spec** authors a one-line plain-language expansion (`DTI` → "Debt-to-Income ratio", `CAGR` →
+  "Compound Annual Growth Rate"). Surface that text per field in the §4 envelope so the frontend renders the
+  acronym tooltip (`DESIGN.md §4`). The text lives **with the calculator** (spec → envelope), not a frontend
+  glossary. If a spec uses an acronym without supplying its expansion, **hand back to the PM** — never invent the
+  definition.
+
 ### Numeric input is guarded *before* casting — a `Base` guarantee (#109/#110)
 
 ActiveModel runs a `:decimal`/`:integer` **cast before validation**, and the cast silently
